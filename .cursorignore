@@ -1,0 +1,24 @@
+# Generated / local artifacts
+.venv/
+venv/
+.env
+.env.*
+*.egg-info/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Large backtest & ML outputs (keep source; ignore bulky artifacts)
+results/
+
+# Market data (large CSV trees; use CLI paths when needed)
+data/
+
+# Binary plots (still on disk; skip indexing)
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.parquet

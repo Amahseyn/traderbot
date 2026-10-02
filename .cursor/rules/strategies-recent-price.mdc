@@ -1,0 +1,28 @@
+---
+description: Strategy signals must respect recent price path, not blind thresholds
+globs: traderbot/algorithms/**/*.py
+alwaysApply: false
+---
+
+# Recent-price context (strategies)
+
+Do not add entries that fire on a single indicator level alone.
+
+## Mean reversion (`rsi_threshold`, `bollinger_mean_reversion`)
+
+- Pair band/RSI triggers with **recent return over k bars** via `traderbot/algorithms/price_context.py`.
+- Defaults: `context_bars=0` preserves legacy behavior. When enabled, use `buy_min_recent_return` / `sell_max_recent_return` to avoid fading sharp recent moves.
+- Wire new knobs through `registry.py` `_KWARGS_FROM_ARGS` and `strategy_cli.py` (`--context-bars`, etc.).
+
+## Trend (`sma_cross`, `ema_cross`)
+
+- Optional `price_confirm`: require close on the trend side of the **fast** average before `buy`/`sell`.
+
+## MACD
+
+- Reuse `apply_mean_reversion_context` on cross signals when `context_bars > 0` so buys do not fire into a sharp dump.
+
+## Validation
+
+- Add or extend tests in `tests/test_strategies.py` / `tests/test_price_context.py`.
+- Re-check with `traderbot strategy compare <csv> --out ... --context-bars 3 --visualize` when changing behavior.

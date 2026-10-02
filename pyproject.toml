@@ -1,0 +1,47 @@
+[project]
+name = "traderbot"
+version = "0.1.0"
+description = "Nobitex trading bot utilities"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "cryptography>=42.0.0",
+    "requests>=2.31.0",
+]
+
+[project.scripts]
+traderbot = "traderbot.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project.optional-dependencies]
+ml = ["lightgbm>=4.0", "numpy>=1.24"]
+viz = ["matplotlib>=3.8"]
+backtest = ["vectorbt>=0.26", "pandas>=2.0", "numpy>=1.24"]
+chronos = ["chronos-forecasting>=1.4", "torch>=2.0"]
+dev = ["pytest>=8.0", "ruff>=0.8.0", "traderbot[ml,viz]"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["traderbot*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -m 'not integration'"
+markers = [
+    "integration: downloads or runs heavyweight models (Chronos)",
+    "full_matrix: LightGBM on all multisource assets and 4h/24h horizons",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501", "B027"]
+
+[tool.ruff.format]
+exclude = ["README.md"]

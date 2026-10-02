@@ -1,0 +1,9 @@
+{
+  "days": 90,
+  "jobs": [
+    { "src": "btc", "dst": "rls", "interval": "D" },
+    { "src": "btc", "dst": "rls", "interval": "60" },
+    { "src": "eth", "dst": "usdt", "interval": "D" },
+    { "src": "eth", "dst": "usdt", "interval": "15", "days": 14 }
+  ]
+}

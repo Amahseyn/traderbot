@@ -1,0 +1,54 @@
+from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+from traderbot.algorithms.price_context import apply_mean_reversion_context
+from traderbot.algorithms.signals import signal_from_cross
+from traderbot.algorithms.validators import validate_macd, validate_price_context
+from traderbot.ml.features import macd
+
+
+class MacdCrossAlgorithm(Algorithm):
+    """Enter long on MACD line crossing above signal; flat on cross below."""
+
+    name = "macd_cross"
+
+    def __init__(
+        self,
+        *,
+        fast: int = 12,
+        slow: int = 26,
+        signal: int = 9,
+        context_bars: int = 0,
+        buy_min_recent_return: float = -0.03,
+        sell_max_recent_return: float = 0.03,
+    ):
+        validate_macd(fast, slow, signal)
+        validate_price_context(context_bars, buy_min_recent_return, sell_max_recent_return)
+        self.fast = fast
+        self.slow = slow
+        self.signal = signal
+        self.context_bars = context_bars
+        self.buy_min_recent_return = buy_min_recent_return
+        self.sell_max_recent_return = sell_max_recent_return
+        self._closes: list[float] = []
+
+    def reset(self) -> None:
+        self._closes.clear()
+
+    def on_bar(self, bar: Bar) -> SignalAction:
+        self._closes.append(float(bar["close"]))
+        line, sig, _hist = macd(
+            self._closes,
+            fast=self.fast,
+            slow=self.slow,
+            signal=self.signal,
+        )
+        i = len(self._closes) - 1
+        if i < 1:
+            return "hold"
+        action = signal_from_cross(line[i - 1], sig[i - 1], line[i], sig[i])
+        return apply_mean_reversion_context(
+            action,
+            self._closes,
+            context_bars=self.context_bars,
+            buy_min_recent_return=self.buy_min_recent_return,
+            sell_max_recent_return=self.sell_max_recent_return,
+        )

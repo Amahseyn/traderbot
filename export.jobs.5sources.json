@@ -1,0 +1,24 @@
+{
+  "comment": "Five Nobitex markets; intervals cover all UDF resolutions (1..720, D, 2D, 3D).",
+  "jobs": [
+    { "src": "btc", "dst": "rls", "interval": "1", "days": 3 },
+    { "src": "btc", "dst": "rls", "interval": "15", "days": 14 },
+    { "src": "btc", "dst": "rls", "interval": "60", "days": 90 },
+    { "src": "btc", "dst": "rls", "interval": "D", "days": 365 },
+
+    { "src": "eth", "dst": "rls", "interval": "5", "days": 7 },
+    { "src": "eth", "dst": "rls", "interval": "30", "days": 21 },
+    { "src": "eth", "dst": "rls", "interval": "240", "days": 90 },
+    { "src": "eth", "dst": "rls", "interval": "2D", "days": 180 },
+
+    { "src": "eth", "dst": "usdt", "interval": "180", "days": 90 },
+    { "src": "eth", "dst": "usdt", "interval": "360", "days": 120 },
+    { "src": "eth", "dst": "usdt", "interval": "720", "days": 120 },
+
+    { "src": "xrp", "dst": "rls", "interval": "30", "days": 21 },
+    { "src": "xrp", "dst": "rls", "interval": "3D", "days": 365 },
+
+    { "src": "ltc", "dst": "rls", "interval": "60", "days": 60 },
+    { "src": "ltc", "dst": "rls", "interval": "D", "days": 180 }
+  ]
+}
