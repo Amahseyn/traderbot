@@ -29,6 +29,13 @@ def _load_dotenv(path: Path | None = None) -> None:
             os.environ[key] = value
 
 
+def _nobitex_keys_configured() -> bool:
+    _load_dotenv()
+    pub = os.environ.get("NOBITEX_API_PUBLIC_KEY", "").strip()
+    priv = os.environ.get("NOBITEX_API_PRIVATE_KEY", "").strip()
+    return bool(pub and priv)
+
+
 def _print_profile() -> None:
     from traderbot.client import NobitexClient, NobitexClientError
 
@@ -48,7 +55,10 @@ def _build_root_parser() -> argparse.ArgumentParser:
         prog="traderbot",
         description="Nobitex trading bot utilities (export, backtest, ML, pipelines).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Run `traderbot` with no arguments to print your Nobitex profile (.env keys required).",
+        epilog=(
+            "With no arguments: interactive menu (TTY) or this help. "
+            "Same menu: traderbot cli. Non-interactive: traderbot <command> …"
+        ),
     )
     sub = parser.add_subparsers(dest="command", metavar="command")
     for name, (help_text, _) in sorted(_COMMANDS.items()):
@@ -65,13 +75,25 @@ def _register_commands() -> None:
     from traderbot.ml_cli import main as ml_main
     from traderbot.pipeline_cli import main as pipeline_main
     from traderbot.strategy_cli import main as strategy_main
+    from traderbot.auth_cli import main as auth_main
+    from traderbot.interface_cli import main as interface_main
+    from traderbot.interactive_cli import main as interactive_main
+    from traderbot.terminal_cli import main as terminal_main
 
+    _register("cli", "Interactive menu (data, strategy, ml, auth, …)", interactive_main)
     _register("export", "Download OHLC candles to CSV", export_main)
+    _register("auth", "Login, API key create/list, verify .env credentials", auth_main)
     _register("backtest", "Backtest one strategy on a CSV", backtest_main)
     _register("strategy", "Strategy catalog, compare, and batch backtests", strategy_main)
     _register("ml", "Forecast model catalog and batch eval", ml_main)
     _register("pipeline", "Named end-to-end research pipelines", pipeline_main)
-    _register("data", "Rebuild crypto horizon slices on disk", data_main)
+    _register("data", "Market list, live UDF charts, and horizon slices", data_main)
+    _register(
+        "interface",
+        "Catalog, list, pick, and run CLI actions (export, ML, strategy, pipelines)",
+        interface_main,
+    )
+    _register("terminal", "Live, once, and CSV replay strategy loops", terminal_main)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -79,7 +101,12 @@ def main(argv: list[str] | None = None) -> None:
     args = list(sys.argv[1:] if argv is None else argv)
 
     if not args:
-        _print_profile()
+        if sys.stdin.isatty():
+            from traderbot.interactive.menu import run_interactive_hub
+
+            run_interactive_hub()
+        else:
+            _build_root_parser().print_help()
         return
 
     if args[0] in ("-h", "--help"):

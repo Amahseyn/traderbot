@@ -21,6 +21,12 @@ from traderbot.algorithms.visualize import (
     wants_visualization,
 )
 from traderbot.backtest import load_bars_csv, run_backtest
+from traderbot.results.layout import (
+    default_strategy_batch_out,
+    default_strategy_compare_out,
+    result_tree_at,
+)
+from traderbot.algorithms.cli_args import add_strategy_param_flags
 from traderbot.backtest_vectorbt import vectorbt_extra_for_backtest
 
 
@@ -55,36 +61,7 @@ def _vectorbt_extra(
 
 
 def _add_param_flags(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--fast", type=int, default=5, help="SMA/EMA/MACD fast period")
-    parser.add_argument("--slow", type=int, default=20, help="SMA/EMA/MACD slow period")
-    parser.add_argument("--signal", type=int, default=9, help="MACD signal period")
-    parser.add_argument("--period", type=int, default=14, help="RSI or Bollinger lookback")
-    parser.add_argument("--oversold", type=float, default=30.0, help="RSI oversold threshold")
-    parser.add_argument("--overbought", type=float, default=70.0, help="RSI overbought threshold")
-    parser.add_argument("--num-std", type=float, default=2.0, help="Bollinger band width (std devs)")
-    parser.add_argument(
-        "--context-bars",
-        type=int,
-        default=0,
-        help="Recent-price filter lookback (0=off). Mean-reversion / MACD: block entries against sharp recent moves.",
-    )
-    parser.add_argument(
-        "--buy-min-recent-return",
-        type=float,
-        default=-0.03,
-        help="With --context-bars>0, skip buys if cumulative return over lookback is below this (e.g. -0.03).",
-    )
-    parser.add_argument(
-        "--sell-max-recent-return",
-        type=float,
-        default=0.03,
-        help="With --context-bars>0, skip sells if cumulative return over lookback is above this.",
-    )
-    parser.add_argument(
-        "--price-confirm",
-        action="store_true",
-        help="SMA/EMA: require close on the trend side of the fast average before entering.",
-    )
+    add_strategy_param_flags(parser)
 
 
 def _run_backtest(
@@ -120,7 +97,12 @@ def main(argv: list[str] | None = None) -> None:
     batch.add_argument("--strategy", choices=implemented_strategy_ids(), default="sma_cross")
     batch.add_argument("--cash", type=float, default=10_000.0)
     batch.add_argument("--fee", type=float, default=0.0)
-    batch.add_argument("--out", type=Path, default=Path("results/strategies"))
+    batch.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Experiment root (default: results/strategies/batch/<strategy>/)",
+    )
     batch.add_argument("--min-bars", type=int, default=30)
     add_visualization_flags(batch)
     _add_vectorbt_flag(batch)
@@ -180,6 +162,8 @@ def main(argv: list[str] | None = None) -> None:
         if not args.csv_dir.is_dir():
             print(f"Not a directory: {args.csv_dir}", file=sys.stderr)
             sys.exit(1)
+        batch_root = args.out or default_strategy_batch_out(args.strategy)
+        tree = result_tree_at(batch_root, run_id=args.strategy)
         manifest: list[dict[str, Any]] = []
         for csv_path in sorted(args.csv_dir.glob("*.csv")):
             bars = load_bars_csv(csv_path)
@@ -187,7 +171,7 @@ def main(argv: list[str] | None = None) -> None:
                 continue
             algo, result = _run_backtest(bars, args.strategy, args)
             vbt_extra = _vectorbt_extra(algo, bars, args)
-            run_dir = args.out / f"{csv_path.stem}_{args.strategy}"
+            run_dir = tree.run_dir_flat(csv_path.stem)
             viz = wants_visualization(args, has_out=True)
             save_backtest_result(
                 algo,
@@ -214,8 +198,7 @@ def main(argv: list[str] | None = None) -> None:
                     ),
                 }
             )
-        args.out.mkdir(parents=True, exist_ok=True)
-        manifest_path = args.out / "batch_manifest.json"
+        manifest_path = tree.reports / "batch_manifest.json"
         manifest_path.write_text(
             json.dumps({"strategy_id": args.strategy, "runs": manifest}, indent=2),
             encoding="utf-8",
@@ -230,7 +213,11 @@ def main(argv: list[str] | None = None) -> None:
             sys.exit(1)
         ranked: list[dict[str, Any]] = []
         equity_by_strategy: dict[str, list[tuple[int, float]]] = {}
-        viz = args.out is not None and wants_visualization(args, has_out=True)
+        compare_root = args.out
+        if compare_root is None and wants_visualization(args, has_out=False):
+            compare_root = default_strategy_compare_out(args.csv)
+        tree = result_tree_at(compare_root, run_id=args.csv.stem) if compare_root is not None else None
+        viz = compare_root is not None and wants_visualization(args, has_out=True)
         for strategy_id in implemented_strategy_ids():
             algo, result = _run_backtest(bars, strategy_id, args)
             equity_by_strategy[strategy_id] = list(result.equity_curve)
@@ -241,8 +228,8 @@ def main(argv: list[str] | None = None) -> None:
                 extra={"strategy_id": strategy_id, **_vectorbt_extra(algo, bars, args)},
             )
             ranked.append(row)
-            if args.out is not None:
-                run_dir = args.out / f"{args.csv.stem}_{strategy_id}"
+            if tree is not None:
+                run_dir = tree.run_dir_flat(strategy_id)
                 save_backtest_result(
                     algo,
                     result,
@@ -264,8 +251,7 @@ def main(argv: list[str] | None = None) -> None:
             "best_strategy_id": best["strategy_id"] if best else None,
             "strategies": ranked,
         }
-        if args.out is not None:
-            args.out.mkdir(parents=True, exist_ok=True)
+        if tree is not None:
             if viz:
                 try:
                     compare_paths = render_compare_plots(
@@ -274,12 +260,12 @@ def main(argv: list[str] | None = None) -> None:
                         initial_cash=args.cash,
                         ranked_rows=ranked,
                         equity_by_strategy=equity_by_strategy,
-                        out_dir=args.out,
+                        out_dir=compare_root,
                     )
                     payload["visualization"] = compare_visualization_paths_to_dict(compare_paths)
                 except ImportError:
                     pass
-            manifest_path = args.out / "compare_manifest.json"
+            manifest_path = tree.reports / "compare_manifest.json"
             manifest_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
             payload["manifest"] = str(manifest_path)
         print(json.dumps(payload, indent=2))

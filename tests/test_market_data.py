@@ -1,5 +1,5 @@
 from traderbot.export_csv import load_jobs, write_csv
-from traderbot.market_data import market_symbol, ohlc_rows
+from traderbot.market_data import incremental_bar_source, market_symbol, ohlc_rows
 
 
 def test_market_symbol():
@@ -55,3 +55,28 @@ def test_write_csv(tmp_path):
     text = path.read_text(encoding="utf-8")
     assert "BTCIRT" in text
     assert "close" in text.splitlines()[0]
+
+
+def test_incremental_bar_source_dedupes(monkeypatch):
+    bar_a = {
+        "symbol": "BTCIRT",
+        "resolution": "60",
+        "timestamp": 100,
+        "open": 1.0,
+        "high": 1.0,
+        "low": 1.0,
+        "close": 1.0,
+        "volume": 1.0,
+    }
+    bar_b = {**bar_a, "timestamp": 200, "close": 2.0}
+    queue = [bar_a, bar_a, bar_b, bar_b]
+
+    def fake_fetch(**_kwargs):
+        return queue.pop(0) if queue else bar_b
+
+    monkeypatch.setattr("traderbot.market_data.fetch_latest_closed_bar", fake_fetch)
+    source = incremental_bar_source(symbol="BTCIRT", resolution="60")
+    assert source()["timestamp"] == 100
+    assert source() is None
+    assert source()["timestamp"] == 200
+    assert source() is None

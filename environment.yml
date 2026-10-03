@@ -1,0 +1,15 @@
+# Conda environment for traderbot (Python 3.12).
+#
+#   conda env create -f environment.yml
+#   conda activate traderbot
+#   traderbot --help
+#
+# Installs the package editable with dev + ML + matplotlib + vectorbt extras.
+name: traderbot
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - -e ".[dev,backtest]"

@@ -6,14 +6,31 @@ venv/
 *.egg-info/
 .pytest_cache/
 __pycache__/
+.mypy_cache/
+.ruff_cache/
 *.py[cod]
 .DS_Store
+.git/
 
-# Large backtest & ML outputs (keep source; ignore bulky artifacts)
+# Build / coverage
+dist/
+build/
+htmlcov/
+.coverage
+coverage.xml
+*.log
+
+# Large backtest, ML, pipeline outputs
 results/
+solutions/
 
-# Market data (large CSV trees; use CLI paths when needed)
+# Market data & tabular dumps (use explicit paths when needed)
 data/
+**/*.csv
+**/*.parquet
+
+# Batch manifest noise
+**/*manifest*.json
 
 # Binary plots (still on disk; skip indexing)
 **/*.png
@@ -21,4 +38,7 @@ data/
 **/*.jpeg
 **/*.gif
 **/*.webp
-**/*.parquet
+
+# Optional local ML caches
+.cache/
+**/.chronos/

@@ -8,6 +8,18 @@ from traderbot.traders.execution import ExecutionPolicy
 from traderbot.traders.strategies.algorithm_trader import AlgorithmTrader
 
 
+def test_root_cli_no_args_without_keys_prints_help(capsys, monkeypatch):
+    from traderbot.cli import main
+
+    monkeypatch.delenv("NOBITEX_API_PUBLIC_KEY", raising=False)
+    monkeypatch.delenv("NOBITEX_API_PRIVATE_KEY", raising=False)
+    monkeypatch.setattr("sys.stdin", type("S", (), {"isatty": lambda self: False})())
+    main([])
+    out = capsys.readouterr().out
+    assert "export" in out
+    assert "strategy" in out
+
+
 def test_root_cli_help(capsys):
     from traderbot.cli import main
 
@@ -15,6 +27,10 @@ def test_root_cli_help(capsys):
     out = capsys.readouterr().out
     assert "export" in out
     assert "strategy" in out
+    assert "interface" in out
+    assert "auth" in out
+    assert "cli" in out
+    assert "terminal" in out
 
 
 def test_root_cli_unknown_command():

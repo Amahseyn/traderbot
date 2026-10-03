@@ -2,15 +2,34 @@
 
 Nobitex API client using your existing API keys ([docs-api](https://github.com/nobitex/docs-api)).
 
+**Python 3.12** (required). Recommended: conda env from this repo:
+
+```bash
+conda env create -f environment.yml
+conda activate traderbot
+```
+
+Or pip on 3.12:
+
 ```bash
 pip install -e ".[dev]"
 ```
 
-`.env`:
+`.env` (see `.env.example`):
 
 ```
-NOBITEX_API_PUBLIC_KEY=   # Nobitex-Key (from panel when you created the key)
-NOBITEX_API_PRIVATE_KEY=  # privateKey (saved once at creation)
+NOBITEX_API_PUBLIC_KEY=   # Nobitex-Key (public half of API key pair)
+NOBITEX_API_PRIVATE_KEY=  # privateKey (shown once at create)
+NOBITEX_AUTH_TOKEN=       # optional: session from `traderbot auth login --write-env`
+```
+
+**CLI auth** (Nobitex [API key docs](https://apidocs.nobitex.ir/api_key/api-key-guide)):
+
+```bash
+traderbot auth login --write-env          # prompts email, password, 2FA code
+traderbot auth apikeys list
+traderbot auth apikeys create --permissions READ --write-env   # prompts 2FA code
+traderbot auth check    # verify NOBITEX_API_* (signed profile request)
 ```
 
 ```python
@@ -59,13 +78,37 @@ print(result.return_pct)
 ```
 
 CLI: `traderbot backtest data/BTCIRT_D.csv --strategy sma_cross --fast 5 --slow 20`  
-Compare all strategies on one CSV (charts under `visualizations/` when `--out` is set):  
-`traderbot strategy compare data/crypto/ohlc/BTCIRT_60.csv --out results/strategies/compare_BTCIRT_60`  
+Compare all strategies on one CSV (writes under `results/strategies/compare/<asset>/` when `--out` or `--visualize` is set):  
+`traderbot strategy compare data/crypto/ohlc/BTCIRT_60.csv --visualize`  
 Optional recent-price filters: `--context-bars 3` (mean-reversion / MACD), `--price-confirm` (SMA/EMA). Defaults preserve indicator-only behavior.  
 Use `--visualize` to force charts, `--no-visualize` (or `--no-plot`) to skip.  
-Batch: `traderbot strategy batch data/crypto/ohlc --strategy ema_cross --out results/strategies`
+Batch: `traderbot strategy batch data/crypto/ohlc --strategy ema_cross` → `results/strategies/batch/<strategy>/`
 
-Quick check: `traderbot` (prints profile JSON)
+Interactive CLI (recommended): run `traderbot` or `traderbot cli` in a terminal — pick a menu (**Charts & compare**, data, strategy, ML, auth, …), then an action. Press `0` to go back or exit.
+
+Quick check with API keys: section **Nobitex profile** in the menu, or `traderbot auth check`
+
+Research CLI catalog (export, charts, ML, pipelines — not live trading):
+
+```bash
+traderbot interface catalog          # full JSON: command_tree, pickables, strategies, models
+traderbot interface list             # pickable ids (use --kind workflow --tag data)
+traderbot interface describe workflow/download-multisource
+traderbot interface pick             # numbered menu (TTY); add --run to execute
+traderbot interface run strategy/compare-btc60
+traderbot interface run workflow/download-multisource --dry-run
+```
+
+Terminal module (`traderbot terminal`; implementation under `traderbot/terminal/`):
+
+```bash
+traderbot terminal catalog --implemented-only
+traderbot terminal once --src btc --dst rls --interval 60 --strategy sma_cross
+traderbot terminal run --src btc --dst rls --interval 60 --strategy ema_cross --poll-sec 60
+traderbot terminal replay data/crypto/ohlc/BTCIRT_60.csv --strategy ema_cross
+```
+
+`.env` keys are required for `run` (Nobitex client); `once`/`replay` use public UDF or CSV only. Paper mode is default (buy/sell JSON lines on stdout). `--max-steps 5` smoke-tests `run`. `--live` switches execution policy (override `on_signal` for real orders). Strategy params match `traderbot strategy` (`--fast`, `--context-bars`, …).
 
 ### OHLC → CSV (no API key; public `GET /market/udf/history`)
 
@@ -85,12 +128,17 @@ Five crypto markets, all candle intervals (writes `data/crypto/ohlc/` plus compl
 
 ```bash
 traderbot export --jobs export.jobs.5sources.json --out data/crypto
+# List supported markets (from export.jobs.5sources.json) and live UDF dashboard:
+traderbot data markets
+traderbot data live --interval 60 --bars 96   # default out: results/data/live/
+traderbot data live --interval 60 --poll-sec 60   # refresh PNG every minute
+
 # Rebuild horizon folders from existing OHLC without re-downloading:
 traderbot data horizons --from data/crypto/ohlc
 
-traderbot ml batch data/crypto/ohlc --out results/crypto --model lightgbm --all-horizons
+traderbot ml batch data/crypto/ohlc --model lightgbm --all-horizons   # → results/ml/ohlc/
 # Or one horizon at a time (every CSV in the folder is complete for that window):
-traderbot ml batch data/crypto/horizons/4h --out results/crypto_4h --model lightgbm
+traderbot ml batch data/crypto/horizons/4h --model lightgbm   # → results/ml/4h/
 pytest tests/test_multisource_data.py -q
 ```
 
@@ -146,15 +194,24 @@ solutions/lightgbm_multisource_all_horizons/
 
 Override location: `traderbot pipeline run <id> --solutions-root . --solution-root path/to/custom`
 
-Batch output: `results/multisource/<SYMBOL>_<INTERVAL>/` with `results.json`, `actual_vs_predicted.png`, `residuals.png`, `sample_100_usd.png` (strategy vs buy & hold from a **$100** paper account), `feature_importance.png`, plus `batch_manifest.json`. Charts and stderr include MAE/RMSE and profit vs buy & hold.
+Ad-hoc CLI output uses the same tree shape as pipelines, under typed folders in **`results/`**:
 
-**Output paths:** `traderbot pipeline run …` writes under **`solutions/<pipeline_slug>/`**. Ad-hoc `traderbot ml batch`, `traderbot strategy compare`, and `traderbot backtest --out` use **`results/`** (or your `--out` path).
+```
+results/
+  ml/<batch_name>/runs/<asset>/<horizon>/results.json + visualizations/
+  strategies/compare/<asset>/runs/<strategy_id>/…
+  strategies/batch/<strategy>/runs/<csv_stem>/…
+  data/live/visualizations/
+```
+
+Manifests: `reports/batch_manifest.json`, `reports/compare_manifest.json`. Per-run PNGs live in `visualizations/`. Charts and stderr include MAE/RMSE and profit vs buy & hold where applicable.
+
+**Output paths:** `traderbot pipeline run …` writes under **`solutions/<pipeline_slug>/`**. Ad-hoc commands default into **`results/<domain>/…`** (override with `--out`).
 
 Intervals: `1`, `5`, `15`, `30`, `60`, `180`, `240`, `360`, `720`, `D`, `2D`, `3D`
 
 ```bash
 pytest          # unit tests (excludes integration marker)
-ruff check .    # lint (CI)
 ```
 
 ### ML — crypto time series (LightGBM, Chronos, …)
@@ -182,8 +239,8 @@ pip install -e ".[chronos]"      # Amazon Chronos (PyTorch + pretrained weights)
 ```bash
 traderbot ml catalog
 traderbot ml catalog --implemented-only
-traderbot ml run data/BTCIRT_60.csv --model lightgbm --horizon-bars 4 --bar-minutes 60 --out results
-traderbot ml run data/BTCIRT_60.csv --model chronos --horizon-bars 24 --bar-minutes 60 --out results
+traderbot ml run data/BTCIRT_60.csv --model lightgbm --horizon-bars 4 --bar-minutes 60
+traderbot ml run data/BTCIRT_60.csv --model chronos --horizon-bars 24 --bar-minutes 60
 ```
 
 **Results** (per run under `--out`):

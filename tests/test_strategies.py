@@ -121,7 +121,7 @@ def test_strategy_cli_compare(tmp_path):
     write_csv(csv_path, _bars(closes))
     out_dir = tmp_path / "compare_out"
     strategy_main(["compare", str(csv_path), "--out", str(out_dir), "--no-visualize"])
-    manifest = json.loads((out_dir / "compare_manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((out_dir / "reports" / "compare_manifest.json").read_text(encoding="utf-8"))
     assert manifest["bars"] == len(closes)
     assert len(manifest["strategies"]) == 5
     assert manifest["best_strategy_id"] in {s["strategy_id"] for s in manifest["strategies"]}
@@ -137,18 +137,48 @@ def test_strategy_cli_compare_visualization(tmp_path):
     write_csv(csv_path, _bars(closes))
     out_dir = tmp_path / "compare_viz"
     strategy_main(["compare", str(csv_path), "--out", str(out_dir), "--visualize"])
-    manifest = json.loads((out_dir / "compare_manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((out_dir / "reports" / "compare_manifest.json").read_text(encoding="utf-8"))
     viz = manifest["visualization"]
     assert Path(viz["strategy_ranking"]).is_file()
     assert Path(viz["equity_overlay"]).is_file()
     assert Path(viz["drawdown_overlay"]).is_file()
     assert Path(viz["asset_price"]).is_file()
-    first_run = out_dir / f"btc_{manifest['strategies'][0]['strategy_id']}"
+    first_run = out_dir / "runs" / manifest["strategies"][0]["strategy_id"]
     summary = json.loads((first_run / "backtest_summary.json").read_text(encoding="utf-8"))
     per = summary["visualization"]
     assert Path(per["equity_curve"]).is_file()
     assert Path(per["drawdown"]).is_file()
     assert Path(per["price_trades"]).is_file()
+
+
+def test_strategy_cli_batch_writes_run_tree(tmp_path):
+    csv_dir = tmp_path / "ohlc"
+    csv_dir.mkdir()
+    from traderbot.export_csv import write_csv
+
+    write_csv(csv_dir / "btc.csv", _bars([100.0] * 40))
+    out = tmp_path / "batch_exp"
+    strategy_main(
+        [
+            "batch",
+            str(csv_dir),
+            "--strategy",
+            "sma_cross",
+            "--fast",
+            "2",
+            "--slow",
+            "3",
+            "--out",
+            str(out),
+            "--no-visualize",
+        ]
+    )
+    manifest = json.loads((out / "reports" / "batch_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["strategy_id"] == "sma_cross"
+    assert len(manifest["runs"]) == 1
+    run_dir = Path(manifest["runs"][0]["run_dir"])
+    assert run_dir == (out / "runs" / "btc").resolve()
+    assert (run_dir / "backtest_summary.json").is_file()
 
 
 def test_strategy_backtest_visualization(tmp_path):

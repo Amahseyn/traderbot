@@ -1,13 +1,11 @@
 ---
-description: ML features and horizons — causal, path-aware
+description: ML features — causal, path-aware
 globs: traderbot/ml/**/*.py
 alwaysApply: false
 ---
 
-# ML features & horizons
+# ML features
 
-- Build features in `build_feature_rows` (`traderbot/ml/features.py`) so each row at index `i` uses only bars `0..i`.
-- Prefer explicit **recent path** signals: multi-bar returns, distance from rolling mean / bands, ATR regime — not only slow oscillators.
-- Horizon labels use `forward_log_return`; respect `min_bars_for_forecast_eval` and embargo in `traderbot/ml/dataset.py`.
-- Batch runs: `traderbot ml batch ... --all-horizons`; horizon slices under `data/crypto/horizons/`.
-- When tuning per horizon, sanity-check against recent price regime; do not leak holdout prices into training labels.
+- `build_feature_rows` (`features.py`): row `i` uses bars `0..i` only.
+- Labels: `forward_log_return`; embargo in `dataset.py`.
+- Batch: `traderbot ml batch ... --all-horizons`; slices under `data/crypto/horizons/`.

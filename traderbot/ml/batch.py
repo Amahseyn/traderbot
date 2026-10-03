@@ -15,6 +15,7 @@ from traderbot.ml.intervals import (
 )
 from traderbot.ml.pipeline import model_for_id, run_forecast_eval
 from traderbot.ml.results import ModelRunResult, save_run_result
+from traderbot.results.layout import result_tree_at
 
 if TYPE_CHECKING:
     from traderbot.solutions.layout import SolutionLayout
@@ -48,16 +49,17 @@ def run_batch_on_directory(
     """
     Evaluate each ``*.csv`` in ``csv_dir``.
 
-    With ``layout``: writes under ``solutions/<slug>/runs/<asset>/<horizon>/``.
-    Otherwise uses ``out_dir`` (legacy flat folders).
+    With ``layout``: writes under ``<root>/runs/<asset>/<horizon>/`` (pipelines use ``solutions/``).
+    With ``out_dir``: same tree under that experiment folder.
     """
     csv_dir = csv_dir.resolve()
     if layout is None and out_dir is None:
         raise ValueError("provide out_dir or layout")
     if layout is not None:
         layout.ensure()
-    elif out_dir is not None:
-        out_dir.mkdir(parents=True, exist_ok=True)
+        tree = layout
+    else:
+        tree = result_tree_at(out_dir)  # type: ignore[arg-type]
 
     model = model_for_id(model_id, **model_kwargs)
     results: list[ModelRunResult] = []
@@ -91,12 +93,7 @@ def run_batch_on_directory(
                 train_ratio=train_ratio,
             )
             result.extra["dataset"] = csv_path.stem
-            if layout is not None:
-                run_out = layout.run_dir(csv_path.stem, result.horizon_label)
-            elif all_horizons:
-                run_out = out_dir / f"{csv_path.stem}_{result.horizon_label}"  # type: ignore[operator]
-            else:
-                run_out = out_dir / csv_path.stem  # type: ignore[operator]
+            run_out = tree.run_dir(csv_path.stem, result.horizon_label)
             save_run_result(result, run_out, render_plots=render_plots)
             results.append(result)
             runs_meta.append(
@@ -119,8 +116,6 @@ def run_batch_on_directory(
     }
     if layout is not None:
         manifest["solution"] = layout.slug
-        manifest_path = layout.reports / "batch_manifest.json"
-    else:
-        manifest_path = out_dir / "batch_manifest.json"  # type: ignore[operator]
+    manifest_path = tree.reports / "batch_manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return results

@@ -1,4 +1,5 @@
 import time
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -107,3 +108,50 @@ def fetch_ohlc_range(
     # API returns oldest-first or mixed; sort by time for CSV
     all_rows.sort(key=lambda r: r["timestamp"])
     return all_rows
+
+
+def fetch_latest_closed_bar(
+    *,
+    symbol: str,
+    resolution: str,
+    session: requests.Session | None = None,
+) -> dict[str, Any] | None:
+    """Return the most recent fully closed candle (second-to-last row when API returns the open bar)."""
+    to_ts = int(time.time())
+    payload = fetch_ohlc_page(
+        symbol=symbol,
+        resolution=resolution,
+        to_ts=to_ts,
+        page=1,
+        session=session,
+    )
+    rows = ohlc_rows(payload, symbol=symbol, resolution=resolution)
+    if not rows:
+        return None
+    rows.sort(key=lambda r: r["timestamp"])
+    if len(rows) >= 2:
+        return rows[-2]
+    return rows[-1]
+
+
+def incremental_bar_source(
+    *,
+    symbol: str,
+    resolution: str,
+    session: requests.Session | None = None,
+) -> Callable[[], dict[str, Any] | None]:
+    """Callable that yields each closed bar once (for live ``AlgorithmTrader`` loops)."""
+    last_ts: int | None = None
+
+    def source() -> dict[str, Any] | None:
+        nonlocal last_ts
+        bar = fetch_latest_closed_bar(symbol=symbol, resolution=resolution, session=session)
+        if bar is None:
+            return None
+        ts = int(bar["timestamp"])
+        if last_ts is not None and ts <= last_ts:
+            return None
+        last_ts = ts
+        return bar
+
+    return source

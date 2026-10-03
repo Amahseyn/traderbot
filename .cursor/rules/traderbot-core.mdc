@@ -1,12 +1,12 @@
 ---
-description: Traderbot project conventions (time-safe bars, minimal diffs)
+description: Traderbot conventions (minimal)
 alwaysApply: true
 ---
 
 # Traderbot core
 
-- **Bar semantics**: Strategies implement `Algorithm.on_bar` with only data up to the current bar close. No lookahead, no future bars in features or signals.
-- **Reuse**: Indicator math lives in `traderbot/ml/features.py`, `traderbot/algorithms/bands.py`, `traderbot/algorithms/streaming.py`. Do not duplicate RSI/MACD/ATR/Bollinger logic in strategies.
-- **ML holdout**: Training/eval uses time splits and horizon embargo (`tests/test_holdout_and_models.py`, README). New features must stay causal at time `t`.
-- **CLI**: User-facing entry points include `traderbot strategy`, `traderbot ml`, `traderbot data`, `traderbot pipeline`. Register new strategies in `traderbot/algorithms/registry.py`.
-- **Changes**: Small, focused diffs; match existing naming and tests under `tests/`. Run `pytest` for touched areas.
+- **Bars**: `on_bar` uses only data through current bar close (no lookahead).
+- **Reuse**: indicators in `ml/features.py`, `algorithms/bands.py`, `algorithms/streaming.py`.
+- **ML**: causal features; time split + embargo (`ml/dataset.py`, `tests/test_holdout_and_models.py`).
+- **CLI**: `traderbot` → `export`, `backtest`, `strategy`, `ml`, `data`, `interface`, `pipeline`, `terminal`. New strategies → `algorithms/registry.py`.
+- **Diffs**: small, tested (`pytest` on touched areas).

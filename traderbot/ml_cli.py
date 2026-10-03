@@ -11,6 +11,7 @@ from traderbot.ml.batch import run_batch_on_directory
 from traderbot.ml.pipeline import model_for_id, run_forecast_eval
 from traderbot.ml.registry import list_models
 from traderbot.ml.results import save_run_result
+from traderbot.results.layout import default_ml_batch_out, default_ml_run_out, result_tree_at
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -26,13 +27,23 @@ def main(argv: list[str] | None = None) -> None:
     run.add_argument("--model", choices=("lightgbm", "chronos"), default="lightgbm")
     run.add_argument("--horizon-bars", type=int, default=4, help="e.g. 4 on 1h bars = 4h ahead")
     run.add_argument("--bar-minutes", type=int, default=60)
-    run.add_argument("--out", type=Path, default=Path("results"))
+    run.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Experiment root (default: results/ml/<csv_stem>/runs/<horizon>/)",
+    )
     run.add_argument("--train-ratio", type=float, default=0.8)
 
     batch = sub.add_parser("batch", help="Run model on every CSV in a directory; write plots per dataset")
     batch.add_argument("csv_dir", type=Path)
     batch.add_argument("--model", choices=("lightgbm", "chronos"), default="lightgbm")
-    batch.add_argument("--out", type=Path, default=Path("results"))
+    batch.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Experiment root (default: results/ml/<csv_dir_name>/)",
+    )
     batch.add_argument("--train-ratio", type=float, default=0.8)
     batch.add_argument("--min-bars", type=int, default=50)
     batch.add_argument("--no-plots", action="store_true")
@@ -50,21 +61,23 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     if args.command == "batch":
+        out_dir = args.out or default_ml_batch_out(args.csv_dir)
         results = run_batch_on_directory(
             args.csv_dir,
-            out_dir=args.out,
+            out_dir=out_dir,
             model_id=args.model,
             min_bars=args.min_bars,
             train_ratio=args.train_ratio,
             render_plots=not args.no_plots,
             all_horizons=args.all_horizons,
         )
+        tree = result_tree_at(out_dir)
         print(
             json.dumps(
                 {
                     "run_count": len(results),
-                    "out_dir": str(args.out),
-                    "manifest": str(args.out / "batch_manifest.json"),
+                    "out_dir": str(out_dir),
+                    "manifest": str(tree.reports / "batch_manifest.json"),
                 },
                 indent=2,
             )
@@ -83,8 +96,10 @@ def main(argv: list[str] | None = None) -> None:
         bar_minutes=args.bar_minutes,
         train_ratio=args.train_ratio,
     )
-    out = args.out / f"{args.model}_{result.horizon_label}"
-    save_run_result(result, out)
+    experiment = args.out or default_ml_run_out(args.csv)
+    tree = result_tree_at(experiment, run_id=args.csv.stem)
+    run_out = tree.run_dir(args.csv.stem, result.horizon_label)
+    save_run_result(result, run_out)
     print(json.dumps(result.to_dict(), indent=2))
     if result.visualization:
         print(f"plots: {result.visualization.actual_vs_predicted.parent}", file=sys.stderr)

@@ -24,5 +24,4 @@ Do not add entries that fire on a single indicator level alone.
 
 ## Validation
 
-- Add or extend tests in `tests/test_strategies.py` / `tests/test_price_context.py`.
-- Re-check with `traderbot strategy compare <csv> --out ... --context-bars 3 --visualize` when changing behavior.
+- Tests: `tests/test_strategies.py`, `tests/test_price_context.py`.
