@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from traderbot.export_csv import load_jobs
-from traderbot.market_data import RESOLUTIONS, market_symbol
+from traderbot.data.export import load_jobs
+from traderbot.markets.market_data import RESOLUTIONS, market_symbol
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_JOBS_PATH = REPO_ROOT / "export.jobs.5sources.json"
@@ -21,13 +21,13 @@ class MarketSpec:
         return f"{self.src.upper()}/{self.dst.upper()}"
 
 
-def list_supported_markets(jobs_path: Path | None = None) -> tuple[MarketSpec, ...]:
+def list_supported_markets(jobs_path: Path | None = None) -> list[MarketSpec]:
     """Unique markets from an export jobs file (default: five-source crypto set)."""
     path = jobs_path or DEFAULT_JOBS_PATH
     if not path.is_file():
         raise FileNotFoundError(f"jobs file not found: {path}")
     jobs = load_jobs(path)
-    seen: set[str] = set[str]()
+    seen: set[str] = set()
     out: list[MarketSpec] = []
     for job in jobs:
         symbol = str(job["symbol"]).upper()
@@ -35,7 +35,7 @@ def list_supported_markets(jobs_path: Path | None = None) -> tuple[MarketSpec, .
             continue
         seen.add(symbol)
         out.append(market_spec_from_symbol(symbol))
-    return tuple(out)
+    return out
 
 
 def market_spec_from_symbol(symbol: str) -> MarketSpec:

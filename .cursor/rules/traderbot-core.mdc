@@ -5,8 +5,122 @@ alwaysApply: true
 
 # Traderbot core
 
-- **Bars**: `on_bar` uses only data through current bar close (no lookahead).
-- **Reuse**: indicators in `ml/features.py`, `algorithms/bands.py`, `algorithms/streaming.py`.
+## Naming
+
+### Functions and methods
+
+- `snake_case` only; each public name is **verb + object** so the call site reads like English.
+- **Load from disk** → `load_*` (e.g. `load_bars_csv`, `load_one_minute_bars`).
+- **Fetch over HTTP** → `fetch_*` (e.g. `fetch_one_minute_bars`, `fetch_latest_closed_bar`, `fetch_ohlc_page`).
+- **Pure transforms** → `build_*`, `attach_*`, `enrich_*`, `normalize_*`.
+- **Orchestration** → `run_*` (CLI handlers, pipelines, backtests).
+- **Resolve paths / metadata** → noun phrase (`one_minute_csv_for_coarse`, `market_symbol`).
+- **Time → API query** → `*_history_to_timestamp` (Nobitex `to` parameter); never expose `udf` in public names.
+- **Filter bar lists for causality** → `*_bars_known_at` with a full time parameter (see Variables).
+- Leading `_` only for helpers private to one module; do not import `_`-prefixed symbols elsewhere.
+- One canonical function per behavior — extend it instead of adding a synonym (`fine_bars_for_coarse`, `as_of_*`, etc. are not allowed).
+
+### Variables (locals, attributes, and parameters)
+
+Use the same rules for function parameters, loop variables, and assignments inside a function.
+
+**Shape**
+
+- `snake_case`, full words — no `tmp`, `val`, `res`, `ts`, `t`, `df` (except a real `pandas.DataFrame` named `dataframe` or `features_frame` if needed).
+- **Plural** for sequences: `bars`, `closes`, `feature_rows`, `one_minute_bars`, `jobs`.
+- **Singular** for one item: `bar`, `coarse_bar`, `job`, `payload` (HTTP JSON body).
+- **Counts and limits**: `bar_count`, `max_bars`, `horizon_bars`, `train_ratio` — put the unit in the name (`*_bars`, `*_minutes`, `*_seconds`).
+- **Booleans**: read as a question — `auto_load`, `render_plots`, `skip_export`, `permitted` (not `flag`, `ok`, `done`).
+
+**Time**
+
+- Integer POSIX seconds: suffix `_unix_seconds` — `known_at_unix_seconds`, `bar_open_unix_seconds`, `history_to_unix_seconds`.
+- Bar length in minutes: `bar_minutes`, `coarse_minutes`, `one_minute_bar_minutes` (prefer `ONE_MINUTE_BAR_MINUTES` constant when it is always 1m).
+- Do not use `as_of`, `as_of_ts`, `timestamp` as a **variable** name when you mean “decision time”; reserve `timestamp` for the `bar["timestamp"]` field only.
+
+**Paths and files**
+
+- `*_path` for `pathlib.Path`: `coarse_csv_path`, `one_minute_csv_path`, `csv_dir_path`.
+- Shorthand `*_csv` is fine when the value is always a CSV path: `coarse_csv`, `one_minute_csv`.
+
+**Market and bars**
+
+- `symbol` (e.g. `BTCIRT`), `resolution` (Nobitex string: `"1"`, `"60"`, `"D"`).
+- `open_price`, `close_price`, `high_price`, `low_price` when storing floats; inside a bar dict use keys `open`, `high`, `low`, `close`, `volume`, `timestamp` — do not rename those keys.
+- `action` for `buy` / `sell` / `hold`; `strategy_id`, `model_id` for registry strings.
+
+**Loops**
+
+- `for bar in bars:` — not `b`, `row`, `x`.
+- Index only when needed: `bar_index`, `train_end_index` — not bare `i` / `j` outside tiny numeric loops.
+
+**Avoid**
+
+- Single-letter names (except `__all__`, math in tests).
+- Duplicate meanings: one name per concept in a function (`bars` vs `coarse_bars` when both exist).
+- Hungarian-ish noise: `bars_list`, `path_str` — type is from annotations, not the name.
+
+### Constants (module level)
+
+- `SCREAMING_SNAKE`, full words: `ONE_MINUTE_RESOLUTION`, `ONE_MINUTE_BAR_MINUTES`, `MAX_CANDLES`.
+- Do not introduce opaque `FINE_*` for 1m data.
+- Shared durations and limits live in `traderbot/utils/constants.py` (e.g. `SECONDS_PER_MINUTE`, `SECONDS_PER_DAY`, `INTRAHOUR_RETURN_5_MINUTE_BARS`, `MIN_BAR_COUNT_TO_TRIM_FORMING_CANDLE`, `NOBITEX_HTTP_TIMEOUT_SECONDS`). Import and reuse — do not copy the same number elsewhere.
+- **Types on constants**: omit `int`, `float`, `str`, and `bool` annotations when the initializer is a literal or simple arithmetic on other constants (Python and type checkers infer the type). Keep annotations for containers and custom types (e.g. `INTRAHOUR_FEATURE_KEYS: tuple[str, ...]`, registry `tuple[CatalogEntry, ...]`).
+
+### Type annotations (general)
+
+- **Module constants**: as above — no redundant scalar annotations.
+- **Functions and methods**: keep parameter and return annotations where they document the API; omit redundant scalar annotations on parameters only when the default is a literal of the same type (e.g. `period=14` not `period: int = 14`). Always annotate parameters with no default and non-obvious return types.
+- **Dataclass / NamedTuple fields**: keep scalar annotations on fields with defaults (`implemented: bool = False`) — without them, CPython treats the name as a class variable, not a dataclass field.
+
+### Lists vs tuples
+
+- **Never use subscripted types as constructors** — not `list[int](xs)`, `tuple[str, ...](keys)`, or `set[str]()`. Use builtins: `list(xs)`, `tuple(xs)` only when a tuple is required, `set()`, `sorted(mapping)`.
+- **Module-level catalogs** (fixed at import): `STRATEGY_CATALOG: tuple[Entry, ...] = (...)` — tuple for an immutable registry.
+- **Runtime-built collections** (`list_*` helpers, deduped scan results, dict keys for CLI `choices`): return `list[...]`; build with `[]`, `.append`, list comprehensions, or `sorted(...)` — not `return tuple(out)` unless the value must be hashable.
+- **Fixed small bundles** (e.g. MACD triple, signing header pair): `tuple[float, float, float]` or unpacking `(a, b)` is fine — that is a structured record, not a growable sequence.
+
+### Magic numbers
+
+- No bare numeric literals in business logic when the meaning is domain-specific (bar sizes, windows, timeouts, pagination limits, default cash).
+- **Allowed without a named constant**: `0`, `1`, `-1` for obvious control flow; small integers in tests that exist only to assert arithmetic.
+- **Requires a named constant or parameter**: seconds per minute/day, intrahour lookback bar counts (5 / 15 / 60), HTTP timeouts, API page size (`MAX_CANDLES`), trim thresholds for forming candles, default backtest cash.
+- Prefer existing module constants (`utils/constants.py`, `market_data.MAX_CANDLES`, `backtest.DEFAULT_BACKTEST_INITIAL_CASH`) before adding a new one.
+- Units belong in the name: `*_seconds`, `*_minutes`, `*_bars`, `*_days` — not a comment on `60` or `86400`.
+
+### Domain vocabulary
+
+- **1m OHLC loaders and fetchers** → `one_minute_*` in function names.
+- **Intrahour feature columns** on coarse bars → `fine_return_*` (CSV / feature dict keys only).
+- **Coarse** files → `{symbol}_{resolution}.csv`; **1m sibling** → `{symbol}_1.csv`.
+
+## Bars and causality
+
+- `on_bar` uses only data through the current bar close (no lookahead).
+- At `known_at_unix_seconds`, only include bars whose close time is ≤ that instant (`one_minute_bars_known_at`).
+- For Nobitex history, set `to` to one full bar **before** `known_at_unix_seconds` (`one_minute_history_to_timestamp` for 1m; `markets.utils.history_to_timestamp` for other resolutions).
+
+## 1m OHLC entry points
+
+- CSV: `one_minute_csv_for_coarse`, `load_one_minute_bars` (`data/intrahour.py`).
+- Live API: `fetch_one_minute_bars` (`markets/market_data.py`).
+- OHLC CSV export: `data/export.py` (`load_jobs`, `write_csv`, `run_export`); CLI `cli/export.py`.
+- Nobitex HTTP/signing: `nobitex/client.py`, `nobitex/signing.py`.
+- Shared helpers: `one_minute_history_to_timestamp`, `one_minute_bars_known_at` (`utils/bars.py`).
+- Do not duplicate 1m load/fetch logic in CLI, batch, or pipelines.
+
+## Shared helpers (`utils`)
+
+- **Repo-wide** (backtest, ML, data loading, multiple packages): `traderbot/utils/` — one module per topic (`bars.py`, `constants.py`, …). Import from the defining module; `traderbot.utils` re-exports a small public set only.
+- **One package, several modules**: when the same helper would otherwise be copied or imported from the wrong sibling (e.g. a runner module), add `{package}/utils.py` and import from there (`markets/utils.py`, `terminal/utils.py`). Keep orchestration in named modules (`session.py`, `market_data.py`); do not grow `utils.py` into a second registry.
+- **Domain facades**: canonical implementations may live under `traderbot/utils/{ml,algorithms}.py` with thin re-exports at `traderbot.ml.utils` and `traderbot.algorithms.utils` for in-tree imports.
+
+## Other
+
+- **Reuse**: indicators in `ml/features.py`, `algorithms/bands.py`, `algorithms/streaming.py`; follow the **Shared helpers (`utils`)** section above.
 - **ML**: causal features; time split + embargo (`ml/dataset.py`, `tests/test_holdout_and_models.py`).
-- **CLI**: `traderbot` → `export`, `backtest`, `strategy`, `ml`, `data`, `interface`, `pipeline`, `terminal`. New strategies → `algorithms/registry.py`.
+- **CLI**: entry `traderbot.cli` (`cli/root.py`); subcommands in `cli/` (`backtest.py`, `strategy.py`, `ml.py`, …). User-facing commands unchanged: `export`, `backtest`, `strategy`, `ml`, `data`, `interface`, `pipeline`, `terminal`. New strategies → `algorithms/registry.py`.
+- **Backtesting**: `backtesting/` (`run_backtest`, `save_backtest_result`, optional `vectorbt`). Import `from traderbot.backtesting import …` only — no root shims.
+- **Package root**: keep `traderbot/__init__.py` minimal; no re-export barrel and no legacy `*_cli.py` / `backtest.py` files at package root.
+- **Imports**: module-level only — no `import` / `from … import` inside functions or methods. Lazy imports only for documented import-cycle breaks or optional extras (e.g. `matplotlib`).
 - **Diffs**: small, tested (`pytest` on touched areas).

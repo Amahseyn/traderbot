@@ -5,7 +5,7 @@ from typing import Any
 
 import requests
 
-from traderbot.client import BASE_URL, USER_AGENT, NobitexClientError
+from traderbot.nobitex.client import BASE_URL, USER_AGENT, NobitexClientError
 from traderbot.auth.session import normalize_totp
 
 
@@ -14,7 +14,7 @@ def login_v2(
     username: str,
     password: str,
     totp: str | None = None,
-    remember: bool = False,
+    remember = False,
     base_url: str = BASE_URL,
 ) -> dict[str, Any]:
     """

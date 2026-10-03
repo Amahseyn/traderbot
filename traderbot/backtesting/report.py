@@ -9,7 +9,7 @@ from traderbot.algorithms.visualize import (
     render_backtest_plots,
     visualization_paths_to_dict,
 )
-from traderbot.backtest import BacktestResult
+from traderbot.backtesting.engine import BacktestResult
 
 
 def backtest_summary_dict(
@@ -39,8 +39,8 @@ def save_backtest_result(
     *,
     bars: int,
     bar_rows: list[dict[str, Any]] | None = None,
-    visualize: bool = False,
-    write_plot: bool = False,
+    visualize = False,
+    write_plot = False,
     extra: dict[str, Any] | None = None,
 ) -> Path:
     """Write ``backtest_summary.json`` and optional charts under ``out_dir``."""

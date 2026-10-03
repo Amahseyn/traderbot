@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from traderbot.auth.envfile import upsert_env_vars
-from traderbot.auth_cli import _redact_apikey_response
+from traderbot.cli.auth import _redact_apikey_response
 
 
 def test_upsert_env_vars(tmp_path: Path):

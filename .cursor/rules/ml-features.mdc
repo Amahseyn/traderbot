@@ -6,6 +6,9 @@ alwaysApply: false
 
 # ML features
 
+- Follow **Naming** and **Magic numbers** in `traderbot-core.mdc`. For 1m CSV use `load_one_minute_bars`; pass `known_at_unix_seconds` when trimming. Use `one_minute_bars` / `one_minute_bar_minutes` in ML APIs (not `fine_bars`). Intrahour windows use `INTRAHOUR_RETURN_*_MINUTE_BARS` constants.
 - `build_feature_rows` (`features.py`): row `i` uses bars `0..i` only.
+- Optional 1m intrahour columns (`fine_return_*`) align to any coarse CSV via `load_one_minute_bars` (sibling `{base}_1.csv` or `--fine-csv`). ML/batch: `auto_load=not --no-auto-fine`.
 - Labels: `forward_log_return`; embargo in `dataset.py`.
+- Holdout sim stages: `--sim-decision-bars`, `--sim-hold-bars`, `--sim-align-to-horizon` (`ml/simulation_config.py`).
 - Batch: `traderbot ml batch ... --all-horizons`; slices under `data/crypto/horizons/`.

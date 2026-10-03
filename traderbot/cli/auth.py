@@ -8,11 +8,10 @@ import sys
 from pathlib import Path
 
 from traderbot.auth.apikeys import create_api_key, list_api_keys
-from traderbot.auth.envfile import upsert_env_vars
+from traderbot.auth.envfile import load_env_file, upsert_env_vars
 from traderbot.auth.login import login_v2
 from traderbot.auth.session import normalize_totp, token_from_env
-from traderbot.cli import _load_dotenv
-from traderbot.client import NobitexClient, NobitexClientError
+from traderbot.nobitex.client import NobitexClient, NobitexClientError
 
 
 def _prompt_username() -> str:
@@ -44,13 +43,13 @@ def _redact_apikey_response(data: dict) -> dict:
 
 
 def _cmd_check() -> None:
-    _load_dotenv()
+    load_env_file()
     data = NobitexClient.from_env().request("GET", "/users/profile")
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
 
 def _cmd_login(args: argparse.Namespace) -> None:
-    _load_dotenv()
+    load_env_file()
     username = args.username or os.environ.get("NOBITEX_USERNAME", "").strip()
     if not username:
         username = _prompt_username()
@@ -86,7 +85,7 @@ def _cmd_login(args: argparse.Namespace) -> None:
 def _resolve_token(args: argparse.Namespace) -> str:
     if args.token:
         return args.token.strip()
-    _load_dotenv()
+    load_env_file()
     return token_from_env()
 
 
@@ -180,7 +179,7 @@ def main(argv: list[str] | None = None) -> None:
     create.add_argument("--env-file", type=Path, default=Path(".env"))
 
     args = parser.parse_args(argv)
-    _load_dotenv()
+    load_env_file()
 
     try:
         if args.command == "check":

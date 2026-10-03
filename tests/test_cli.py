@@ -3,7 +3,7 @@ import json
 import pytest
 
 from traderbot.algorithms.base import Algorithm, Bar, SignalAction
-from traderbot.client import NobitexClient
+from traderbot.nobitex.client import NobitexClient
 from traderbot.traders.execution import ExecutionPolicy
 from traderbot.traders.strategies.algorithm_trader import AlgorithmTrader
 
@@ -100,7 +100,7 @@ def test_execution_policy_live_routes_to_on_signal(keys):
 
 
 def test_ml_catalog_implemented_only_flag(capsys):
-    from traderbot.ml_cli import main
+    from traderbot.cli.ml import main
 
     main(["catalog", "--implemented-only"])
     out = capsys.readouterr().out

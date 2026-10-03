@@ -3,7 +3,8 @@ import json
 import os
 import sys
 from collections.abc import Callable
-from pathlib import Path
+
+from traderbot.auth.envfile import load_env_file
 
 _COMMANDS: dict[str, tuple[str, Callable[[list[str]], None]]] = {}
 
@@ -15,31 +16,17 @@ def _register(name: str, help_text: str, main_fn: Callable[[list[str] | None], N
     _COMMANDS[name] = (help_text, runner)
 
 
-def _load_dotenv(path: Path | None = None) -> None:
-    path = path or Path.cwd() / ".env"
-    if not path.is_file():
-        return
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key, value = key.strip(), value.strip().strip('"').strip("'")
-        if key and key not in os.environ:
-            os.environ[key] = value
-
-
 def _nobitex_keys_configured() -> bool:
-    _load_dotenv()
+    load_env_file()
     pub = os.environ.get("NOBITEX_API_PUBLIC_KEY", "").strip()
     priv = os.environ.get("NOBITEX_API_PRIVATE_KEY", "").strip()
     return bool(pub and priv)
 
 
 def _print_profile() -> None:
-    from traderbot.client import NobitexClient, NobitexClientError
+    from traderbot.nobitex.client import NobitexClient, NobitexClientError
 
-    _load_dotenv()
+    load_env_file()
     try:
         data = NobitexClient.from_env().request("GET", "/users/profile")
     except NobitexClientError as e:
@@ -69,16 +56,16 @@ def _build_root_parser() -> argparse.ArgumentParser:
 def _register_commands() -> None:
     if _COMMANDS:
         return
-    from traderbot.backtest_cli import main as backtest_main
-    from traderbot.data_cli import main as data_main
-    from traderbot.export_csv import main as export_main
-    from traderbot.ml_cli import main as ml_main
-    from traderbot.pipeline_cli import main as pipeline_main
-    from traderbot.strategy_cli import main as strategy_main
-    from traderbot.auth_cli import main as auth_main
-    from traderbot.interface_cli import main as interface_main
-    from traderbot.interactive_cli import main as interactive_main
-    from traderbot.terminal_cli import main as terminal_main
+    from traderbot.cli.auth import main as auth_main
+    from traderbot.cli.backtest import main as backtest_main
+    from traderbot.cli.data import main as data_main
+    from traderbot.cli.interface import main as interface_main
+    from traderbot.cli.interactive import main as interactive_main
+    from traderbot.cli.ml import main as ml_main
+    from traderbot.cli.pipeline import main as pipeline_main
+    from traderbot.cli.strategy import main as strategy_main
+    from traderbot.cli.terminal import main as terminal_main
+    from traderbot.cli.export import main as export_main
 
     _register("cli", "Interactive menu (data, strategy, ml, auth, …)", interactive_main)
     _register("export", "Download OHLC candles to CSV", export_main)

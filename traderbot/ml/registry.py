@@ -63,7 +63,7 @@ MODEL_CATALOG: tuple[ModelCatalogEntry, ...] = (
 )
 
 
-def list_models(*, implemented_only: bool = False) -> list[ModelCatalogEntry]:
+def list_models(*, implemented_only = False) -> list[ModelCatalogEntry]:
     if implemented_only:
         return [m for m in MODEL_CATALOG if m.implemented]
     return list(MODEL_CATALOG)

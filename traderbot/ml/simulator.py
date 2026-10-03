@@ -4,37 +4,20 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from traderbot.ml.simulation_config import SimulationConfig
+from traderbot.ml.utils import (
+    buy_hold_value,
+    final_equity_from_curve,
+    lookup_value_at_or_before,
+    point_at_or_after,
+)
+
 
 @dataclass(frozen=True, slots=True)
 class SimulationOutcome:
     metrics: dict[str, float]
     strategy_equity: list[float]
     buy_hold_equity: list[float]
-
-
-def _lookup_close(price_series: Sequence[tuple[int, float]], ts: int) -> float | None:
-    close: float | None = None
-    for bar_ts, bar_close in price_series:
-        if bar_ts > ts:
-            break
-        close = bar_close
-    return close
-
-
-def _point_at_or_after(
-    points: list[tuple[int, float, float]],
-    ts: int,
-) -> tuple[int, float, float] | None:
-    for row in points:
-        if row[0] >= ts:
-            return row
-    return None
-
-
-def _buy_hold_mark(initial_usd: float, c_start: float | None, c_now: float | None) -> float:
-    if c_start is None or c_now is None or c_start <= 0:
-        return initial_usd
-    return initial_usd * (c_now / c_start)
 
 
 def simulate_holdout_account(
@@ -45,14 +28,17 @@ def simulate_holdout_account(
     horizon_bars: int,
     bar_minutes: int,
     price_series: Sequence[tuple[int, float]],
-    initial_usd: float = 100.0,
+    initial_usd = 100.0,
+    sim_config: SimulationConfig | None = None,
+    hold_bars: int | None = None,
+    decision_bars: int | None = None,
 ) -> SimulationOutcome:
     """
     Walk-forward paper account on holdout forecasts.
 
     Labels are forward log returns over ``horizon_bars``. After entering long, the
-    next decision waits ``horizon_bars`` so windows do not overlap. If flat and
-    not long, advance one bar.
+    next decision waits ``hold_bars`` (default ``horizon_bars``). When flat, advance
+    ``decision_bars`` (default 1 bar).
 
     Buy & hold: one position from the first holdout time through the end of the
     last forward window (close ratio on ``price_series``).
@@ -63,6 +49,14 @@ def simulate_holdout_account(
         raise ValueError("horizon_bars must be >= 1")
     if bar_minutes < 1:
         raise ValueError("bar_minutes must be >= 1")
+    cfg = sim_config or SimulationConfig(
+        horizon_bars=horizon_bars,
+        bar_minutes=bar_minutes,
+        hold_bars=hold_bars,
+        decision_bars=decision_bars if decision_bars is not None else 1,
+    )
+    hold_bars_res = cfg.resolved_hold_bars()
+    decision_bars_res = cfg.resolved_decision_bars()
 
     empty_metrics = {
         "initial_usd": initial_usd,
@@ -86,15 +80,16 @@ def simulate_holdout_account(
 
     points = sorted(zip(timestamps, y_true, y_pred, strict=True), key=lambda row: row[0])
     bar_sec = bar_minutes * 60
-    hold_sec = horizon_bars * bar_sec
+    hold_sec = hold_bars_res * bar_sec
+    decision_sec = decision_bars_res * bar_sec
 
     t_start = points[0][0]
     t_last = points[-1][0]
     t_end = t_last + hold_sec
 
-    c_start = _lookup_close(price_series, t_start)
-    c_end = _lookup_close(price_series, t_end)
-    buy_hold_final = _buy_hold_mark(initial_usd, c_start, c_end)
+    c_start = lookup_value_at_or_before(price_series, t_start)
+    c_end = lookup_value_at_or_before(price_series, t_end)
+    buy_hold_final = buy_hold_value(initial_usd, c_start, c_end)
 
     equity = initial_usd
     strat_curve = [initial_usd]
@@ -105,7 +100,7 @@ def simulate_holdout_account(
     steps = 0
 
     while next_decision_ts <= t_last:
-        row = _point_at_or_after(points, next_decision_ts)
+        row = point_at_or_after(points, next_decision_ts)
         if row is None:
             break
         ts, actual, pred = row
@@ -117,9 +112,11 @@ def simulate_holdout_account(
                 wins += 1
             next_decision_ts = ts + hold_sec
         else:
-            next_decision_ts = ts + bar_sec
+            next_decision_ts = ts + decision_sec
         strat_curve.append(equity)
-        bh_curve.append(_buy_hold_mark(initial_usd, c_start, _lookup_close(price_series, min(ts, t_end))))
+        bh_curve.append(
+            buy_hold_value(initial_usd, c_start, lookup_value_at_or_before(price_series, min(ts, t_end)))
+        )
 
     strategy_final = equity
     strategy_profit = strategy_final - initial_usd
@@ -143,7 +140,3 @@ def simulate_holdout_account(
         strategy_equity=strat_curve,
         buy_hold_equity=bh_curve,
     )
-
-
-def final_equity_from_curve(curve: list[float]) -> float:
-    return curve[-1] if curve else 100.0

@@ -11,7 +11,7 @@ from traderbot.ml.results import save_run_result
 from traderbot.ml.simulator import simulate_holdout_account
 
 
-def synthetic_bars(n: int = 120, *, start: float = 100.0) -> list[dict]:
+def synthetic_bars(n = 120, *, start = 100.0) -> list[dict]:
     bars = []
     price = start
     for i in range(n):

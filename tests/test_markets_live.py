@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from traderbot.data_cli import main as data_main
+from traderbot.cli.data import main as data_main
 from traderbot.markets.live_visualize import fetch_recent_bars, run_live_market_visualization
 from traderbot.markets.registry import list_supported_markets, market_spec_from_symbol
 

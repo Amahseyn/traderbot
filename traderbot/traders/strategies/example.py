@@ -9,8 +9,8 @@ from traderbot.traders.strategies.algorithm_trader import AlgorithmTrader
 
 def sma_trader_from_env(
     *,
-    fast: int = 5,
-    slow: int = 20,
+    fast = 5,
+    slow = 20,
     bar_source: Callable[[], Bar | None] | None = None,
 ) -> AlgorithmTrader:
     """Live SMA bot template: set ``bar_source`` and subclass :meth:`on_signal` for orders."""

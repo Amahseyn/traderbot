@@ -3,7 +3,11 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from traderbot.ml.utils import INTRAHOUR_BAR_KEYS as INTRAHOUR_FEATURE_KEYS
+
 _NUMERIC = ("open", "high", "low", "close", "volume")
+
+INTRAHOUR_BAR_KEYS = INTRAHOUR_FEATURE_KEYS
 
 
 def _ema(values: list[float], span: int) -> list[float]:
@@ -16,7 +20,7 @@ def _ema(values: list[float], span: int) -> list[float]:
     return out
 
 
-def rsi(closes: list[float], period: int = 14) -> list[float | None]:
+def rsi(closes: list[float], period = 14) -> list[float | None]:
     if period < 1:
         raise ValueError("period must be >= 1")
     out: list[float | None] = [None] * len(closes)
@@ -48,9 +52,9 @@ def rsi(closes: list[float], period: int = 14) -> list[float | None]:
 
 def macd(
     closes: list[float],
-    fast: int = 12,
-    slow: int = 26,
-    signal: int = 9,
+    fast = 12,
+    slow = 26,
+    signal = 9,
 ) -> tuple[list[float | None], list[float | None], list[float | None]]:
     if fast < 1 or slow < 1 or signal < 1:
         raise ValueError("macd periods must be >= 1")
@@ -76,7 +80,7 @@ def macd(
     return line, signal_out, hist
 
 
-def atr(highs: list[float], lows: list[float], closes: list[float], period: int = 14) -> list[float | None]:
+def atr(highs: list[float], lows: list[float], closes: list[float], period = 14) -> list[float | None]:
     if period < 1:
         raise ValueError("period must be >= 1")
     n = len(closes)
@@ -100,12 +104,17 @@ def atr(highs: list[float], lows: list[float], closes: list[float], period: int 
     return out
 
 
-def build_feature_rows(bars: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def build_feature_rows(
+    bars: list[dict[str, Any]],
+    *,
+    intrahour_features: list[dict[str, float | None]] | None = None,
+) -> list[dict[str, Any]]:
     """
     Per-bar feature dict aligned with ``bars`` (same length).
 
     Uses OHLCV plus RSI, MACD, ATR, and simple returns. Optional keys such as
     ``funding_rate`` or ``open_interest`` on the bar are passed through when present.
+    ``intrahour_features`` (1m-derived, any coarse resolution) are merged when supplied.
     """
     if not bars:
         return []
@@ -137,6 +146,14 @@ def build_feature_rows(bars: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "atr_14": atr_v[i],
         }
         for key in ("funding_rate", "open_interest", "volume_delta", "market_breadth"):
+            if key in bar and bar[key] not in (None, ""):
+                row[key] = float(bar[key])
+        if intrahour_features is not None:
+            ih = intrahour_features[i]
+            for key, val in ih.items():
+                if val is not None:
+                    row[key] = val
+        for key in INTRAHOUR_BAR_KEYS:
             if key in bar and bar[key] not in (None, ""):
                 row[key] = float(bar[key])
         rows.append(row)

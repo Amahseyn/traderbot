@@ -26,6 +26,14 @@ def test_apply_mean_reversion_context_blocks_falling_knife_buy():
     )
 
 
+def test_apply_intrahour_context_blocks_buy_on_weak_fine_tail():
+    from traderbot.algorithms.price_context import apply_intrahour_context
+
+    bar = {"fine_return_last_5m": -0.02}
+    assert apply_intrahour_context("buy", bar, buy_min_fine_last_5m=-0.01) == "hold"
+    assert apply_intrahour_context("buy", bar, buy_min_fine_last_5m=-0.03) == "buy"
+
+
 def test_validate_price_context_ordering():
     validate_price_context(0, -0.05, 0.05)
     with pytest.raises(ValueError):

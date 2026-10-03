@@ -1,6 +1,22 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
+
+
+def load_env_file(path: Path | None = None) -> None:
+    """Apply ``KEY=value`` lines from a .env file; never overwrites existing ``os.environ`` entries."""
+    env_path = path or Path.cwd() / ".env"
+    if not env_path.is_file():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key, value = key.strip(), value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 
 def upsert_env_vars(path: Path, updates: dict[str, str]) -> None:

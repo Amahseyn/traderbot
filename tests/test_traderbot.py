@@ -1,7 +1,7 @@
 import pytest
 
-from traderbot.client import NobitexClient, NobitexClientError
-from traderbot.signing import sign_request
+from traderbot.nobitex.client import NobitexClient, NobitexClientError
+from traderbot.nobitex.signing import sign_request
 
 
 def test_signing_stable(keys):

@@ -1,8 +1,8 @@
 import pytest
 
 from traderbot.algorithms.strategies import SmaCrossAlgorithm
-from traderbot.backtest import run_backtest
-from traderbot.backtest_vectorbt import infer_bar_freq, vectorbt_metrics_dict
+from traderbot.backtesting import run_backtest
+from traderbot.backtesting.vectorbt import infer_bar_freq, vectorbt_metrics_dict
 
 vectorbt = pytest.importorskip("vectorbt")
 

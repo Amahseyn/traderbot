@@ -11,8 +11,8 @@ from traderbot.algorithms.strategies import (
     RsiThresholdAlgorithm,
     SmaCrossAlgorithm,
 )
-from traderbot.backtest import run_backtest
-from traderbot.strategy_cli import main as strategy_main
+from traderbot.backtesting import run_backtest
+from traderbot.cli.strategy import main as strategy_main
 
 
 def _bars(closes: list[float]) -> list[dict]:
@@ -116,7 +116,7 @@ def test_strategy_cli_catalog(capsys):
 def test_strategy_cli_compare(tmp_path):
     csv_path = tmp_path / "btc.csv"
     closes = [100.0] * 25 + [105.0] * 25
-    from traderbot.export_csv import write_csv
+    from traderbot.data.export import write_csv
 
     write_csv(csv_path, _bars(closes))
     out_dir = tmp_path / "compare_out"
@@ -132,7 +132,7 @@ def test_strategy_cli_compare_visualization(tmp_path):
     pytest.importorskip("matplotlib")
     csv_path = tmp_path / "btc.csv"
     closes = [100.0] * 30 + [102.0] * 10 + [98.0] * 10 + [104.0] * 20
-    from traderbot.export_csv import write_csv
+    from traderbot.data.export import write_csv
 
     write_csv(csv_path, _bars(closes))
     out_dir = tmp_path / "compare_viz"
@@ -154,7 +154,7 @@ def test_strategy_cli_compare_visualization(tmp_path):
 def test_strategy_cli_batch_writes_run_tree(tmp_path):
     csv_dir = tmp_path / "ohlc"
     csv_dir.mkdir()
-    from traderbot.export_csv import write_csv
+    from traderbot.data.export import write_csv
 
     write_csv(csv_dir / "btc.csv", _bars([100.0] * 40))
     out = tmp_path / "batch_exp"
@@ -184,7 +184,7 @@ def test_strategy_cli_batch_writes_run_tree(tmp_path):
 def test_strategy_backtest_visualization(tmp_path):
     pytest.importorskip("matplotlib")
     csv_path = tmp_path / "btc.csv"
-    from traderbot.export_csv import write_csv
+    from traderbot.data.export import write_csv
 
     write_csv(csv_path, _bars([10.0] * 10 + [12.0] * 10))
     out_dir = tmp_path / "single"

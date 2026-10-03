@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from traderbot.export_csv import write_csv
-from traderbot.ml_cli import main as ml_main
+from traderbot.data.export import write_csv
+from traderbot.cli.ml import main as ml_main
 
 
 def _bars(closes: list[float]) -> list[dict]:

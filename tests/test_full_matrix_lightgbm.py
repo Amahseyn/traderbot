@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from traderbot.backtest import load_bars_csv
+from traderbot.backtesting import load_bars_csv
 from traderbot.data.crypto_store import resolve_crypto_data_dir
 from traderbot.ml.intervals import (
     forecast_horizons_for_resolution,

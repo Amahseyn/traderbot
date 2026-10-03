@@ -12,7 +12,7 @@ def signal_event_dict(
     *,
     mode: str,
     strategy_id: str | None = None,
-    event: str = "signal",
+    event = "signal",
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "event": event,
@@ -33,7 +33,7 @@ def print_signal_event(
     *,
     mode: str,
     strategy_id: str | None = None,
-    emit_holds: bool = False,
+    emit_holds = False,
 ) -> None:
     if action == "hold" and not emit_holds:
         return

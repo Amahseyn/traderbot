@@ -4,13 +4,15 @@ import json
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 import requests
 
-from traderbot.market_data import fetch_ohlc_page, ohlc_rows
+from traderbot.markets.market_data import fetch_ohlc_page, ohlc_rows
 from traderbot.markets.registry import MarketSpec, list_supported_markets
+from traderbot.markets.utils import trim_forming_candle
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,29 +33,26 @@ def fetch_recent_bars(
     *,
     symbol: str,
     resolution: str,
-    max_bars: int = 96,
+    max_bars = 96,
     session: requests.Session | None = None,
 ) -> list[dict[str, Any]]:
     """Most recent closed candles from Nobitex UDF (one page, trimmed to max_bars)."""
     if max_bars < 1:
         return []
-    to_ts = int(time.time())
+    known_at_unix_seconds = int(time.time())
     payload = fetch_ohlc_page(
         symbol=symbol,
         resolution=resolution,
-        to_ts=to_ts,
+        history_to_unix_seconds=known_at_unix_seconds,
         page=1,
         session=session,
     )
-    rows = ohlc_rows(payload, symbol=symbol, resolution=resolution)
-    rows.sort(key=lambda r: r["timestamp"])
-    if len(rows) >= 2:
-        rows = rows[:-1]
+    rows = trim_forming_candle(ohlc_rows(payload, symbol=symbol, resolution=resolution))
     return rows[-max_bars:]
 
 
 def fetch_all_market_snapshots(
-    markets: tuple[MarketSpec, ...],
+    markets: Sequence[MarketSpec],
     *,
     resolution: str,
     max_bars: int,
@@ -113,7 +112,7 @@ def render_live_dashboard(
     *,
     resolution: str,
     out_dir: Path,
-    show: bool = False,
+    show = False,
 ) -> LiveVisualizationPaths:
     try:
         import matplotlib

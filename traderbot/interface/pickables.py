@@ -40,7 +40,7 @@ def _invoke(
     summary: str,
     argv: tuple[str, ...],
     *,
-    kind: str = "command",
+    kind = "command",
     tags: tuple[str, ...] = (),
 ) -> Pickable:
     return Pickable(
@@ -53,9 +53,9 @@ def _invoke(
     )
 
 
-def all_pickables() -> tuple[Pickable, ...]:
+def all_pickables() -> list[Pickable]:
     pipelines = list_pipelines()
-    pipeline_picks = tuple(
+    pipeline_picks = [
         _invoke(
             f"run/{p.id}",
             p.title,
@@ -65,8 +65,8 @@ def all_pickables() -> tuple[Pickable, ...]:
             tags=("pipeline", "ml", "export"),
         )
         for p in pipelines
-    )
-    return (
+    ]
+    return [
         _invoke(
             "auth/check",
             "Verify API key in .env",
@@ -291,7 +291,7 @@ def all_pickables() -> tuple[Pickable, ...]:
             tags=("ml", "visualization"),
         ),
         *pipeline_picks,
-    )
+    ]
 
 
 _PICKABLE_BY_ID: dict[str, Pickable] | None = None

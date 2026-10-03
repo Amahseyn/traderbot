@@ -7,7 +7,7 @@ from traderbot.solutions.layout import SolutionLayout, solution_slug
 RESULTS_ROOT = Path("results")
 
 
-def result_tree_at(root: Path, *, run_id: str = "adhoc") -> SolutionLayout:
+def result_tree_at(root: Path, *, run_id = "adhoc") -> SolutionLayout:
     root = root.resolve()
     return SolutionLayout(
         pipeline_id=run_id,

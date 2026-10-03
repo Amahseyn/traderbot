@@ -6,7 +6,7 @@ from typing import Any
 
 import requests
 
-from traderbot.client import BASE_URL, USER_AGENT, NobitexClientError
+from traderbot.nobitex.client import BASE_URL, USER_AGENT, NobitexClientError
 
 DEFAULT_TIMEOUT = 60
 

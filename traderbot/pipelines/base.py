@@ -20,7 +20,7 @@ class PipelineResult:
     steps: list[PipelineStep] = field(default_factory=list)
     outputs: dict[str, Any] = field(default_factory=dict)
 
-    def add_step(self, name: str, *, detail: str = "", artifacts: list[str | Path] | None = None) -> None:
+    def add_step(self, name: str, *, detail = "", artifacts: list[str | Path] | None = None) -> None:
         paths = [str(a) for a in (artifacts or [])]
         self.steps.append(PipelineStep(name=name, detail=detail, artifacts=paths))
 

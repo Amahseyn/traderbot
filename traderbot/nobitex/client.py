@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 
 import requests
 
-from traderbot.signing import sign_request
+from traderbot.nobitex.signing import sign_request
 
 BASE_URL = "https://apiv2.nobitex.ir"
 USER_AGENT = "TraderBot/traderbot-0.1.0"

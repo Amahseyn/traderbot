@@ -24,7 +24,7 @@ def _pick_from_list(prompt: str, count: int) -> int | None:
     return idx
 
 
-def _pick_group(groups: tuple[ResultGroup, ...]) -> ResultGroup | str | None:
+def _pick_group(groups: list[ResultGroup]) -> ResultGroup | str | None:
     print("\nWhat kind of results?\n", file=sys.stderr)
     for i, group in enumerate(groups, start=1):
         print(f"  {i}) {group.title} ({len(group.runs)})", file=sys.stderr)

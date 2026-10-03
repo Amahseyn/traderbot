@@ -3,7 +3,7 @@ import json
 import pytest
 
 from traderbot.interface.pickables import all_pickables
-from traderbot.interface_cli import main as interface_main
+from traderbot.cli.interface import main as interface_main
 
 
 def test_interface_catalog_complete(capsys):

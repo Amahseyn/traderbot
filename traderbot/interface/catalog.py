@@ -11,8 +11,8 @@ from traderbot.ml.registry import list_models
 from traderbot.pipelines.registry import list_pipelines
 
 
-def catalog_dict(*, include_examples: bool = True) -> dict:
-    from traderbot.cli import _COMMANDS, _register_commands
+def catalog_dict(*, include_examples = True) -> dict:
+    from traderbot.cli.root import _COMMANDS, _register_commands
 
     _register_commands()
     top_level = [

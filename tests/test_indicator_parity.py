@@ -11,7 +11,7 @@ from traderbot.algorithms.streaming import ema_init, ema_update, rolling_mean_in
 from traderbot.ml.features import atr, build_feature_rows, macd, rsi
 
 
-def _synthetic_bars(n: int = 80) -> list[dict]:
+def _synthetic_bars(n = 80) -> list[dict]:
     bars = []
     price = 100.0
     for i in range(n):

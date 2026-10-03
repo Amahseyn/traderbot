@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from traderbot.backtest import load_bars_csv
+from traderbot.backtesting import load_bars_csv
 from traderbot.data.crypto_store import horizon_label_from_csv_dir
+from traderbot.data.intrahour import load_one_minute_bars
 from traderbot.ml.intervals import (
     default_eval_horizon,
     forecast_horizons_for_resolution,
@@ -15,6 +16,7 @@ from traderbot.ml.intervals import (
 )
 from traderbot.ml.pipeline import model_for_id, run_forecast_eval
 from traderbot.ml.results import ModelRunResult, save_run_result
+from traderbot.ml.simulation_config import simulation_config_from_namespace
 from traderbot.results.layout import result_tree_at
 
 if TYPE_CHECKING:
@@ -39,11 +41,14 @@ def run_batch_on_directory(
     *,
     out_dir: Path | None = None,
     layout: SolutionLayout | None = None,
-    model_id: str = "lightgbm",
-    min_bars: int = 50,
-    train_ratio: float = 0.8,
-    render_plots: bool = True,
-    all_horizons: bool = False,
+    model_id = "lightgbm",
+    min_bars = 50,
+    train_ratio = 0.8,
+    render_plots = True,
+    all_horizons = False,
+    auto_fine = True,
+    fine_csv: Path | None = None,
+    sim_args: Any | None = None,
     **model_kwargs: Any,
 ) -> list[ModelRunResult]:
     """
@@ -85,12 +90,26 @@ def run_batch_on_directory(
             need = min_bars_for_forecast_eval(horizon_bars) if all_horizons else min_bars
             if len(bars) < need:
                 continue
+            one_minute_bars = load_one_minute_bars(
+                csv_path,
+                fine_csv,
+                auto_load=auto_fine,
+            )
+            sim_cfg = None
+            if sim_args is not None:
+                sim_cfg = simulation_config_from_namespace(
+                    sim_args,
+                    horizon_bars=horizon_bars,
+                    bar_minutes=bar_minutes,
+                )
             result = run_forecast_eval(
                 bars,
                 model,
                 horizon_bars=horizon_bars,
                 bar_minutes=bar_minutes,
                 train_ratio=train_ratio,
+                one_minute_bars=one_minute_bars,
+                simulation_config=sim_cfg,
             )
             result.extra["dataset"] = csv_path.stem
             run_out = tree.run_dir(csv_path.stem, result.horizon_label)

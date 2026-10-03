@@ -9,7 +9,7 @@ def sign_request(
     private_key_b64: str,
     method: str,
     full_path: str,
-    body: str = "",
+    body = "",
     timestamp: str | None = None,
 ) -> tuple[str, str]:
     raw = private_key_b64.strip()

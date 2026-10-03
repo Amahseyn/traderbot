@@ -1,5 +1,6 @@
-from traderbot.export_csv import load_jobs, write_csv
-from traderbot.market_data import incremental_bar_source, market_symbol, ohlc_rows
+from traderbot.data.export import load_jobs, write_csv
+from traderbot.markets.market_data import fetch_latest_closed_bar, fetch_one_minute_bars, incremental_bar_source, market_symbol, ohlc_rows
+from traderbot.utils.bars import one_minute_history_to_timestamp
 
 
 def test_market_symbol():
@@ -57,6 +58,54 @@ def test_write_csv(tmp_path):
     assert "close" in text.splitlines()[0]
 
 
+def test_one_minute_history_to_timestamp_is_one_minute_before_known_at():
+    known_at_unix_seconds = 1_700_000_000
+    assert one_minute_history_to_timestamp(known_at_unix_seconds) == known_at_unix_seconds - 60
+
+
+def test_fetch_one_minute_bars_uses_history_to_one_minute_before(monkeypatch):
+    known_at_unix_seconds = 1_000
+    captured: dict[str, int] = {}
+
+    def fake_page(**kwargs):
+        captured["history_to_unix_seconds"] = kwargs["history_to_unix_seconds"]
+        return {
+            "s": "ok",
+            "t": [880, 940, 1000],
+            "o": [1, 1, 1],
+            "h": [1, 1, 1],
+            "l": [1, 1, 1],
+            "c": [1, 2, 3],
+            "v": [1, 1, 1],
+        }
+
+    monkeypatch.setattr("traderbot.markets.market_data.fetch_ohlc_page", fake_page)
+    rows = fetch_one_minute_bars(symbol="BTCIRT", known_at_unix_seconds=known_at_unix_seconds, max_bars=10)
+    assert captured["history_to_unix_seconds"] == known_at_unix_seconds - 60
+    assert [r["timestamp"] for r in rows] == [880, 940]
+
+
+def test_fetch_latest_closed_bar_known_at(monkeypatch):
+    known_at_unix_seconds = 3_700
+
+    def fake_page(**kwargs):
+        assert kwargs["history_to_unix_seconds"] == known_at_unix_seconds - 3600
+        return {
+            "s": "ok",
+            "t": [100, 200, 300],
+            "o": [1, 1, 1],
+            "h": [1, 1, 1],
+            "l": [1, 1, 1],
+            "c": [1, 2, 3],
+            "v": [1, 1, 1],
+        }
+
+    monkeypatch.setattr("traderbot.markets.market_data.fetch_ohlc_page", fake_page)
+    bar = fetch_latest_closed_bar(symbol="BTCIRT", resolution="60", known_at_unix_seconds=known_at_unix_seconds)
+    assert bar is not None
+    assert bar["timestamp"] == 200
+
+
 def test_incremental_bar_source_dedupes(monkeypatch):
     bar_a = {
         "symbol": "BTCIRT",
@@ -74,7 +123,7 @@ def test_incremental_bar_source_dedupes(monkeypatch):
     def fake_fetch(**_kwargs):
         return queue.pop(0) if queue else bar_b
 
-    monkeypatch.setattr("traderbot.market_data.fetch_latest_closed_bar", fake_fetch)
+    monkeypatch.setattr("traderbot.markets.market_data.fetch_latest_closed_bar", fake_fetch)
     source = incremental_bar_source(symbol="BTCIRT", resolution="60")
     assert source()["timestamp"] == 100
     assert source() is None

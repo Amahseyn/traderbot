@@ -35,3 +35,15 @@ def add_strategy_param_flags(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="SMA/EMA: require close on the trend side of the fast average before entering.",
     )
+    parser.add_argument(
+        "--buy-min-fine-last-5m",
+        type=float,
+        default=None,
+        help="With 1m-enriched bars, skip buys if fine_return_last_5m is below this.",
+    )
+    parser.add_argument(
+        "--sell-max-fine-last-5m",
+        type=float,
+        default=None,
+        help="With 1m-enriched bars, skip sells if fine_return_last_5m is above this.",
+    )

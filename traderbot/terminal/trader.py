@@ -9,7 +9,7 @@ class TerminalAlgorithmTrader(AlgorithmTrader):
     """Paper/live trader that logs each signal as a JSON line on stdout."""
 
     strategy_id: str | None = None
-    emit_holds: bool = False
+    emit_holds = False
 
     def on_paper_signal(self, action: SignalAction, bar: Bar) -> None:
         print_signal_event(

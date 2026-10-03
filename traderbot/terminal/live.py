@@ -4,7 +4,8 @@ import argparse
 import sys
 
 from traderbot.bots.base import Bot
-from traderbot.market_data import incremental_bar_source, market_symbol
+from traderbot.markets.market_data import incremental_bar_source, market_symbol
+from traderbot.terminal.namespace_keys import LIVE
 from traderbot.terminal.session import build_terminal_trader
 
 
@@ -15,7 +16,7 @@ def run_live(args: argparse.Namespace) -> None:
         bar_source=incremental_bar_source(symbol=symbol, resolution=args.interval),
     )
 
-    if args.live:
+    if getattr(args, LIVE, False):
         print(
             "live mode: default on_signal is a no-op; subclass AlgorithmTrader for real orders",
             file=sys.stderr,

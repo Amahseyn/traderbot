@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from traderbot.algorithms.base import Algorithm
-from traderbot.backtest import BacktestResult
+from traderbot.backtesting import BacktestResult
 
 
 # Distinct, colorblind-friendly palette (Okabe–Ito inspired)
@@ -164,9 +164,9 @@ def _plot_market_close(
     bars: Sequence[dict[str, Any]],
     xs: Sequence[Any],
     *,
-    linewidth: float = 1.0,
-    color: str = "#475569",
-    label: str = "Close",
+    linewidth = 1.0,
+    color = "#475569",
+    label = "Close",
 ) -> list[float]:
     closes = [float(b["close"]) for b in bars]
     ax.plot(xs, closes, color=color, linewidth=linewidth, label=label, zorder=1)

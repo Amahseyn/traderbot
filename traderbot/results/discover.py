@@ -21,7 +21,7 @@ class ResultChoice:
 class ResultGroup:
     kind: str
     title: str
-    runs: tuple[ResultChoice, ...]
+    runs: list[ResultChoice]
 
 
 def _manifest_at(root: Path, name: str) -> Path | None:
@@ -43,7 +43,7 @@ def _has_charts(path: Path) -> bool:
     return viz.is_dir() and any(viz.glob("*.png"))
 
 
-def _dedupe_choices(items: list[ResultChoice]) -> tuple[ResultChoice, ...]:
+def _dedupe_choices(items: list[ResultChoice]) -> list[ResultChoice]:
     seen: set[str] = set()
     out: list[ResultChoice] = []
     for item in sorted(items, key=lambda c: str(c.path)):
@@ -52,10 +52,10 @@ def _dedupe_choices(items: list[ResultChoice]) -> tuple[ResultChoice, ...]:
             continue
         seen.add(key)
         out.append(ResultChoice(item.path.resolve(), item.label, item.detail))
-    return tuple(out)
+    return out
 
 
-def _compare_subchoices(compare_dir: Path, manifest: dict) -> tuple[ResultChoice, ...]:
+def _compare_subchoices(compare_dir: Path, manifest: dict) -> list[ResultChoice]:
     choices: list[ResultChoice] = [
         ResultChoice(compare_dir, "Overview", "ranking, equity overlay, drawdown, price"),
     ]
@@ -72,10 +72,10 @@ def _compare_subchoices(compare_dir: Path, manifest: dict) -> tuple[ResultChoice
         ret = row.get("return_pct")
         detail = f"return {ret}%" if ret is not None else ""
         choices.append(ResultChoice(run_dir, sid, detail))
-    return tuple(choices)
+    return choices
 
 
-def _batch_subchoices(batch_dir: Path, manifest: dict) -> tuple[ResultChoice, ...]:
+def _batch_subchoices(batch_dir: Path, manifest: dict) -> list[ResultChoice]:
     choices: list[ResultChoice] = []
     for row in manifest.get("runs", []):
         out_raw = row.get("out_dir") or row.get("run_dir")
@@ -94,7 +94,7 @@ def _batch_subchoices(batch_dir: Path, manifest: dict) -> tuple[ResultChoice, ..
         choices.append(ResultChoice(out, label, detail))
     if not choices and _has_charts(batch_dir):
         choices.append(ResultChoice(batch_dir, "Batch folder", ""))
-    return tuple(choices)
+    return choices
 
 
 def _under_compare(parent: Path, compare_roots: set[Path]) -> bool:
@@ -105,7 +105,7 @@ def discover_result_groups(
     *,
     results_root: Path = _DEFAULT_RESULTS,
     solutions_root: Path = _DEFAULT_SOLUTIONS,
-) -> tuple[ResultGroup, ...]:
+) -> list[ResultGroup]:
     compare_dirs: list[Path] = []
     strategy_batches: list[tuple[Path, dict]] = []
     ml_batches: list[tuple[Path, dict]] = []
@@ -198,21 +198,21 @@ def discover_result_groups(
 
     groups: list[ResultGroup] = []
     if compare_runs:
-        groups.append(ResultGroup("compare", "Strategy compare", tuple(compare_runs)))
+        groups.append(ResultGroup("compare", "Strategy compare", compare_runs))
     if backtests:
         groups.append(ResultGroup("backtest", "Single strategy backtest", _dedupe_choices(backtests)))
     if strategy_batch_runs:
-        groups.append(ResultGroup("strategy_batch", "Strategy batch", tuple(strategy_batch_runs)))
+        groups.append(ResultGroup("strategy_batch", "Strategy batch", strategy_batch_runs))
     if ml_runs:
         groups.append(ResultGroup("ml_run", "ML eval run", _dedupe_choices(ml_runs)))
     if ml_batch_runs:
-        groups.append(ResultGroup("ml_batch", "ML batch", tuple(ml_batch_runs)))
+        groups.append(ResultGroup("ml_batch", "ML batch", ml_batch_runs))
     if live_runs:
         groups.append(ResultGroup("live", "Live markets", _dedupe_choices(live_runs)))
-    return tuple(groups)
+    return groups
 
 
-def subchoices_for_run(group: ResultGroup, run: ResultChoice) -> tuple[ResultChoice, ...] | None:
+def subchoices_for_run(group: ResultGroup, run: ResultChoice) -> list[ResultChoice] | None:
     path = run.path
     if group.kind == "compare":
         manifest_path = _manifest_at(path, "compare_manifest.json")

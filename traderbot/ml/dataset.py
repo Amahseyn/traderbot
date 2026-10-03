@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from traderbot.ml.features import build_feature_rows, forward_log_return
+from traderbot.data.intrahour import intrahour_features_for_coarse_bars
+from traderbot.ml.features import INTRAHOUR_BAR_KEYS, build_feature_rows, forward_log_return
+from traderbot.ml.utils import horizon_label
+from traderbot.utils.constants import ONE_MINUTE_BAR_MINUTES
 
 FEATURE_COLUMNS = (
     "open",
@@ -26,23 +29,14 @@ OPTIONAL_FEATURE_COLUMNS = (
 )
 
 
-def horizon_label(bar_minutes: int, horizon_bars: int) -> str:
-    """Human label such as ``4h`` when bars are 60-minute."""
-    minutes = bar_minutes * horizon_bars
-    if minutes % (24 * 60) == 0:
-        days = minutes // (24 * 60)
-        return f"{days}d"
-    if minutes % 60 == 0:
-        return f"{minutes // 60}h"
-    return f"{minutes}m"
-
-
 def build_supervised(
     bars: list[dict[str, Any]],
     *,
     horizon_bars: int,
-    bar_minutes: int = 60,
-    min_rsi_index: int = 30,
+    bar_minutes = 60,
+    min_rsi_index = 30,
+    one_minute_bars: list[dict[str, Any]] | None = None,
+    one_minute_bar_minutes: int = ONE_MINUTE_BAR_MINUTES,
 ) -> tuple[list[list[float]], list[float], list[int], list[str], list[int]]:
     """
     Tabular (X, y) for forward log-return prediction.
@@ -54,11 +48,24 @@ def build_supervised(
     (close at ``t + horizon``). Use with :func:`train_test_split_temporal` to
     purge training rows whose labels overlap the holdout period.
     """
-    feature_rows = build_feature_rows(bars)
+    feature_rows = build_feature_rows(
+        bars,
+        intrahour_features=(
+            intrahour_features_for_coarse_bars(
+                bars,
+                one_minute_bars,
+                coarse_minutes=bar_minutes,
+                one_minute_bar_minutes=one_minute_bar_minutes,
+            )
+            if one_minute_bars
+            else None
+        ),
+    )
     closes = [float(b["close"]) for b in bars]
     targets = forward_log_return(closes, horizon_bars)
     optional = [c for c in OPTIONAL_FEATURE_COLUMNS if any(c in r for r in feature_rows)]
-    columns = list(FEATURE_COLUMNS) + optional
+    intrahour = [c for c in INTRAHOUR_BAR_KEYS if any(c in r and r.get(c) is not None for r in feature_rows)]
+    columns = list(FEATURE_COLUMNS) + intrahour + optional
 
     xs: list[list[float]] = []
     ys: list[float] = []
@@ -92,8 +99,8 @@ def train_test_split_temporal(
     ys: list[float],
     timestamps: list[int],
     *,
-    train_ratio: float = 0.8,
-    horizon_bars: int = 0,
+    train_ratio = 0.8,
+    horizon_bars = 0,
     label_end_timestamps: list[int] | None = None,
 ) -> tuple[list[list[float]], list[float], list[int], list[list[float]], list[float], list[int]]:
     """

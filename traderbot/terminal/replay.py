@@ -4,9 +4,9 @@ import argparse
 import sys
 import time
 
-from traderbot.backtest import load_bars_csv
+from traderbot.backtesting import load_bars_csv
 from traderbot.terminal.events import print_signal_event
-from traderbot.terminal.session import algorithm_from_args, execution_from_args
+from traderbot.terminal.utils import algorithm_from_args, execution_from_args
 
 
 def run_replay(args: argparse.Namespace) -> None:

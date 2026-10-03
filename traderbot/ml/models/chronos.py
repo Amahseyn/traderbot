@@ -14,7 +14,7 @@ class ChronosForecastModel:
 
     model_id = "chronos"
 
-    def __init__(self, pretrained: str = _DEFAULT_MODEL, device: str = "cpu") -> None:
+    def __init__(self, pretrained: str = _DEFAULT_MODEL, device = "cpu") -> None:
         self._pretrained = pretrained
         self._device = device
         self._pipeline: Any = None

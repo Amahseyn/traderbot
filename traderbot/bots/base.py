@@ -9,7 +9,7 @@ from traderbot.traders.base import Trader
 class Bot:
     """Runs one or more traders on a fixed interval."""
 
-    def __init__(self, traders: Iterable[Trader], *, interval_sec: float = 60.0):
+    def __init__(self, traders: Iterable[Trader], *, interval_sec = 60.0):
         self.traders = list(traders)
         self.interval_sec = interval_sec
 

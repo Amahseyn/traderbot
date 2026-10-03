@@ -6,11 +6,13 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-from traderbot.backtest import load_bars_csv
+from traderbot.backtesting import load_bars_csv
+from traderbot.data.intrahour import add_fine_coarse_flags, load_one_minute_bars
 from traderbot.ml.batch import run_batch_on_directory
 from traderbot.ml.pipeline import model_for_id, run_forecast_eval
 from traderbot.ml.registry import list_models
 from traderbot.ml.results import save_run_result
+from traderbot.ml.simulation_config import add_simulation_cli_flags, simulation_config_from_namespace
 from traderbot.results.layout import default_ml_batch_out, default_ml_run_out, result_tree_at
 
 
@@ -34,6 +36,8 @@ def main(argv: list[str] | None = None) -> None:
         help="Experiment root (default: results/ml/<csv_stem>/runs/<horizon>/)",
     )
     run.add_argument("--train-ratio", type=float, default=0.8)
+    add_fine_coarse_flags(run)
+    add_simulation_cli_flags(run)
 
     batch = sub.add_parser("batch", help="Run model on every CSV in a directory; write plots per dataset")
     batch.add_argument("csv_dir", type=Path)
@@ -52,6 +56,8 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="Run every default horizon (1m,5m,1h,2h,4h,6h,12h,1d) that fits each CSV",
     )
+    add_fine_coarse_flags(batch)
+    add_simulation_cli_flags(batch)
 
     args = parser.parse_args(argv)
 
@@ -70,6 +76,9 @@ def main(argv: list[str] | None = None) -> None:
             train_ratio=args.train_ratio,
             render_plots=not args.no_plots,
             all_horizons=args.all_horizons,
+            auto_fine=not args.no_auto_fine,
+            fine_csv=args.fine_csv,
+            sim_args=args,
         )
         tree = result_tree_at(out_dir)
         print(
@@ -89,12 +98,24 @@ def main(argv: list[str] | None = None) -> None:
         print("need at least ~50 bars for indicators + holdout", file=sys.stderr)
         sys.exit(1)
     model = model_for_id(args.model)
+    one_minute_bars = load_one_minute_bars(
+        args.csv,
+        args.fine_csv,
+        auto_load=not args.no_auto_fine,
+    )
+    sim_cfg = simulation_config_from_namespace(
+        args,
+        horizon_bars=args.horizon_bars,
+        bar_minutes=args.bar_minutes,
+    )
     result = run_forecast_eval(
         bars,
         model,
         horizon_bars=args.horizon_bars,
         bar_minutes=args.bar_minutes,
         train_ratio=args.train_ratio,
+        one_minute_bars=one_minute_bars,
+        simulation_config=sim_cfg,
     )
     experiment = args.out or default_ml_run_out(args.csv)
     tree = result_tree_at(experiment, run_id=args.csv.stem)

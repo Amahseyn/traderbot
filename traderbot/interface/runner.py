@@ -5,7 +5,7 @@ import sys
 from traderbot.interface.pickables import Pickable, pickable_by_id
 
 
-def run_pickable(pick_id: str, *, dry_run: bool = False) -> list[list[str]]:
+def run_pickable(pick_id: str, *, dry_run = False) -> list[list[str]]:
     pick = pickable_by_id(pick_id)
     cli_steps = [["traderbot", *argv] for argv in pick.invocations]
     if dry_run:

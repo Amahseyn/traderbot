@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from traderbot.backtest import load_bars_csv
+from traderbot.backtesting import load_bars_csv
 from traderbot.data.crypto_store import recommended_tail_bars, resolve_crypto_data_dir
-from traderbot.export_csv import load_jobs
-from traderbot.market_data import RESOLUTIONS
+from traderbot.data.export import load_jobs
+from traderbot.markets.market_data import RESOLUTIONS
 from traderbot.ml.batch import run_batch_on_directory
 from traderbot.ml.intervals import default_eval_horizon
 from traderbot.ml.pipeline import run_forecast_eval

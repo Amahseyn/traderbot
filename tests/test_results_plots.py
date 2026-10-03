@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from traderbot.data_cli import main as data_main
+from traderbot.cli.data import main as data_main
 from traderbot.results.plots import discover_result_plots, results_plots_catalog
 
 
@@ -64,7 +64,7 @@ def test_data_plots_json_lists_paths(tmp_path, capsys):
 
 
 def test_data_plots_missing_dir_exits():
-    from traderbot.data_cli import main as data_main
+    from traderbot.cli.data import main as data_main
 
     with pytest.raises(SystemExit) as exc:
         data_main(["plots", "/nonexistent/run"])

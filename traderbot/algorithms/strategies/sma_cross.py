@@ -9,7 +9,7 @@ class SmaCrossAlgorithm(Algorithm):
 
     name = "sma_cross"
 
-    def __init__(self, *, fast: int = 5, slow: int = 20, price_confirm: bool = False):
+    def __init__(self, *, fast = 5, slow = 20, price_confirm = False):
         validate_fast_slow(fast, slow)
         self.fast = fast
         self.slow = slow

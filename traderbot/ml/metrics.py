@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 
+from traderbot.ml.simulation_config import SimulationConfig
+
 DEFAULT_SAMPLE_USD = 100.0
 
 
@@ -32,11 +34,12 @@ def full_metrics(
     y_pred: list[float],
     *,
     timestamps: list[int] | None = None,
-    horizon_bars: int = 1,
-    bar_minutes: int = 60,
+    horizon_bars = 1,
+    bar_minutes = 60,
     price_series: list[tuple[int, float]] | None = None,
     initial_usd: float = DEFAULT_SAMPLE_USD,
     simulation: object | None = None,
+    sim_config: SimulationConfig | None = None,
 ) -> dict[str, float]:
     from traderbot.ml.simulator import simulate_holdout_account
 
@@ -54,6 +57,7 @@ def full_metrics(
         bar_minutes=bar_minutes,
         price_series=price_series,
         initial_usd=initial_usd,
+        sim_config=sim_config,
     )
     out.update(sim.metrics)
     return out
@@ -83,7 +87,7 @@ def format_metrics_block(metrics: dict[str, float]) -> str:
     return "\n".join(lines)
 
 
-def format_metrics_line(metrics: dict[str, float], *, prefix: str = "") -> str:
+def format_metrics_line(metrics: dict[str, float], *, prefix = "") -> str:
     base = (
         f"{prefix}MAE={metrics['mae']:.6f} "
         f"RMSE={metrics['rmse']:.6f} "

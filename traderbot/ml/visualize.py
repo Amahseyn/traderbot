@@ -85,6 +85,7 @@ def render_result_plots(result: ModelRunResult, out_dir: Path) -> VisualizationP
             bar_minutes=result.bar_minutes,
             price_series=result.price_series,
             initial_usd=init,
+            sim_config=result.simulation_config,
         )
         strat_curve, bh_curve = sim.strategy_equity, sim.buy_hold_equity
     sample_path = plots_dir / "sample_100_usd.png"

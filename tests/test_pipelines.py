@@ -2,11 +2,11 @@ from pathlib import Path
 
 import pytest
 
-from traderbot.export_csv import write_csv
+from traderbot.data.export import write_csv
 from traderbot.pipelines.registry import get_pipeline, list_pipelines, run_pipeline
 
 
-def _ohlc_csv(path: Path, n: int = 120) -> None:
+def _ohlc_csv(path: Path, n = 120) -> None:
     rows = []
     for i in range(n):
         c = 100.0 + i * 0.05

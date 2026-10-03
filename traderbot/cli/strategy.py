@@ -13,22 +13,21 @@ from traderbot.algorithms.registry import (
     list_strategies,
     strategy_kwargs_from_namespace,
 )
-from traderbot.algorithms.report import backtest_summary_dict, save_backtest_result
+from traderbot.backtesting import backtest_summary_dict, save_backtest_result
 from traderbot.algorithms.visualize import (
     add_visualization_flags,
     compare_visualization_paths_to_dict,
     render_compare_plots,
     wants_visualization,
 )
-from traderbot.backtest import load_bars_csv, run_backtest
+from traderbot.backtesting import load_bars_csv, run_backtest, vectorbt_extra_for_backtest
+from traderbot.data.intrahour import add_fine_coarse_flags, enrich_bars_for_csv
 from traderbot.results.layout import (
     default_strategy_batch_out,
     default_strategy_compare_out,
     result_tree_at,
 )
 from traderbot.algorithms.cli_args import add_strategy_param_flags
-from traderbot.backtest_vectorbt import vectorbt_extra_for_backtest
-
 
 def _add_vectorbt_flag(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
@@ -60,8 +59,14 @@ def _vectorbt_extra(
     return extra
 
 
+def _load_strategy_bars(csv_path: Path, args: argparse.Namespace) -> list[dict]:
+    bars = load_bars_csv(csv_path)
+    return enrich_bars_for_csv(bars, csv_path, args)
+
+
 def _add_param_flags(parser: argparse.ArgumentParser) -> None:
     add_strategy_param_flags(parser)
+    add_fine_coarse_flags(parser)
 
 
 def _run_backtest(
@@ -133,7 +138,7 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     if args.command == "backtest":
-        bars = load_bars_csv(args.csv)
+        bars = _load_strategy_bars(args.csv, args)
         if not bars:
             print("No bars in CSV", file=sys.stderr)
             sys.exit(1)
@@ -166,7 +171,7 @@ def main(argv: list[str] | None = None) -> None:
         tree = result_tree_at(batch_root, run_id=args.strategy)
         manifest: list[dict[str, Any]] = []
         for csv_path in sorted(args.csv_dir.glob("*.csv")):
-            bars = load_bars_csv(csv_path)
+            bars = _load_strategy_bars(csv_path, args)
             if len(bars) < args.min_bars:
                 continue
             algo, result = _run_backtest(bars, args.strategy, args)
@@ -207,7 +212,7 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     if args.command == "compare":
-        bars = load_bars_csv(args.csv)
+        bars = _load_strategy_bars(args.csv, args)
         if not bars:
             print("No bars in CSV", file=sys.stderr)
             sys.exit(1)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from traderbot.algorithms.base import Algorithm, Bar, SignalAction
-from traderbot.client import NobitexClient
+from traderbot.nobitex.client import NobitexClient
 from traderbot.traders.execution import ExecutionPolicy
 from traderbot.traders.nobitex import NobitexTrader
 
@@ -15,7 +15,7 @@ class AlgorithmTrader(NobitexTrader):
     Runs an :class:`~traderbot.algorithms.base.Algorithm` each ``step``.
 
     Provide ``bar_source`` (latest candle) and override :meth:`on_signal` for order placement.
-    Backtests use the same algorithm class via :func:`traderbot.backtest.run_backtest`.
+    Backtests use the same algorithm class via :func:`traderbot.backtesting.run_backtest`.
     """
 
     name = "algorithm"

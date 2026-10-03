@@ -6,14 +6,14 @@ from typing import Any, Literal
 
 SignalAction = Literal["buy", "sell", "hold"]
 
-# Same keys as :func:`traderbot.market_data.ohlc_rows` and export CSV rows.
+# Same keys as :func:`traderbot.markets.market_data.ohlc_rows` and export CSV rows.
 Bar = Mapping[str, Any]
 
 
 class Algorithm(ABC):
     """Pure strategy logic: one bar in, one signal out. Shared by live traders and backtests."""
 
-    name: str = "algorithm"
+    name = "algorithm"
 
     def reset(self) -> None:
         """Clear state before a new backtest run or bot session."""

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from traderbot.client import NobitexClient
+from traderbot.nobitex.client import NobitexClient
 from traderbot.traders.base import Trader
 
 

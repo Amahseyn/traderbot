@@ -14,11 +14,13 @@ class BollingerMeanReversionAlgorithm(Algorithm):
     def __init__(
         self,
         *,
-        period: int = 20,
-        num_std: float = 2.0,
-        context_bars: int = 0,
-        buy_min_recent_return: float = -0.03,
-        sell_max_recent_return: float = 0.03,
+        period = 20,
+        num_std = 2.0,
+        context_bars = 0,
+        buy_min_recent_return = -0.03,
+        sell_max_recent_return = 0.03,
+        buy_min_fine_last_5m: float | None = None,
+        sell_max_fine_last_5m: float | None = None,
     ):
         validate_bollinger(period, num_std)
         validate_price_context(context_bars, buy_min_recent_return, sell_max_recent_return)
@@ -27,6 +29,8 @@ class BollingerMeanReversionAlgorithm(Algorithm):
         self.context_bars = context_bars
         self.buy_min_recent_return = buy_min_recent_return
         self.sell_max_recent_return = sell_max_recent_return
+        self.buy_min_fine_last_5m = buy_min_fine_last_5m
+        self.sell_max_fine_last_5m = sell_max_fine_last_5m
         self._bands = bollinger_init(period=period, num_std=num_std)
         close_history = max(period, context_bars + 1, 1)
         self._closes: deque[float] = deque(maxlen=close_history)
@@ -54,4 +58,7 @@ class BollingerMeanReversionAlgorithm(Algorithm):
             context_bars=self.context_bars,
             buy_min_recent_return=self.buy_min_recent_return,
             sell_max_recent_return=self.sell_max_recent_return,
+            bar=bar,
+            buy_min_fine_last_5m=self.buy_min_fine_last_5m,
+            sell_max_fine_last_5m=self.sell_max_fine_last_5m,
         )

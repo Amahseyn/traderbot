@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 
 from traderbot.algorithms.registry import algorithm_for_id
-from traderbot.backtest import load_bars_csv, run_backtest
-from traderbot.export_csv import load_jobs, run_export
+from traderbot.backtesting import load_bars_csv, run_backtest
+from traderbot.data.export import load_jobs, run_export
 from traderbot.ml.batch import run_batch_on_directory
 from traderbot.ml.pipeline import model_for_id, run_forecast_eval
 from traderbot.ml.results import save_run_result
@@ -21,7 +21,7 @@ def pipeline_multisource_export(
     *,
     data_dir: Path | None = None,
     jobs_file: Path = JOBS_FIVE_SOURCES,
-    days: int = 30,
+    days = 30,
     solutions_root: Path = SOLUTIONS_ROOT,
     solution_root: Path | None = None,
 ) -> PipelineResult:
@@ -74,10 +74,10 @@ def pipeline_lightgbm_multisource(
     *,
     data_dir: Path | None = None,
     results_dir: Path | None = None,
-    all_horizons: bool = False,
-    skip_export: bool = True,
+    all_horizons = False,
+    skip_export = True,
     jobs_file: Path = JOBS_FIVE_SOURCES,
-    export_days: int = 30,
+    export_days = 30,
     solutions_root: Path = SOLUTIONS_ROOT,
 ) -> PipelineResult:
     """Export (optional) → LightGBM batch → plots + manifest under ``solutions/``."""
@@ -137,7 +137,7 @@ def pipeline_lightgbm_single_asset(
     *,
     csv_path: Path,
     results_dir: Path | None = None,
-    all_horizons: bool = True,
+    all_horizons = True,
     solutions_root: Path = SOLUTIONS_ROOT,
 ) -> PipelineResult:
     """One OHLC CSV → LightGBM for default horizon(s) with visualizations."""
@@ -196,13 +196,11 @@ def pipeline_chronos_single(
     *,
     csv_path: Path,
     results_dir: Path | None = None,
-    horizon_bars: int = 4,
-    bar_minutes: int = 60,
+    horizon_bars = 4,
+    bar_minutes = 60,
     solutions_root: Path = SOLUTIONS_ROOT,
 ) -> PipelineResult:
     """Single asset → Chronos pretrained eval (requires ``.[chronos]``)."""
-    from traderbot.ml.dataset import horizon_label
-
     layout = prepare_solution(
         "chronos-single",
         solutions_root=solutions_root,
@@ -219,8 +217,7 @@ def pipeline_chronos_single(
         horizon_bars=horizon_bars,
         bar_minutes=bar_minutes,
     )
-    label = horizon_label(bar_minutes, horizon_bars)
-    out = layout.run_dir(csv_path.stem, label)
+    out = layout.run_dir(csv_path.stem, eval_result.horizon_label)
     save_run_result(eval_result, out)
     result.add_step("chronos_eval", artifacts=[out / "results.json", out / "visualizations"])
     result.outputs = {"solution_root": str(layout.root), "run_dir": str(out), "metrics": eval_result.metrics}
@@ -232,9 +229,9 @@ def pipeline_sma_backtest(
     *,
     csv_path: Path,
     results_dir: Path | None = None,
-    fast: int = 5,
-    slow: int = 20,
-    strategy_id: str = "sma_cross",
+    fast = 5,
+    slow = 20,
+    strategy_id = "sma_cross",
     solutions_root: Path = SOLUTIONS_ROOT,
 ) -> PipelineResult:
     """OHLC CSV → rule-based strategy backtest summary JSON."""
@@ -270,7 +267,7 @@ def pipeline_full_research(
     *,
     data_dir: Path | None = None,
     results_dir: Path | None = None,
-    export_days: int = 90,
+    export_days = 90,
     solutions_root: Path = SOLUTIONS_ROOT,
 ) -> PipelineResult:
     """Full stack: 5-source export → LightGBM all default horizons → summary."""

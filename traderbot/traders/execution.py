@@ -27,7 +27,7 @@ class ExecutionPolicy:
         return cls(mode="paper")
 
     @classmethod
-    def live(cls, *, allow_buy: bool = True, allow_sell: bool = True) -> ExecutionPolicy:
+    def live(cls, *, allow_buy = True, allow_sell = True) -> ExecutionPolicy:
         return cls(mode="live", allow_buy=allow_buy, allow_sell=allow_sell)
 
     def permits(self, action: SignalAction) -> bool:

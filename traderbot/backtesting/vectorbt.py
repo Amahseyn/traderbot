@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from traderbot.algorithms.base import Algorithm
-from traderbot.backtest import normalize_bar
+from traderbot.backtesting.engine import normalize_bar
 
 _STAT_MAP: tuple[tuple[str, str], ...] = (
     ("Total Return [%]", "total_return_pct"),
@@ -52,7 +52,7 @@ def infer_bar_freq(bars: list[dict[str, Any]]):
 
 
 def entry_exit_series(algorithm: Algorithm, bars: list[dict[str, Any]]):
-    """Boolean entry/exit arrays from the same bar loop as :func:`traderbot.backtest.run_backtest`."""
+    """Boolean entry/exit arrays from the same bar loop as :func:`traderbot.backtesting.run_backtest`."""
     import pandas as pd
 
     algorithm.reset()
@@ -106,7 +106,7 @@ def vectorbt_metrics_dict(
     Risk and trade analytics via vectorbt (optional dependency).
 
     Strategy signals still come from :class:`~traderbot.algorithms.base.Algorithm`;
-    this does not replace :func:`traderbot.backtest.run_backtest` for equity simulation.
+    this does not replace :func:`traderbot.backtesting.run_backtest` for equity simulation.
     """
     pf = vectorbt_portfolio(
         algorithm,

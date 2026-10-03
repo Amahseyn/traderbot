@@ -35,7 +35,7 @@ def _prompt_path(label: str, default: str) -> str:
     return line or default
 
 
-def _compare_argv(*, with_filters: bool = False) -> Argv:
+def _compare_argv(*, with_filters = False) -> Argv:
     csv = _prompt_path("OHLC CSV", _default_csv())
     out = _prompt_path("Output dir", "results/strategies/compare/BTCIRT_60")
     argv: Argv = [
@@ -380,7 +380,7 @@ def _group_menu(group: MenuGroup) -> None:
 
 
 def _profile_action() -> None:
-    from traderbot.cli import _nobitex_keys_configured, _print_profile
+    from traderbot.cli.root import _nobitex_keys_configured, _print_profile
 
     if not _nobitex_keys_configured():
         print("Set NOBITEX_API_* in .env (auth apikeys create --write-env)", file=sys.stderr)
@@ -390,7 +390,7 @@ def _profile_action() -> None:
 
 def run_interactive_hub() -> None:
     if not sys.stdin.isatty():
-        from traderbot.cli import _build_root_parser
+        from traderbot.cli.root import _build_root_parser
 
         _build_root_parser().print_help()
         return

@@ -8,9 +8,8 @@ from traderbot.algorithms.registry import (
     implemented_strategy_ids,
     strategy_kwargs_from_namespace,
 )
-from traderbot.algorithms.report import save_backtest_result
 from traderbot.algorithms.visualize import add_visualization_flags, wants_visualization
-from traderbot.backtest import load_bars_csv, run_backtest
+from traderbot.backtesting import load_bars_csv, run_backtest, save_backtest_result
 
 
 def main(argv: list[str] | None = None) -> None:

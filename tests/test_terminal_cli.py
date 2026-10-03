@@ -1,6 +1,6 @@
 import json
 
-from traderbot.terminal_cli import main as terminal_main
+from traderbot.cli.terminal import main as terminal_main
 
 
 def test_terminal_catalog(capsys):

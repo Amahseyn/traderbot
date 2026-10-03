@@ -93,7 +93,7 @@ def prepare_solution(
     solutions_root: Path = SOLUTIONS_ROOT,
     solution_root: Path | None = None,
     title: str | None = None,
-    description: str = "",
+    description = "",
 ) -> SolutionLayout:
     slug = solution_slug(pipeline_id)
     root = solution_root if solution_root is not None else solutions_root / slug

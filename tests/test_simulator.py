@@ -3,7 +3,7 @@ import math
 from traderbot.ml.simulator import final_equity_from_curve, simulate_holdout_account
 
 
-def _series(closes: list[float], *, bar_sec: int = 3600) -> list[tuple[int, float]]:
+def _series(closes: list[float], *, bar_sec = 3600) -> list[tuple[int, float]]:
     t0 = 1_700_000_000
     return [(t0 + i * bar_sec, c) for i, c in enumerate(closes)]
 

@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-from traderbot.cli import _load_dotenv
+from traderbot.auth.envfile import load_env_file
 from traderbot.terminal.argparse_helpers import (
     add_execution_flags,
     add_loop_flags,
@@ -57,7 +57,7 @@ def main(argv: list[str] | None = None) -> None:
         print(json.dumps(catalog_dict(implemented_only=args.implemented), indent=2))
         return
 
-    _load_dotenv()
+    load_env_file()
 
     if args.command == "run":
         run_live(args)

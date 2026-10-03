@@ -6,10 +6,10 @@ import math
 
 
 def synthetic_bars(
-    n: int = 120,
+    n = 120,
     *,
-    start: float = 100.0,
-    bar_minutes: int = 60,
+    start = 100.0,
+    bar_minutes = 60,
 ) -> list[dict]:
     bar_sec = bar_minutes * 60
     bars = []

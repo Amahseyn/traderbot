@@ -10,6 +10,7 @@ from traderbot.algorithms.strategies.ema_cross import EmaCrossAlgorithm
 from traderbot.algorithms.strategies.macd import MacdCrossAlgorithm
 from traderbot.algorithms.strategies.rsi import RsiThresholdAlgorithm
 from traderbot.algorithms.strategies.sma_cross import SmaCrossAlgorithm
+from traderbot.algorithms.utils import price_context_kwargs_from_namespace
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,14 +81,6 @@ _IMPLEMENTED: dict[str, type[Algorithm]] = {
 }
 
 
-def _price_context_kwargs(a: Any) -> dict[str, Any]:
-    return {
-        "context_bars": a.context_bars,
-        "buy_min_recent_return": a.buy_min_recent_return,
-        "sell_max_recent_return": a.sell_max_recent_return,
-    }
-
-
 _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
     "sma_cross": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
     "ema_cross": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
@@ -95,30 +88,30 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "period": a.period,
         "oversold": a.oversold,
         "overbought": a.overbought,
-        **_price_context_kwargs(a),
+        **price_context_kwargs_from_namespace(a),
     },
     "macd_cross": lambda a: {
         "fast": a.fast,
         "slow": a.slow,
         "signal": a.signal,
-        **_price_context_kwargs(a),
+        **price_context_kwargs_from_namespace(a),
     },
     "bollinger_mean_reversion": lambda a: {
         "period": a.period,
         "num_std": a.num_std,
-        **_price_context_kwargs(a),
+        **price_context_kwargs_from_namespace(a),
     },
 }
 
 
-def list_strategies(*, implemented_only: bool = False) -> list[StrategyCatalogEntry]:
+def list_strategies(*, implemented_only = False) -> list[StrategyCatalogEntry]:
     if implemented_only:
         return [s for s in STRATEGY_CATALOG if s.implemented]
     return list(STRATEGY_CATALOG)
 
 
-def implemented_strategy_ids() -> tuple[str, ...]:
-    return tuple(_IMPLEMENTED.keys())
+def implemented_strategy_ids() -> list[str]:
+    return sorted(_IMPLEMENTED)
 
 
 def algorithm_for_id(strategy_id: str, **kwargs: Any) -> Algorithm:

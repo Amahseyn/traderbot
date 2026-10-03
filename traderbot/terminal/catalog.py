@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 from traderbot.algorithms.registry import list_strategies
-from traderbot.market_data import RESOLUTIONS
+from traderbot.markets.market_data import RESOLUTIONS
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,7 +32,7 @@ TERMINAL_COMMANDS: tuple[TerminalCommandEntry, ...] = (
 )
 
 
-def catalog_dict(*, implemented_only: bool = False) -> dict:
+def catalog_dict(*, implemented_only = False) -> dict:
     return {
         "commands": [asdict(c) for c in TERMINAL_COMMANDS],
         "strategies": [asdict(s) for s in list_strategies(implemented_only=implemented_only)],

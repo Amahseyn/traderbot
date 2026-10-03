@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from traderbot.ml.metrics import DEFAULT_SAMPLE_USD, format_metrics_line, full_metrics
+from traderbot.ml.simulation_config import SimulationConfig
 from traderbot.ml.visualize import VisualizationPaths, render_result_plots
 
 
@@ -27,11 +28,16 @@ class ModelRunResult:
     metrics: dict[str, float] = field(default_factory=dict)
     visualization: VisualizationPaths | None = None
     extra: dict[str, Any] = field(default_factory=dict)
+    simulation_config: SimulationConfig | None = None
 
     def __post_init__(self) -> None:
         if not self.metrics:
             from traderbot.ml.simulator import simulate_holdout_account
 
+            sim_cfg = self.simulation_config or SimulationConfig(
+                horizon_bars=self.horizon_bars,
+                bar_minutes=self.bar_minutes,
+            )
             sim = simulate_holdout_account(
                 self.y_true,
                 self.y_pred,
@@ -40,9 +46,11 @@ class ModelRunResult:
                 bar_minutes=self.bar_minutes,
                 price_series=self.price_series,
                 initial_usd=self.sample_usd,
+                sim_config=sim_cfg,
             )
             self.extra.setdefault("strategy_equity", sim.strategy_equity)
             self.extra.setdefault("buy_hold_equity", sim.buy_hold_equity)
+            self.extra.setdefault("simulation", sim_cfg.to_dict())
             self.metrics = full_metrics(
                 self.y_true,
                 self.y_pred,
@@ -76,7 +84,7 @@ class ModelRunResult:
         }
 
 
-def save_run_result(result: ModelRunResult, out_dir: Path, *, render_plots: bool = True) -> ModelRunResult:
+def save_run_result(result: ModelRunResult, out_dir: Path, *, render_plots = True) -> ModelRunResult:
     out_dir.mkdir(parents=True, exist_ok=True)
     if render_plots:
         result.visualization = render_result_plots(result, out_dir)

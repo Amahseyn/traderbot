@@ -15,7 +15,7 @@ DEFAULT_FORECAST_HORIZONS: tuple[tuple[int, str], ...] = (
 FORECAST_TARGET_MINUTES: tuple[int, ...] = tuple(m for m, _ in DEFAULT_FORECAST_HORIZONS)
 
 # Preferred default when running a single eval (CLI / batch) for a given candle resolution.
-DEFAULT_EVAL_TARGET_MINUTES: int = 60
+DEFAULT_EVAL_TARGET_MINUTES = 60
 
 
 def resolution_minutes(resolution: str) -> int:
@@ -42,7 +42,7 @@ def forecast_horizons_for_resolution(resolution: str) -> list[tuple[int, str]]:
     Windows: 1m, 5m, 1h, 2h, 4h, 6h, 12h, 1d. Duplicate bar counts are listed once.
     If none align (e.g. very coarse candles), use a single-bar horizon.
     """
-    from traderbot.ml.dataset import horizon_label
+    from traderbot.ml.utils import horizon_label
 
     bar_minutes = resolution_minutes(resolution)
     out: list[tuple[int, str]] = []
@@ -74,7 +74,7 @@ def default_eval_horizon(resolution: str) -> tuple[int, int]:
     return horizons[0][0], bar_minutes
 
 
-def min_bars_for_forecast_eval(horizon_bars: int, *, train_ratio: float = 0.8) -> int:
+def min_bars_for_forecast_eval(horizon_bars: int, *, train_ratio = 0.8) -> int:
     """
     Minimum OHLC rows for indicators, forward target, horizon embargo, and holdout.
 

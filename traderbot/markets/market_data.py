@@ -5,7 +5,14 @@ from typing import Any
 
 import requests
 
-from traderbot.client import BASE_URL, USER_AGENT
+from traderbot.nobitex.client import BASE_URL, USER_AGENT
+from traderbot.markets.utils import history_to_timestamp, trim_forming_candle
+from traderbot.utils.bars import one_minute_bars_known_at, one_minute_history_to_timestamp
+from traderbot.utils.constants import (
+    NOBITEX_HTTP_TIMEOUT_SECONDS,
+    NOBITEX_PAGE_DELAY_SECONDS,
+    ONE_MINUTE_RESOLUTION,
+)
 
 RESOLUTIONS = ("1", "5", "15", "30", "60", "180", "240", "360", "720", "D", "2D", "3D")
 MAX_CANDLES = 500
@@ -24,9 +31,9 @@ def fetch_ohlc_page(
     *,
     symbol: str,
     resolution: str,
-    to_ts: int,
-    from_ts: int | None = None,
-    page: int = 1,
+    history_to_unix_seconds: int,
+    history_from_unix_seconds: int | None = None,
+    page = 1,
     session: requests.Session | None = None,
 ) -> dict[str, Any]:
     if resolution not in RESOLUTIONS:
@@ -34,17 +41,17 @@ def fetch_ohlc_page(
     params: dict[str, Any] = {
         "symbol": symbol,
         "resolution": resolution,
-        "to": to_ts,
+        "to": history_to_unix_seconds,
         "page": page,
     }
-    if from_ts is not None:
-        params["from"] = from_ts
+    if history_from_unix_seconds is not None:
+        params["from"] = history_from_unix_seconds
     http = session or requests
     response = http.get(
         f"{BASE_URL.rstrip('/')}/market/udf/history",
         params=params,
         headers={"User-Agent": USER_AGENT},
-        timeout=60,
+        timeout=NOBITEX_HTTP_TIMEOUT_SECONDS,
     )
     response.raise_for_status()
     return response.json()
@@ -60,18 +67,18 @@ def ohlc_rows(payload: dict[str, Any], *, symbol: str, resolution: str) -> list[
     closes = payload.get("c") or []
     volumes = payload.get("v") or []
     rows: list[dict[str, Any]] = []
-    for i, ts in enumerate(times):
+    for bar_index, bar_open_unix_seconds in enumerate(times):
         rows.append(
             {
                 "symbol": symbol,
                 "resolution": resolution,
-                "timestamp": ts,
-                "datetime_utc": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
-                "open": opens[i],
-                "high": highs[i],
-                "low": lows[i],
-                "close": closes[i],
-                "volume": volumes[i],
+                "timestamp": bar_open_unix_seconds,
+                "datetime_utc": datetime.fromtimestamp(bar_open_unix_seconds, tz=timezone.utc).isoformat(),
+                "open": opens[bar_index],
+                "high": highs[bar_index],
+                "low": lows[bar_index],
+                "close": closes[bar_index],
+                "volume": volumes[bar_index],
             }
         )
     return rows
@@ -81,19 +88,19 @@ def fetch_ohlc_range(
     *,
     symbol: str,
     resolution: str,
-    from_ts: int,
-    to_ts: int,
+    history_from_unix_seconds: int,
+    history_to_unix_seconds: int,
     session: requests.Session | None = None,
 ) -> list[dict[str, Any]]:
-    """Fetch all candles in [from_ts, to_ts] (paginated, max 500 per page)."""
+    """Fetch all candles in [history_from_unix_seconds, history_to_unix_seconds] (paginated)."""
     all_rows: list[dict[str, Any]] = []
     page = 1
     while True:
         payload = fetch_ohlc_page(
             symbol=symbol,
             resolution=resolution,
-            from_ts=from_ts,
-            to_ts=to_ts,
+            history_from_unix_seconds=history_from_unix_seconds,
+            history_to_unix_seconds=history_to_unix_seconds,
             page=page,
             session=session,
         )
@@ -104,9 +111,8 @@ def fetch_ohlc_range(
         if len(batch) < MAX_CANDLES:
             break
         page += 1
-        time.sleep(0.2)
-    # API returns oldest-first or mixed; sort by time for CSV
-    all_rows.sort(key=lambda r: r["timestamp"])
+        time.sleep(NOBITEX_PAGE_DELAY_SECONDS)
+    all_rows.sort(key=lambda row: row["timestamp"])
     return all_rows
 
 
@@ -114,24 +120,48 @@ def fetch_latest_closed_bar(
     *,
     symbol: str,
     resolution: str,
+    known_at_unix_seconds: int | None = None,
     session: requests.Session | None = None,
 ) -> dict[str, Any] | None:
     """Return the most recent fully closed candle (second-to-last row when API returns the open bar)."""
-    to_ts = int(time.time())
+    history_to_unix_seconds = history_to_timestamp(resolution, known_at_unix_seconds)
     payload = fetch_ohlc_page(
         symbol=symbol,
         resolution=resolution,
-        to_ts=to_ts,
+        history_to_unix_seconds=history_to_unix_seconds,
         page=1,
         session=session,
     )
     rows = ohlc_rows(payload, symbol=symbol, resolution=resolution)
     if not rows:
         return None
-    rows.sort(key=lambda r: r["timestamp"])
-    if len(rows) >= 2:
-        return rows[-2]
-    return rows[-1]
+    closed_bars = trim_forming_candle(rows)
+    if not closed_bars:
+        return None
+    return closed_bars[-1]
+
+
+def fetch_one_minute_bars(
+    *,
+    symbol: str,
+    known_at_unix_seconds: int,
+    max_bars: int = MAX_CANDLES,
+    session: requests.Session | None = None,
+) -> list[dict[str, Any]]:
+    """Closed 1m OHLC for ``symbol`` at ``known_at_unix_seconds`` (oldest first, up to ``max_bars``)."""
+    if max_bars < 1:
+        return []
+    history_to_unix_seconds = one_minute_history_to_timestamp(known_at_unix_seconds)
+    payload = fetch_ohlc_page(
+        symbol=symbol,
+        resolution=ONE_MINUTE_RESOLUTION,
+        history_to_unix_seconds=history_to_unix_seconds,
+        page=1,
+        session=session,
+    )
+    rows = ohlc_rows(payload, symbol=symbol, resolution=ONE_MINUTE_RESOLUTION)
+    closed_bars = one_minute_bars_known_at(trim_forming_candle(rows), known_at_unix_seconds)
+    return closed_bars[-max_bars:]
 
 
 def incremental_bar_source(
@@ -141,17 +171,17 @@ def incremental_bar_source(
     session: requests.Session | None = None,
 ) -> Callable[[], dict[str, Any] | None]:
     """Callable that yields each closed bar once (for live ``AlgorithmTrader`` loops)."""
-    last_ts: int | None = None
+    last_bar_open_unix_seconds: int | None = None
 
     def source() -> dict[str, Any] | None:
-        nonlocal last_ts
+        nonlocal last_bar_open_unix_seconds
         bar = fetch_latest_closed_bar(symbol=symbol, resolution=resolution, session=session)
         if bar is None:
             return None
-        ts = int(bar["timestamp"])
-        if last_ts is not None and ts <= last_ts:
+        bar_open_unix_seconds = int(bar["timestamp"])
+        if last_bar_open_unix_seconds is not None and bar_open_unix_seconds <= last_bar_open_unix_seconds:
             return None
-        last_ts = ts
+        last_bar_open_unix_seconds = bar_open_unix_seconds
         return bar
 
     return source

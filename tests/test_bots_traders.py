@@ -1,5 +1,5 @@
 from traderbot.bots.base import Bot
-from traderbot.client import NobitexClient
+from traderbot.nobitex.client import NobitexClient
 from traderbot.traders.base import Trader
 
 

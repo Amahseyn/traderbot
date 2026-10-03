@@ -9,7 +9,7 @@ class EmaCrossAlgorithm(Algorithm):
 
     name = "ema_cross"
 
-    def __init__(self, *, fast: int = 12, slow: int = 26, price_confirm: bool = False):
+    def __init__(self, *, fast = 12, slow = 26, price_confirm = False):
         validate_fast_slow(fast, slow)
         self.fast = fast
         self.slow = slow

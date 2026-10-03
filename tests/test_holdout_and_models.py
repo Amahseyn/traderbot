@@ -19,7 +19,7 @@ from traderbot.ml.pipeline import run_forecast_eval
 from traderbot.ml.results import save_run_result
 
 
-def synthetic_bars(n: int = 120, *, start: float = 100.0) -> list[dict]:
+def synthetic_bars(n = 120, *, start = 100.0) -> list[dict]:
     bars = []
     price = start
     for i in range(n):
@@ -198,7 +198,7 @@ def test_crypto_ohlc_lightgbm_and_chronos_smoke():
     if ohlc is None:
         pytest.skip("no crypto OHLC; export first")
 
-    from traderbot.backtest import load_bars_csv
+    from traderbot.backtesting import load_bars_csv
 
     csv_path = next(iter(sorted(ohlc.glob("*.csv"))), None)
     assert csv_path is not None

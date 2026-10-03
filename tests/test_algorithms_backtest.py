@@ -1,8 +1,8 @@
 from traderbot.algorithms.strategies.example import SmaCrossAlgorithm
-from traderbot.backtest import load_bars_csv, normalize_bar, run_backtest
+from traderbot.backtesting import load_bars_csv, normalize_bar, run_backtest
 from traderbot.bots.base import Bot
-from traderbot.client import NobitexClient
-from traderbot.export_csv import write_csv
+from traderbot.nobitex.client import NobitexClient
+from traderbot.data.export import write_csv
 from traderbot.traders.execution import ExecutionPolicy
 from traderbot.traders.strategies.algorithm_trader import AlgorithmTrader
 

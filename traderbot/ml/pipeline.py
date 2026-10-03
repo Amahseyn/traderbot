@@ -2,16 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from traderbot.ml.dataset import (
-    assert_holdout_is_causal,
-    build_supervised,
-    horizon_label,
-    train_test_split_temporal,
-)
+from traderbot.ml.dataset import assert_holdout_is_causal, build_supervised, train_test_split_temporal
+from traderbot.ml.utils import horizon_label, price_series_from_bars
 from traderbot.ml.models.base import ForecastModel
 from traderbot.ml.models.chronos import ChronosForecastModel
 from traderbot.ml.models.lightgbm import LightGBMForecastModel
 from traderbot.ml.results import ModelRunResult
+from traderbot.ml.simulation_config import SimulationConfig
+from traderbot.utils.constants import ONE_MINUTE_BAR_MINUTES
 
 
 def model_for_id(model_id: str, **kwargs: Any) -> ForecastModel:
@@ -27,13 +25,18 @@ def run_forecast_eval(
     model: ForecastModel,
     *,
     horizon_bars: int,
-    bar_minutes: int = 60,
-    train_ratio: float = 0.8,
+    bar_minutes = 60,
+    train_ratio = 0.8,
+    one_minute_bars: list[dict[str, Any]] | None = None,
+    one_minute_bar_minutes: int = ONE_MINUTE_BAR_MINUTES,
+    simulation_config: SimulationConfig | None = None,
 ) -> ModelRunResult:
     xs, ys, timestamps, feature_names, label_ends = build_supervised(
         bars,
         horizon_bars=horizon_bars,
         bar_minutes=bar_minutes,
+        one_minute_bars=one_minute_bars,
+        one_minute_bar_minutes=one_minute_bar_minutes,
     )
     x_train, y_train, ts_train, x_test, y_test, ts_test = train_test_split_temporal(
         xs,
@@ -61,7 +64,10 @@ def run_forecast_eval(
     else:
         y_pred = model.predict(x_test)
 
-    price_series = [(int(b["timestamp"]), float(b["close"])) for b in bars]
+    price_series = price_series_from_bars(bars)
+
+    if simulation_config is None:
+        simulation_config = SimulationConfig(horizon_bars=horizon_bars, bar_minutes=bar_minutes)
 
     return ModelRunResult(
         model_id=model.model_id,
@@ -74,4 +80,5 @@ def run_forecast_eval(
         y_true=y_test,
         y_pred=y_pred,
         extra=extra,
+        simulation_config=simulation_config,
     )

@@ -15,7 +15,7 @@ def create_api_key(
     name: str,
     permissions: str,
     totp: str,
-    description: str = "",
+    description = "",
     ip_whitelist: list[str] | None = None,
     expiration_date: str | None = None,
 ) -> Any:
