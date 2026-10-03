@@ -31,6 +31,15 @@ def test_five_source_jobs_cover_all_intervals():
     assert intervals == set(RESOLUTIONS)
 
 
+def test_crypto_1h_jobs_cover_five_markets():
+    jobs_path = REPO_ROOT / "export.jobs.crypto-1h.json"
+    jobs = load_jobs(jobs_path)
+    symbols = {j["symbol"] for j in jobs}
+    assert symbols == FIVE_SOURCES
+    assert {j["interval"] for j in jobs} == {"60"}
+    assert all(j["days"] == 90 for j in jobs)
+
+
 def test_multisource_csvs_exist():
     if CRYPTO_OHLC_DIR is None:
         pytest.skip("run: traderbot export --jobs export.jobs.5sources.json --out data/crypto")

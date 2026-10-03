@@ -6,6 +6,7 @@ from typing import Any
 from traderbot.pipelines.base import PipelineFn, PipelineResult
 from traderbot.pipelines.definitions import (
     pipeline_chronos_single,
+    pipeline_crypto_1h_local,
     pipeline_full_research,
     pipeline_lightgbm_multisource,
     pipeline_lightgbm_single_asset,
@@ -58,6 +59,12 @@ PIPELINES: tuple[PipelineSpec, ...] = (
         title="SMA backtest",
         description="Rule-based SMA cross backtest on one CSV.",
         fn=pipeline_sma_backtest,
+    ),
+    PipelineSpec(
+        id="crypto-1h-local",
+        title="Crypto 1h local (no export)",
+        description="Full on-disk *_60.csv per asset (or --tail-bars); compare all strategies + LightGBM when bar count meets ML minimum.",
+        fn=pipeline_crypto_1h_local,
     ),
     PipelineSpec(
         id="full-research-lightgbm",

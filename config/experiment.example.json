@@ -1,0 +1,67 @@
+{
+  "comment": "window_hours → tail_bars for 1h CSVs. train_supervised_row_count = supervised rows for ML training; num_boost_round = LightGBM iterations.",
+  "schema_version": 1,
+  "experiment_id": "my-experiment",
+  "title": "Human-readable title",
+  "status": "pending",
+  "pipeline_id": "crypto-1h-local",
+  "solutions_root": "solutions",
+  "solution_root": null,
+  "started_at_utc": null,
+  "completed_at_utc": null,
+  "last_error": null,
+  "result_solution_root": null,
+  "params": {
+    "model_id": "lightgbm",
+    "run_lightgbm": true,
+    "train_supervised_row_count": 80,
+    "num_boost_round": 50,
+    "symbol": "BTCIRT",
+    "all_assets": false,
+    "initial_cash": 10000.0
+  },
+  "test_steps": [
+    {
+      "step_id": "hours-24",
+      "title": "Last 24 hours",
+      "status": "pending",
+      "params": {
+        "window_hours": 24,
+        "model_id": "lightgbm",
+        "run_lightgbm": true,
+        "train_supervised_row_count": 8,
+        "num_boost_round": 50,
+        "symbol": "BTCIRT",
+        "all_assets": false
+      }
+    },
+    {
+      "step_id": "hours-60",
+      "title": "Last 60 hours",
+      "status": "pending",
+      "params": {
+        "window_hours": 60,
+        "model_id": "lightgbm",
+        "run_lightgbm": true,
+        "train_supervised_row_count": 30,
+        "num_boost_round": 50,
+        "symbol": "BTCIRT",
+        "all_assets": false
+      }
+    },
+    {
+      "step_id": "full-ohlc",
+      "title": "Entire CSV",
+      "status": "pending",
+      "params": {
+        "window_hours": null,
+        "model_id": "lightgbm",
+        "run_lightgbm": true,
+        "train_supervised_row_count": 500,
+        "num_boost_round": 50,
+        "symbol": "BTCIRT",
+        "all_assets": false
+      }
+    }
+  ]
+}

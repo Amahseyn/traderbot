@@ -100,6 +100,7 @@ def train_test_split_temporal(
     timestamps: list[int],
     *,
     train_ratio = 0.8,
+    train_supervised_row_count: int | None = None,
     horizon_bars = 0,
     label_end_timestamps: list[int] | None = None,
 ) -> tuple[list[list[float]], list[float], list[int], list[list[float]], list[float], list[int]]:
@@ -109,8 +110,15 @@ def train_test_split_temporal(
     With ``horizon_bars > 0``, training only uses rows whose forward-return
     label is fully realized before the first holdout row (index embargo).
     Holdout rows are never included in training.
+
+    When ``train_supervised_row_count`` is set, choose the earliest holdout
+    start that yields at least that many training rows (and a non-empty test set).
+    Otherwise ``train_ratio`` sets the holdout start index before embargo adjustment.
     """
-    if not (0.0 < train_ratio < 1.0):
+    if train_supervised_row_count is not None:
+        if train_supervised_row_count < 1:
+            raise ValueError("train_supervised_row_count must be >= 1")
+    elif not (0.0 < train_ratio < 1.0):
         raise ValueError("train_ratio must be in (0, 1)")
     n = len(xs)
     if n != len(ys) or n != len(timestamps):
@@ -120,11 +128,17 @@ def train_test_split_temporal(
     if horizon_bars < 0:
         raise ValueError("horizon_bars must be >= 0")
 
-    split = max(1, int(n * train_ratio))
-    if split >= n:
-        split = n - 1
-
     if horizon_bars <= 0 and label_end_timestamps is None:
+        if train_supervised_row_count is not None:
+            if train_supervised_row_count >= n:
+                raise ValueError(
+                    f"train_supervised_row_count={train_supervised_row_count} must be < supervised rows ({n})",
+                )
+            split = train_supervised_row_count
+        else:
+            split = max(1, int(n * train_ratio))
+            if split >= n:
+                split = n - 1
         return (
             xs[:split],
             ys[:split],
@@ -145,12 +159,29 @@ def train_test_split_temporal(
         test_idx = [i for i in range(n) if i >= split_at]
         return train_idx, test_idx
 
-    train_idx, test_idx = partition(split)
-    while (not train_idx or not test_idx) and split < n - 1:
-        split += 1
+    if train_supervised_row_count is not None:
+        split = None
+        for split_at in range(1, n):
+            train_idx, test_idx = partition(split_at)
+            if len(train_idx) >= train_supervised_row_count and test_idx:
+                split = split_at
+                break
+        if split is None:
+            raise ValueError(
+                "not enough supervised rows for requested train_supervised_row_count="
+                f"{train_supervised_row_count}; have {n} rows after features",
+            )
         train_idx, test_idx = partition(split)
+    else:
+        split = max(1, int(n * train_ratio))
+        if split >= n:
+            split = n - 1
+        train_idx, test_idx = partition(split)
+        while (not train_idx or not test_idx) and split < n - 1:
+            split += 1
+            train_idx, test_idx = partition(split)
     if not train_idx or not test_idx:
-        raise ValueError("purge left empty train or test set; need more bars or lower train_ratio")
+        raise ValueError("purge left empty train or test set; need more bars or fewer training rows")
 
     def take(idxs: list[int]) -> tuple[list[list[float]], list[float], list[int]]:
         return (

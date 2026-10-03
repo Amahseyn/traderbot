@@ -164,6 +164,18 @@ def command_tree() -> list[dict]:
                         FlagDoc("--csv", "Required for single-asset pipelines."),
                         FlagDoc("--skip-export", "Use existing data."),
                         FlagDoc("--export-days", "History for export steps."),
+                        FlagDoc("--tail-bars", "crypto-1h-local: limit to last N 1h bars."),
+                        FlagDoc("--all-assets", "crypto-1h-local: every *_60.csv."),
+                    ),
+                ),
+                SubcommandDoc(
+                    "run-config",
+                    "Run from experiment JSON (tracks pending/running/completed).",
+                    "traderbot pipeline run-config config/experiment.crypto-1h-local.json",
+                    flags=(
+                        FlagDoc("--force", "Re-run completed experiments."),
+                        FlagDoc("--dry-run", "Show resolved pipeline kwargs per test step."),
+                        FlagDoc("--step", "Run one test_steps step_id only."),
                     ),
                 ),
             ),

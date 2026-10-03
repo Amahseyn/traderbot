@@ -74,7 +74,12 @@ def default_eval_horizon(resolution: str) -> tuple[int, int]:
     return horizons[0][0], bar_minutes
 
 
-def min_bars_for_forecast_eval(horizon_bars: int, *, train_ratio = 0.8) -> int:
+def min_bars_for_forecast_eval(
+    horizon_bars: int,
+    *,
+    train_ratio = 0.8,
+    train_supervised_row_count: int | None = None,
+) -> int:
     """
     Minimum OHLC rows for indicators, forward target, horizon embargo, and holdout.
 
@@ -82,5 +87,8 @@ def min_bars_for_forecast_eval(horizon_bars: int, *, train_ratio = 0.8) -> int:
     the first test row (no label leakage).
     """
     indicator_warmup = max(55, 35 + horizon_bars)
-    min_supervised = max(20, int(horizon_bars / train_ratio) + horizon_bars + 10)
+    if train_supervised_row_count is not None:
+        min_supervised = max(20, train_supervised_row_count + horizon_bars + 10)
+    else:
+        min_supervised = max(20, int(horizon_bars / train_ratio) + horizon_bars + 10)
     return indicator_warmup + 30 + horizon_bars + min_supervised

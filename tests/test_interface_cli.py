@@ -17,6 +17,7 @@ def test_interface_catalog_complete(capsys):
     ids = [p["id"] for p in out["pickables"]]
     assert len(ids) == len(set(ids))
     assert "workflow/download-multisource" in ids
+    assert "workflow/crypto-1h-local-research" in ids
     assert "terminal" in {c["id"] for c in out["top_level_commands"]}
 
 

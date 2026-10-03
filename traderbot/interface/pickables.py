@@ -1,8 +1,35 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from pathlib import Path
 
 from traderbot.pipelines.registry import list_pipelines
+
+CRYPTO_1H_JOBS = "export.jobs.crypto-1h.json"
+CRYPTO_1H_OHLC_CSVS: tuple[str, ...] = (
+    "data/crypto/ohlc/BTCIRT_60.csv",
+    "data/crypto/ohlc/ETHIRT_60.csv",
+    "data/crypto/ohlc/ETHUSDT_60.csv",
+    "data/crypto/ohlc/XRPIRT_60.csv",
+    "data/crypto/ohlc/LTCIRT_60.csv",
+)
+
+
+def _strategy_compare_steps_for_crypto_1h() -> tuple[tuple[str, ...], ...]:
+    steps: list[tuple[str, ...]] = []
+    for csv_rel in CRYPTO_1H_OHLC_CSVS:
+        stem = Path(csv_rel).stem
+        steps.append(
+            (
+                "strategy",
+                "compare",
+                csv_rel,
+                "--out",
+                f"results/strategies/compare/{stem}",
+                "--visualize",
+            )
+        )
+    return tuple(steps)
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,6 +128,20 @@ def all_pickables() -> list[Pickable]:
             "Derived from export.jobs.5sources.json (BTC, ETH, XRP, LTC, …).",
             ("data", "markets"),
             tags=("data", "live"),
+        ),
+        _invoke(
+            "data/markets-crypto-1h",
+            "List crypto markets (1h jobs file)",
+            "Same as data markets but scoped to export.jobs.crypto-1h.json (five assets, interval 60).",
+            ("data", "markets", "--jobs", CRYPTO_1H_JOBS),
+            tags=("data", "live"),
+        ),
+        _invoke(
+            "export/jobs-crypto-1h",
+            "Export crypto markets (1h only)",
+            "Five Nobitex pairs at UDF interval 60 → data/crypto/ohlc.",
+            ("export", "--jobs", CRYPTO_1H_JOBS, "--out", "data/crypto"),
+            tags=("data", "export"),
         ),
         _invoke(
             "data/live-charts",
@@ -221,6 +262,19 @@ def all_pickables() -> list[Pickable]:
             tags=("ml", "visualization"),
         ),
         _invoke(
+            "ml/batch-lightgbm-crypto-1h",
+            "LightGBM batch on crypto 1h folder",
+            "Default 1h forecast horizon per asset under data/crypto/horizons/1h.",
+            (
+                "ml",
+                "batch",
+                "data/crypto/horizons/1h",
+                "--model",
+                "lightgbm",
+            ),
+            tags=("ml", "visualization"),
+        ),
+        _invoke(
             "pipeline/list",
             "List named pipelines",
             "End-to-end flows into solutions/.",
@@ -289,6 +343,34 @@ def all_pickables() -> list[Pickable]:
                 "--all-horizons",
             ),
             tags=("ml", "visualization"),
+        ),
+        _workflow(
+            "compare-all-strategies-crypto-1h",
+            "Compare all strategies on every crypto 1h CSV",
+            "Backtest every implemented strategy on each five-market 1h file; charts under results/strategies/compare/.",
+            *_strategy_compare_steps_for_crypto_1h(),
+            tags=("strategy", "visualization"),
+        ),
+        _workflow(
+            "crypto-1h-local-research",
+            "Crypto 1h local: all strategies + LightGBM",
+            "No download; full on-disk *_60.csv per asset (use pipeline --tail-bars 24 only for smoke).",
+            ("pipeline", "run", "crypto-1h-local", "--all-assets"),
+            tags=("strategy", "ml", "visualization"),
+        ),
+        _invoke(
+            "experiment/run-crypto-1h-local",
+            "Run crypto 1h experiment (config file)",
+            "Uses config/experiment.crypto-1h-local.json; updates status pending→completed.",
+            ("pipeline", "run-config", "config/experiment.crypto-1h-local.json"),
+            tags=("pipeline", "strategy", "ml", "experiment"),
+        ),
+        _invoke(
+            "experiment/run-crypto-1h-smoke",
+            "Run crypto 1h smoke experiment (config)",
+            "Uses config/experiment.crypto-1h-smoke.json (BTC, 24 bars, default LightGBM).",
+            ("pipeline", "run-config", "config/experiment.crypto-1h-smoke.json"),
+            tags=("pipeline", "strategy", "experiment"),
         ),
         *pipeline_picks,
     ]

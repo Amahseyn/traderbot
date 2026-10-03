@@ -148,6 +148,14 @@ def _ml_batch_viz_argv() -> Argv:
     return argv
 
 
+def _run_pickable_workflow(pick_id: str) -> Argv | None:
+    confirm = input(f"Run workflow {pick_id}? [y/N]: ").strip().lower()
+    if confirm not in ("y", "yes"):
+        return None
+    run_pickable(pick_id)
+    return None
+
+
 def _pick_visualization_workflow() -> Argv | None:
     from traderbot.interface.pickables import list_pickable_dicts
 
@@ -232,6 +240,42 @@ MENUS: tuple[MenuGroup, ...] = (
             MenuAction("ML batch charts (folder)", _ml_batch_viz_argv),
             MenuAction("Browse saved results", _view_saved_results_argv),
             MenuAction("Visualization pickable workflow", _pick_visualization_workflow),
+        ),
+    ),
+    MenuGroup(
+        title="Markets & crypto assets",
+        actions=(
+            MenuAction("List crypto markets (five-source jobs)", ["data", "markets"]),
+            MenuAction(
+                "List crypto markets (1h jobs file)",
+                ["data", "markets", "--jobs", "export.jobs.crypto-1h.json"],
+            ),
+            MenuAction(
+                "Export all crypto markets (1h)",
+                [
+                    "export",
+                    "--jobs",
+                    "export.jobs.crypto-1h.json",
+                    "--out",
+                    "data/crypto",
+                ],
+            ),
+            MenuAction(
+                "Compare all strategies on every crypto 1h CSV",
+                lambda: _run_pickable_workflow("workflow/compare-all-strategies-crypto-1h"),
+            ),
+            MenuAction(
+                "Crypto 1h local test (all assets, full OHLC, no download)",
+                lambda: _run_pickable_workflow("workflow/crypto-1h-local-research"),
+            ),
+            MenuAction(
+                "Run experiment from config (crypto 1h full)",
+                ["pipeline", "run-config", "config/experiment.crypto-1h-local.json"],
+            ),
+            MenuAction(
+                "Run experiment from config (crypto 1h smoke)",
+                ["pipeline", "run-config", "config/experiment.crypto-1h-smoke.json"],
+            ),
         ),
     ),
     MenuGroup(

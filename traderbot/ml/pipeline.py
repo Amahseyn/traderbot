@@ -27,6 +27,7 @@ def run_forecast_eval(
     horizon_bars: int,
     bar_minutes = 60,
     train_ratio = 0.8,
+    train_supervised_row_count: int | None = None,
     one_minute_bars: list[dict[str, Any]] | None = None,
     one_minute_bar_minutes: int = ONE_MINUTE_BAR_MINUTES,
     simulation_config: SimulationConfig | None = None,
@@ -43,6 +44,7 @@ def run_forecast_eval(
         ys,
         timestamps,
         train_ratio=train_ratio,
+        train_supervised_row_count=train_supervised_row_count,
         horizon_bars=horizon_bars,
         label_end_timestamps=label_ends,
     )
@@ -55,7 +57,13 @@ def run_forecast_eval(
     )
     model.fit(x_train, y_train, feature_names=feature_names)
 
-    extra: dict[str, Any] = {}
+    extra: dict[str, Any] = {
+        "supervised_row_count": len(xs),
+        "train_supervised_row_count": len(x_train),
+        "test_supervised_row_count": len(x_test),
+        "train_ratio": train_ratio,
+        "train_supervised_row_count_requested": train_supervised_row_count,
+    }
     if isinstance(model, LightGBMForecastModel):
         extra["feature_importance"] = model.feature_importance()
         y_pred = model.predict(x_test)

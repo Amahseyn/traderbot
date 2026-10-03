@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from traderbot.markets.market_data import fetch_ohlc_range, market_symbol
+from traderbot.utils.constants import SECONDS_PER_DAY
 
 CSV_FIELDS = [
     "symbol",
@@ -81,12 +82,14 @@ def run_export(
         symbol = job["symbol"]
         resolution = job["interval"]
         job_days = job.get("days") or days
-        start = from_ts if from_ts is not None else to_ts - job_days * 86400
+        history_from_unix_seconds = (
+            from_ts if from_ts is not None else to_ts - job_days * SECONDS_PER_DAY
+        )
         rows = fetch_ohlc_range(
             symbol=symbol,
             resolution=resolution,
-            from_ts=start,
-            to_ts=to_ts,
+            history_from_unix_seconds=history_from_unix_seconds,
+            history_to_unix_seconds=to_ts,
         )
         filename = f"{symbol}_{resolution}.csv"
         path = output_dir / filename

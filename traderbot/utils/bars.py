@@ -20,6 +20,13 @@ def normalize_bar(row: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def bars_last_n(bars: list[dict[str, Any]], bar_count: int) -> list[dict[str, Any]]:
+    """Keep only the most recent ``bar_count`` candles (oldest-first order preserved)."""
+    if bar_count < 1 or len(bars) <= bar_count:
+        return list(bars)
+    return list(bars[-bar_count:])
+
+
 def load_bars_csv(path: Path) -> list[dict[str, Any]]:
     """Load candles written by :func:`traderbot.data.export.write_csv`."""
     with path.open(newline="", encoding="utf-8") as f:

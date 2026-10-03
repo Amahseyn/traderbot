@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from traderbot.algorithms.base import Algorithm
-from traderbot.backtesting import BacktestResult
+from traderbot.backtesting.engine import BacktestResult
 
 
 # Distinct, colorblind-friendly palette (Okabe–Ito inspired)

@@ -98,6 +98,23 @@ def test_without_purge_last_train_label_can_bleed_into_holdout():
         assert max(ts_tr) < min(ts_te)
 
 
+def test_train_test_split_temporal_train_supervised_row_count():
+    bars = synthetic_bars(100)
+    horizon = 4
+    xs, ys, ts, _cols, label_ends = build_supervised(bars, horizon_bars=horizon)
+    target = 25
+    x_tr, _y_tr, _ts_tr, x_te, _y_te, _ts_te = train_test_split_temporal(
+        xs,
+        ys,
+        ts,
+        train_supervised_row_count=target,
+        horizon_bars=horizon,
+        label_end_timestamps=label_ends,
+    )
+    assert len(x_tr) >= target
+    assert x_te
+
+
 def test_lightgbm_holdout_only_predicts_unseen_times():
     _require_lightgbm()
     from traderbot.ml.models.lightgbm import LightGBMForecastModel

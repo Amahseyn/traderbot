@@ -7,6 +7,7 @@
     { "src": "btc", "dst": "rls", "interval": "D", "days": 365 },
 
     { "src": "eth", "dst": "rls", "interval": "5", "days": 7 },
+    { "src": "eth", "dst": "rls", "interval": "60", "days": 90 },
     { "src": "eth", "dst": "rls", "interval": "30", "days": 21 },
     { "src": "eth", "dst": "rls", "interval": "240", "days": 90 },
     { "src": "eth", "dst": "rls", "interval": "2D", "days": 180 },
@@ -16,6 +17,7 @@
     { "src": "eth", "dst": "usdt", "interval": "720", "days": 120 },
 
     { "src": "xrp", "dst": "rls", "interval": "30", "days": 21 },
+    { "src": "xrp", "dst": "rls", "interval": "60", "days": 90 },
     { "src": "xrp", "dst": "rls", "interval": "3D", "days": 365 },
 
     { "src": "ltc", "dst": "rls", "interval": "60", "days": 60 },

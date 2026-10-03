@@ -5,10 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from traderbot.algorithms.base import Algorithm
-from traderbot.algorithms.visualize import (
-    render_backtest_plots,
-    visualization_paths_to_dict,
-)
 from traderbot.backtesting.engine import BacktestResult
 
 
@@ -48,6 +44,11 @@ def save_backtest_result(
     viz_payload: dict[str, Any] | None = None
     if visualize and result.equity_curve and bar_rows is not None:
         try:
+            from traderbot.algorithms.visualize import (
+                render_backtest_plots,
+                visualization_paths_to_dict,
+            )
+
             paths = render_backtest_plots(algorithm, result, bar_rows, out_dir)
             viz_payload = visualization_paths_to_dict(paths)
         except ImportError:

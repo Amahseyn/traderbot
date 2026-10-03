@@ -52,6 +52,49 @@ def resolve_crypto_data_dir(path: Path | None = None) -> Path | None:
     return None
 
 
+
+
+ONE_HOUR_OHLC_SUFFIX = "_60.csv"
+
+
+def crypto_one_hour_csv_for_symbol(symbol: str, ohlc_dir: Path | None = None) -> Path:
+    """Path to ``{SYMBOL}_60.csv`` under crypto OHLC (or legacy multisource)."""
+    sym = symbol.upper()
+    base = ohlc_dir or resolve_crypto_data_dir() or crypto_ohlc_dir()
+    return base / f"{sym}{ONE_HOUR_OHLC_SUFFIX}"
+
+
+def list_crypto_one_hour_csvs(ohlc_dir: Path | None = None) -> list[Path]:
+    """Every on-disk 1h OHLC CSV (``*_60.csv``), sorted by name."""
+    base = ohlc_dir or resolve_crypto_data_dir()
+    if base is None or not base.is_dir():
+        return []
+    return sorted(base.glob(f"*{ONE_HOUR_OHLC_SUFFIX}"))
+
+
+def resolve_crypto_1h_csv_paths(
+    *,
+    csv_path: Path | None = None,
+    symbol: str | None = None,
+    all_assets: bool = False,
+) -> list[Path]:
+    """
+    Resolve 1h OHLC inputs for local pipelines.
+
+    ``all_assets`` → every ``*_60.csv``; else ``csv_path``, else ``symbol``, else BTCIRT default.
+    """
+    if all_assets:
+        paths = list_crypto_one_hour_csvs()
+        if not paths:
+            raise FileNotFoundError("no *_60.csv under data/crypto/ohlc; export first")
+        return paths
+    if csv_path is not None:
+        return [csv_path]
+    if symbol is not None:
+        path = crypto_one_hour_csv_for_symbol(symbol)
+        return [path]
+    return [crypto_one_hour_csv_for_symbol("BTCIRT")]
+
 def is_default_horizon_label(label: str) -> bool:
     return label in DEFAULT_HORIZON_LABELS
 
