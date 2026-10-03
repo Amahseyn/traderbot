@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from traderbot.ml.dataset import assert_holdout_is_causal, build_supervised, train_test_split_temporal
+from traderbot.ml.dataset import (
+    assert_holdout_is_causal,
+    build_supervised,
+    train_test_split_holdout_tail_bars,
+    train_test_split_temporal,
+)
 from traderbot.ml.utils import horizon_label, price_series_from_bars
 from traderbot.ml.models.base import ForecastModel
 from traderbot.ml.models.chronos import ChronosForecastModel
@@ -28,6 +33,7 @@ def run_forecast_eval(
     bar_minutes = 60,
     train_ratio = 0.8,
     train_supervised_row_count: int | None = None,
+    holdout_tail_bars: int | None = None,
     one_minute_bars: list[dict[str, Any]] | None = None,
     one_minute_bar_minutes: int = ONE_MINUTE_BAR_MINUTES,
     simulation_config: SimulationConfig | None = None,
@@ -39,15 +45,25 @@ def run_forecast_eval(
         one_minute_bars=one_minute_bars,
         one_minute_bar_minutes=one_minute_bar_minutes,
     )
-    x_train, y_train, ts_train, x_test, y_test, ts_test = train_test_split_temporal(
-        xs,
-        ys,
-        timestamps,
-        train_ratio=train_ratio,
-        train_supervised_row_count=train_supervised_row_count,
-        horizon_bars=horizon_bars,
-        label_end_timestamps=label_ends,
-    )
+    if holdout_tail_bars is not None:
+        x_train, y_train, ts_train, x_test, y_test, ts_test = train_test_split_holdout_tail_bars(
+            xs,
+            ys,
+            timestamps,
+            holdout_tail_bars=holdout_tail_bars,
+            bars=bars,
+            label_end_timestamps=label_ends,
+        )
+    else:
+        x_train, y_train, ts_train, x_test, y_test, ts_test = train_test_split_temporal(
+            xs,
+            ys,
+            timestamps,
+            train_ratio=train_ratio,
+            train_supervised_row_count=train_supervised_row_count,
+            horizon_bars=horizon_bars,
+            label_end_timestamps=label_ends,
+        )
     ts_to_label_end = dict(zip(timestamps, label_ends, strict=True))
     train_label_ends = [ts_to_label_end[t] for t in ts_train]
     assert_holdout_is_causal(
@@ -63,6 +79,7 @@ def run_forecast_eval(
         "test_supervised_row_count": len(x_test),
         "train_ratio": train_ratio,
         "train_supervised_row_count_requested": train_supervised_row_count,
+        "holdout_tail_bars": holdout_tail_bars,
     }
     if isinstance(model, LightGBMForecastModel):
         extra["feature_importance"] = model.feature_importance()

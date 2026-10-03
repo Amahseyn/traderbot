@@ -19,6 +19,8 @@ FEATURE_COLUMNS = (
     "macd_signal",
     "macd_hist",
     "atr_14",
+    "pattern_double_bottom_score",
+    "pattern_double_top_score",
 )
 
 OPTIONAL_FEATURE_COLUMNS = (
@@ -193,6 +195,50 @@ def train_test_split_temporal(
     x_tr, y_tr, ts_tr = take(train_idx)
     x_te, y_te, ts_te = take(test_idx)
     return x_tr, y_tr, ts_tr, x_te, y_te, ts_te
+
+
+def train_test_split_holdout_tail_bars(
+    xs: list[list[float]],
+    ys: list[float],
+    timestamps: list[int],
+    *,
+    holdout_tail_bars: int,
+    bars: list[dict[str, Any]],
+    label_end_timestamps: list[int],
+) -> tuple[list[list[float]], list[float], list[int], list[list[float]], list[float], list[int]]:
+    """
+    Train on all supervised rows strictly before the holdout window; test only rows in
+    the last ``holdout_tail_bars`` OHLC bars (causal embargo on labels).
+    """
+    if holdout_tail_bars < 1:
+        raise ValueError("holdout_tail_bars must be >= 1")
+    if len(bars) < holdout_tail_bars:
+        raise ValueError("holdout_tail_bars exceeds bar count")
+    n = len(xs)
+    if n != len(ys) or n != len(timestamps) or n != len(label_end_timestamps):
+        raise ValueError("xs, ys, timestamps, and label_end_timestamps length mismatch")
+
+    holdout_start_ts = int(bars[-holdout_tail_bars]["timestamp"])
+    test_idx = [row_index for row_index in range(n) if timestamps[row_index] >= holdout_start_ts]
+    if not test_idx:
+        raise ValueError("no supervised rows in holdout tail window")
+    test_start_ts = min(timestamps[row_index] for row_index in test_idx)
+    train_idx = [
+        row_index
+        for row_index in range(n)
+        if timestamps[row_index] < test_start_ts and label_end_timestamps[row_index] < test_start_ts
+    ]
+    if not train_idx:
+        raise ValueError("no training rows before holdout tail (need more history)")
+
+    def take(idxs: list[int]) -> tuple[list[list[float]], list[float], list[int]]:
+        return (
+            [xs[row_index] for row_index in idxs],
+            [ys[row_index] for row_index in idxs],
+            [timestamps[row_index] for row_index in idxs],
+        )
+
+    return take(train_idx) + take(test_idx)
 
 
 def assert_holdout_is_causal(

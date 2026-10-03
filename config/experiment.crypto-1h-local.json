@@ -1,5 +1,5 @@
 {
-  "comment": "Stepped 1h research. window_hours = recent 1h bars (null = full CSV). train_supervised_row_count = supervised training rows for LightGBM.",
+  "comment": "Stepped 1h research. window_hours = holdout eval window (hours); training uses full CSV. train_supervised_row_count applies when window_hours is null.",
   "schema_version": 1,
   "experiment_id": "crypto-1h-local-all",
   "title": "Crypto 1h local — stepped windows",

@@ -40,6 +40,10 @@ def test_strategy_catalog_has_implemented_entries():
         "rsi_threshold",
         "macd_cross",
         "bollinger_mean_reversion",
+        "chart_patterns",
+        "breakout_atr",
+        "forecast_signal",
+        "ml_gated",
     }
 
 
@@ -123,7 +127,7 @@ def test_strategy_cli_compare(tmp_path):
     strategy_main(["compare", str(csv_path), "--out", str(out_dir), "--no-visualize"])
     manifest = json.loads((out_dir / "reports" / "compare_manifest.json").read_text(encoding="utf-8"))
     assert manifest["bars"] == len(closes)
-    assert len(manifest["strategies"]) == 5
+    assert len(manifest["strategies"]) == 7
     assert manifest["best_strategy_id"] in {s["strategy_id"] for s in manifest["strategies"]}
     assert "visualization" not in manifest
 

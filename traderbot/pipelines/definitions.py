@@ -3,9 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from traderbot.algorithms.registry import algorithm_for_id, implemented_strategy_ids
+from traderbot.algorithms.forecast_backtest import append_forecast_strategy_compare_rows
+from traderbot.algorithms.registry import algorithm_for_id, backtest_strategy_ids
+from traderbot.ml.forecasts import build_forecast_by_timestamp
 from traderbot.algorithms.visualize import compare_visualization_paths_to_dict, render_compare_plots
 from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_backtest, save_backtest_result
+from traderbot.backtesting.holdout_window import return_pct_over_equity_tail
 from traderbot.data.export import load_jobs, run_export, write_csv
 from traderbot.data.crypto_store import resolve_crypto_1h_csv_paths, resolve_crypto_data_dir
 from traderbot.ml.intervals import default_eval_horizon, min_bars_for_forecast_eval
@@ -275,6 +278,7 @@ def _run_crypto_1h_local_for_csv(
     source_csv: Path,
     layout,
     tail_bars: int | None,
+    holdout_tail_bars: int | None,
     initial_cash: float,
     run_lightgbm: bool,
     model_id: str = "lightgbm",
@@ -286,12 +290,15 @@ def _run_crypto_1h_local_for_csv(
         raise FileNotFoundError(f"1h OHLC CSV not found: {source_csv}; export or pass --csv/--symbol")
 
     all_bars = load_bars_csv(source_csv)
-    if tail_bars is None:
-        bars = all_bars
-        slice_label = "full"
-    else:
+    if tail_bars is not None:
         bars = bars_last_n(all_bars, tail_bars)
         slice_label = f"last{tail_bars}h"
+    else:
+        bars = all_bars
+        if holdout_tail_bars is not None:
+            slice_label = f"full_holdout{holdout_tail_bars}h"
+        else:
+            slice_label = "full"
     if not bars:
         raise ValueError(f"no bars in {source_csv}")
 
@@ -303,15 +310,23 @@ def _run_crypto_1h_local_for_csv(
     equity_by_strategy: dict[str, list[tuple[int, float]]] = {}
     compare_root = layout.runs / "strategy_compare" / source_csv.stem
     tree = result_tree_at(compare_root, run_id=slice_path.stem)
-    for strategy_id in implemented_strategy_ids():
+    for strategy_id in backtest_strategy_ids(include_forecast_strategies=False):
         algo = algorithm_for_id(strategy_id)
         backtest_result = run_backtest(algo, bars, initial_cash=initial_cash, fee_rate=0.0)
         equity_by_strategy[strategy_id] = list(backtest_result.equity_curve)
+        extra_row: dict = {"strategy_id": strategy_id}
+        if holdout_tail_bars is not None:
+            holdout_return = return_pct_over_equity_tail(
+                list(backtest_result.equity_curve),
+                holdout_tail_bars,
+            )
+            if holdout_return is not None:
+                extra_row["holdout_return_pct"] = round(holdout_return, 6)
         row = backtest_summary_dict(
             algo,
             backtest_result,
             bars=len(bars),
-            extra={"strategy_id": strategy_id},
+            extra=extra_row,
         )
         ranked.append(row)
         run_dir = tree.run_dir_flat(strategy_id)
@@ -324,12 +339,67 @@ def _run_crypto_1h_local_for_csv(
             visualize=True,
             extra={"strategy_id": strategy_id, "csv": str(slice_path)},
         )
-    ranked.sort(key=lambda row: row["return_pct"], reverse=True)
+
+    lightgbm_run_dir: str | None = None
+    lightgbm_out = None
+    lightgbm_step: tuple[str, str] | None = None
+    supervised_row_count: int | None = None
+    train_supervised_rows_trained: int | None = None
+    test_supervised_row_count: int | None = None
+    horizon_bars, bar_minutes = default_eval_horizon("60")
+    min_bars = min_bars_for_forecast_eval(
+        horizon_bars,
+        train_ratio=train_ratio,
+        train_supervised_row_count=train_supervised_row_count,
+    )
+    ml_train_rows = None if holdout_tail_bars is not None else train_supervised_row_count
+    if run_lightgbm and len(bars) >= min_bars:
+        if model_id != "lightgbm":
+            raise ValueError(
+                f"crypto-1h-local supports model_id='lightgbm' only; got {model_id!r}",
+            )
+        model = model_for_id(model_id, num_boost_round=num_boost_round)
+        eval_result = run_forecast_eval(
+            bars,
+            model,
+            horizon_bars=horizon_bars,
+            bar_minutes=bar_minutes,
+            train_ratio=train_ratio,
+            train_supervised_row_count=ml_train_rows,
+            holdout_tail_bars=holdout_tail_bars,
+        )
+        lightgbm_out = layout.run_dir(source_csv.stem, eval_result.horizon_label)
+        save_run_result(eval_result, lightgbm_out)
+        lightgbm_run_dir = str(lightgbm_out)
+        lightgbm_step = ("lightgbm", eval_result.horizon_label)
+        train_supervised_rows_trained = eval_result.extra.get("train_supervised_row_count")
+        test_supervised_row_count = eval_result.extra.get("test_supervised_row_count")
+        supervised_row_count = eval_result.extra.get("supervised_row_count")
+        append_forecast_strategy_compare_rows(
+            bars=bars,
+            forecast_by_timestamp=build_forecast_by_timestamp(eval_result),
+            initial_cash=initial_cash,
+            ranked=ranked,
+            equity_by_strategy=equity_by_strategy,
+            tree=tree,
+            slice_csv=slice_path,
+        )
+    elif run_lightgbm:
+        lightgbm_step = ("lightgbm_skipped", f"need >={min_bars} bars for eval, have {len(bars)}")
+
+    if holdout_tail_bars is not None:
+        ranked.sort(
+            key=lambda row: row.get("holdout_return_pct", row["return_pct"]),
+            reverse=True,
+        )
+    else:
+        ranked.sort(key=lambda row: row["return_pct"], reverse=True)
     compare_payload: dict = {
         "csv": str(slice_path),
         "source_csv": str(source_csv),
         "bars": len(bars),
         "tail_bars": tail_bars,
+        "holdout_tail_bars": holdout_tail_bars,
         "bars_available": len(all_bars),
         "best_strategy_id": ranked[0]["strategy_id"] if ranked else None,
         "strategies": ranked,
@@ -349,42 +419,6 @@ def _run_crypto_1h_local_for_csv(
     manifest_path = tree.reports / "compare_manifest.json"
     manifest_path.write_text(json.dumps(compare_payload, indent=2), encoding="utf-8")
 
-    lightgbm_run_dir: str | None = None
-    lightgbm_out = None
-    lightgbm_step: tuple[str, str] | None = None
-    supervised_row_count: int | None = None
-    train_supervised_rows_trained: int | None = None
-    test_supervised_row_count: int | None = None
-    horizon_bars, bar_minutes = default_eval_horizon("60")
-    min_bars = min_bars_for_forecast_eval(
-        horizon_bars,
-        train_ratio=train_ratio,
-        train_supervised_row_count=train_supervised_row_count,
-    )
-    if run_lightgbm and len(bars) >= min_bars:
-        if model_id != "lightgbm":
-            raise ValueError(
-                f"crypto-1h-local supports model_id='lightgbm' only; got {model_id!r}",
-            )
-        model = model_for_id(model_id, num_boost_round=num_boost_round)
-        eval_result = run_forecast_eval(
-            bars,
-            model,
-            horizon_bars=horizon_bars,
-            bar_minutes=bar_minutes,
-            train_ratio=train_ratio,
-            train_supervised_row_count=train_supervised_row_count,
-        )
-        lightgbm_out = layout.run_dir(source_csv.stem, eval_result.horizon_label)
-        save_run_result(eval_result, lightgbm_out)
-        lightgbm_run_dir = str(lightgbm_out)
-        lightgbm_step = ("lightgbm", eval_result.horizon_label)
-        train_supervised_rows_trained = eval_result.extra.get("train_supervised_row_count")
-        test_supervised_row_count = eval_result.extra.get("test_supervised_row_count")
-        supervised_row_count = eval_result.extra.get("supervised_row_count")
-    elif run_lightgbm:
-        lightgbm_step = ("lightgbm_skipped", f"need >={min_bars} bars for eval, have {len(bars)}")
-
     return {
         "symbol": source_csv.stem.removesuffix("_60"),
         "source_csv": str(source_csv),
@@ -392,6 +426,7 @@ def _run_crypto_1h_local_for_csv(
         "bar_count": len(bars),
         "bars_available": len(all_bars),
         "tail_bars": tail_bars,
+        "holdout_tail_bars": holdout_tail_bars,
         "min_bars_lightgbm": min_bars,
         "lightgbm_ran": lightgbm_run_dir is not None,
         "compare_manifest": str(manifest_path),
@@ -416,6 +451,7 @@ def pipeline_crypto_1h_local(
     symbol: str | None = None,
     all_assets: bool = False,
     tail_bars: int | None = None,
+    holdout_tail_bars: int | None = None,
     results_dir: Path | None = None,
     solutions_root: Path = SOLUTIONS_ROOT,
     initial_cash = 10_000.0,
@@ -425,7 +461,7 @@ def pipeline_crypto_1h_local(
     train_supervised_row_count: int | None = None,
     num_boost_round = DEFAULT_LIGHTGBM_NUM_BOOST_ROUND,
 ) -> PipelineResult:
-    """On-disk 1h OHLC → compare all strategies per asset; optional LightGBM (uses full CSV unless tail_bars set)."""
+    """On-disk 1h OHLC → compare strategies + LightGBM (full CSV; optional tail_bars slice or holdout_tail_bars eval)."""
     layout = prepare_solution(
         "crypto-1h-local",
         solutions_root=solutions_root,
@@ -446,6 +482,7 @@ def pipeline_crypto_1h_local(
             source_csv=source_csv,
             layout=layout,
             tail_bars=tail_bars,
+            holdout_tail_bars=holdout_tail_bars,
             initial_cash=initial_cash,
             run_lightgbm=run_lightgbm,
             model_id=model_id,

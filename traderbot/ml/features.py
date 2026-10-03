@@ -3,7 +3,9 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from traderbot.ml.pattern_features import attach_pattern_feature_rows
 from traderbot.ml.utils import INTRAHOUR_BAR_KEYS as INTRAHOUR_FEATURE_KEYS
+from traderbot.utils.indicators import atr
 
 _NUMERIC = ("open", "high", "low", "close", "volume")
 
@@ -80,30 +82,6 @@ def macd(
     return line, signal_out, hist
 
 
-def atr(highs: list[float], lows: list[float], closes: list[float], period = 14) -> list[float | None]:
-    if period < 1:
-        raise ValueError("period must be >= 1")
-    n = len(closes)
-    out: list[float | None] = [None] * n
-    if n == 0:
-        return out
-    trs: list[float] = []
-    for i in range(n):
-        if i == 0:
-            trs.append(highs[i] - lows[i])
-        else:
-            tr = max(highs[i] - lows[i], abs(highs[i] - closes[i - 1]), abs(lows[i] - closes[i - 1]))
-            trs.append(tr)
-    if n < period:
-        return out
-    atr_val = sum(trs[:period]) / period
-    out[period - 1] = atr_val
-    for i in range(period, n):
-        atr_val = (atr_val * (period - 1) + trs[i]) / period
-        out[i] = atr_val
-    return out
-
-
 def build_feature_rows(
     bars: list[dict[str, Any]],
     *,
@@ -157,6 +135,7 @@ def build_feature_rows(
             if key in bar and bar[key] not in (None, ""):
                 row[key] = float(bar[key])
         rows.append(row)
+    attach_pattern_feature_rows(bars, rows)
     return rows
 
 

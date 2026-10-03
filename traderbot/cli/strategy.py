@@ -8,11 +8,14 @@ from pathlib import Path
 from typing import Any
 
 from traderbot.algorithms.registry import (
+    FORECAST_STRATEGY_IDS,
     algorithm_for_id,
+    backtest_strategy_ids,
     implemented_strategy_ids,
     list_strategies,
     strategy_kwargs_from_namespace,
 )
+from traderbot.ml.forecasts import load_forecast_by_timestamp
 from traderbot.backtesting import backtest_summary_dict, save_backtest_result
 from traderbot.algorithms.visualize import (
     add_visualization_flags,
@@ -69,12 +72,21 @@ def _add_param_flags(parser: argparse.ArgumentParser) -> None:
     add_fine_coarse_flags(parser)
 
 
+def _algorithm_kwargs(strategy_id: str, args: argparse.Namespace) -> dict[str, Any]:
+    kwargs = strategy_kwargs_from_namespace(strategy_id, args)
+    if strategy_id in FORECAST_STRATEGY_IDS:
+        if args.forecast_json is None:
+            raise ValueError(f"--forecast-json is required for strategy {strategy_id!r}")
+        kwargs["forecast_by_timestamp"] = load_forecast_by_timestamp(args.forecast_json)
+    return kwargs
+
+
 def _run_backtest(
     bars: list[dict],
     strategy_id: str,
     args: argparse.Namespace,
 ):
-    algo = algorithm_for_id(strategy_id, **strategy_kwargs_from_namespace(strategy_id, args))
+    algo = algorithm_for_id(strategy_id, **_algorithm_kwargs(strategy_id, args))
     result = run_backtest(algo, bars, initial_cash=args.cash, fee_rate=args.fee)
     return algo, result
 
@@ -223,7 +235,8 @@ def main(argv: list[str] | None = None) -> None:
             compare_root = default_strategy_compare_out(args.csv)
         tree = result_tree_at(compare_root, run_id=args.csv.stem) if compare_root is not None else None
         viz = compare_root is not None and wants_visualization(args, has_out=True)
-        for strategy_id in implemented_strategy_ids():
+        include_forecast = args.forecast_json is not None
+        for strategy_id in backtest_strategy_ids(include_forecast_strategies=include_forecast):
             algo, result = _run_backtest(bars, strategy_id, args)
             equity_by_strategy[strategy_id] = list(result.equity_curve)
             row = backtest_summary_dict(

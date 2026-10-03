@@ -28,14 +28,14 @@ def test_load_repo_smoke_experiment():
     assert config.params["train_supervised_row_count"] == 8
     assert config.params["num_boost_round"] == 50
     assert config.test_steps[0]["params"]["window_hours"] == 24
-    assert merge_experiment_params(config, config.test_steps[0])["tail_bars"] == 24
+    assert merge_experiment_params(config, config.test_steps[0])["holdout_tail_bars"] == 24
 
 
 def test_merge_experiment_params_step_overrides_base():
     config = load_experiment_config(LOCAL_CONFIG)
     merged = merge_experiment_params(config, config.test_steps[1])
     assert merged["all_assets"] is True
-    assert merged["tail_bars"] == 60
+    assert merged["holdout_tail_bars"] == 60
     assert merged["model_id"] == "lightgbm"
     assert merged["run_lightgbm"] is True
 
@@ -50,7 +50,7 @@ def test_build_pipeline_kwargs_maps_paths(tmp_path):
         results_dir=tmp_path / "custom_solution",
     )
     assert kwargs["symbol"] == "BTCIRT"
-    assert kwargs["tail_bars"] == 24
+    assert kwargs["holdout_tail_bars"] == 24
     assert kwargs["train_supervised_row_count"] == 8
     assert kwargs["num_boost_round"] == 50
     assert kwargs["results_dir"] == tmp_path / "custom_solution"
@@ -61,7 +61,7 @@ def test_run_experiment_dry_run():
     assert out["dry_run"] is True
     assert out["pipeline_id"] == "crypto-1h-local"
     assert out["test_steps"][0]["params"]["window_hours"] == 24
-    assert out["test_steps"][0]["params"]["tail_bars"] == 24
+    assert out["test_steps"][0]["params"]["holdout_tail_bars"] == 24
     assert "kwargs" in out
 
 
@@ -70,7 +70,7 @@ def test_run_experiment_multi_step_dry_run():
     step_ids = [row["step_id"] for row in out["test_steps"]]
     assert step_ids == ["hours-24", "hours-60", "full-ohlc"]
     assert out["test_steps"][2]["params"]["window_hours"] is None
-    assert out["test_steps"][2]["params"]["tail_bars"] is None
+    assert out["test_steps"][2]["params"]["holdout_tail_bars"] is None
     assert out["test_steps"][2]["params"]["model_id"] == "lightgbm"
     assert out["test_steps"][2]["params"]["run_lightgbm"] is True
 

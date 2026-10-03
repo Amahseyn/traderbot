@@ -11,6 +11,7 @@ from traderbot.data.crypto_store import resolve_crypto_data_dir
 from traderbot.ml.dataset import (
     assert_holdout_is_causal,
     build_supervised,
+    train_test_split_holdout_tail_bars,
     train_test_split_temporal,
 )
 from traderbot.ml.features import build_feature_rows
@@ -113,6 +114,25 @@ def test_train_test_split_temporal_train_supervised_row_count():
     )
     assert len(x_tr) >= target
     assert x_te
+
+
+def test_train_test_split_holdout_tail_bars_uses_full_history_for_train():
+    bars = synthetic_bars(100)
+    horizon = 1
+    holdout_tail_bars = 24
+    xs, ys, ts, _cols, label_ends = build_supervised(bars, horizon_bars=horizon, bar_minutes=60)
+    x_tr, _y_tr, ts_tr, _x_te, _y_te, ts_te = train_test_split_holdout_tail_bars(
+        xs,
+        ys,
+        ts,
+        holdout_tail_bars=holdout_tail_bars,
+        bars=bars,
+        label_end_timestamps=label_ends,
+    )
+    holdout_start_ts = bars[-holdout_tail_bars]["timestamp"]
+    assert all(timestamp < holdout_start_ts for timestamp in ts_tr)
+    assert all(timestamp >= holdout_start_ts for timestamp in ts_te)
+    assert len(x_tr) > len(ts_te)
 
 
 def test_lightgbm_holdout_only_predicts_unseen_times():

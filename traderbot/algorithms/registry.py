@@ -6,11 +6,17 @@ from typing import Any
 
 from traderbot.algorithms.base import Algorithm
 from traderbot.algorithms.strategies.bollinger import BollingerMeanReversionAlgorithm
+from traderbot.algorithms.strategies.breakout_atr import BreakoutAtrAlgorithm
+from traderbot.algorithms.strategies.chart_patterns import ChartPatternsAlgorithm
 from traderbot.algorithms.strategies.ema_cross import EmaCrossAlgorithm
+from traderbot.algorithms.strategies.forecast_signal import ForecastSignalAlgorithm
 from traderbot.algorithms.strategies.macd import MacdCrossAlgorithm
+from traderbot.algorithms.strategies.ml_gated import MlGatedAlgorithm
 from traderbot.algorithms.strategies.rsi import RsiThresholdAlgorithm
 from traderbot.algorithms.strategies.sma_cross import SmaCrossAlgorithm
 from traderbot.algorithms.utils import price_context_kwargs_from_namespace
+
+FORECAST_STRATEGY_IDS = frozenset({"forecast_signal", "ml_gated"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,16 +65,32 @@ STRATEGY_CATALOG: tuple[StrategyCatalogEntry, ...] = (
         implemented=True,
     ),
     StrategyCatalogEntry(
-        id="forecast_signal",
-        name="ML forecast signal",
-        summary="Use holdout forecast direction from LightGBM/Chronos (see traderbot ml run).",
-        style="ml",
+        id="chart_patterns",
+        name="Chart patterns",
+        summary="Double-bottom neckline break (buy) and double-top breakdown (sell), causal pivots.",
+        style="pattern",
+        implemented=True,
     ),
     StrategyCatalogEntry(
         id="breakout_atr",
         name="ATR breakout",
-        summary="Enter on volatility expansion beyond recent range (planned).",
+        summary="Enter on close breaking recent range by a multiple of ATR.",
         style="breakout",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="forecast_signal",
+        name="ML forecast signal",
+        summary="Long/short from holdout forecast log-returns (requires holdout_forecasts.json).",
+        style="ml",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="ml_gated",
+        name="ML-gated rule strategy",
+        summary="Combine a rule strategy with holdout forecasts (forecast filters rule or the reverse).",
+        style="ml",
+        implemented=True,
     ),
 )
 
@@ -78,7 +100,18 @@ _IMPLEMENTED: dict[str, type[Algorithm]] = {
     "rsi_threshold": RsiThresholdAlgorithm,
     "macd_cross": MacdCrossAlgorithm,
     "bollinger_mean_reversion": BollingerMeanReversionAlgorithm,
+    "chart_patterns": ChartPatternsAlgorithm,
+    "breakout_atr": BreakoutAtrAlgorithm,
+    "forecast_signal": ForecastSignalAlgorithm,
+    "ml_gated": MlGatedAlgorithm,
 }
+
+
+def _inner_kwargs_for_base(base_strategy_id: str, args: Any) -> dict[str, Any]:
+    builder = _KWARGS_FROM_ARGS.get(base_strategy_id)
+    if builder is None:
+        return {}
+    return builder(args)
 
 
 _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
@@ -101,6 +134,25 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "num_std": a.num_std,
         **price_context_kwargs_from_namespace(a),
     },
+    "chart_patterns": lambda a: {
+        "swing_window_bars": a.swing_window_bars,
+        "min_swing_separation_bars": a.min_swing_separation_bars,
+        "low_tolerance_ratio": a.pattern_tolerance_ratio,
+        "high_tolerance_ratio": a.pattern_tolerance_ratio,
+        "pattern_score_threshold": a.pattern_score_threshold,
+    },
+    "breakout_atr": lambda a: {
+        "lookback_bars": a.lookback_bars,
+        "atr_period": a.atr_period,
+        "atr_multiplier": a.atr_multiplier,
+    },
+    "forecast_signal": lambda a: {"forecast_threshold": a.forecast_threshold},
+    "ml_gated": lambda a: {
+        "base_strategy_id": a.ml_gated_base,
+        "gate_mode": a.gate_mode,
+        "forecast_threshold": a.forecast_threshold,
+        **_inner_kwargs_for_base(a.ml_gated_base, a),
+    },
 }
 
 
@@ -114,7 +166,33 @@ def implemented_strategy_ids() -> list[str]:
     return sorted(_IMPLEMENTED)
 
 
+def backtest_strategy_ids(*, include_forecast_strategies: bool) -> list[str]:
+    ids = implemented_strategy_ids()
+    if include_forecast_strategies:
+        return ids
+    return [strategy_id for strategy_id in ids if strategy_id not in FORECAST_STRATEGY_IDS]
+
+
 def algorithm_for_id(strategy_id: str, **kwargs: Any) -> Algorithm:
+    if strategy_id == "ml_gated":
+        forecast_by_timestamp = kwargs.pop("forecast_by_timestamp", {})
+        base_strategy_id = kwargs.pop("base_strategy_id", "rsi_threshold")
+        gate_mode = kwargs.pop("gate_mode", "forecast_filters_rule")
+        forecast_threshold = float(kwargs.pop("forecast_threshold", 0.0))
+        inner = algorithm_for_id(base_strategy_id, **kwargs)
+        return MlGatedAlgorithm(
+            inner=inner,
+            forecast_by_timestamp=forecast_by_timestamp,
+            gate_mode=gate_mode,
+            forecast_threshold=forecast_threshold,
+        )
+    if strategy_id == "forecast_signal":
+        forecast_by_timestamp = kwargs.pop("forecast_by_timestamp", {})
+        forecast_threshold = float(kwargs.pop("forecast_threshold", 0.0))
+        return ForecastSignalAlgorithm(
+            forecast_by_timestamp=forecast_by_timestamp,
+            forecast_threshold=forecast_threshold,
+        )
     cls = _IMPLEMENTED.get(strategy_id)
     if cls is None:
         known = ", ".join(sorted(_IMPLEMENTED))

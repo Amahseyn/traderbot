@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from traderbot.ml.forecasts import write_holdout_forecasts
 from traderbot.ml.metrics import DEFAULT_SAMPLE_USD, format_metrics_line, full_metrics
 from traderbot.ml.simulation_config import SimulationConfig
 from traderbot.ml.visualize import VisualizationPaths, render_result_plots
@@ -95,4 +96,5 @@ def save_run_result(result: ModelRunResult, out_dir: Path, *, render_plots = Tru
         )
     summary_path = out_dir / "results.json"
     summary_path.write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+    write_holdout_forecasts(result, out_dir / "holdout_forecasts.json")
     return result

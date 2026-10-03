@@ -71,18 +71,19 @@ class ExperimentConfig:
 
 def resolve_one_hour_window_params(params: dict[str, Any]) -> dict[str, Any]:
     """
-    For 1h OHLC experiments: ``window_hours`` is how many recent **hours** of data to use.
+    For 1h OHLC experiments: ``window_hours`` is the **holdout eval window** (recent hours).
 
-    Maps to pipeline ``tail_bars`` (one bar per hour on ``*_60.csv``). ``null`` = full CSV.
-    If both are set, ``tail_bars`` wins.
+    Maps to ``holdout_tail_bars`` (one bar per hour on ``*_60.csv``). Training uses the
+    full on-disk CSV; only ML metrics and ``holdout_return_pct`` strategies use this tail.
+    ``null`` = no fixed tail (temporal train/holdout split on all data).
 
-    ``train_supervised_row_count`` is how many supervised feature rows LightGBM trains on
-    (holdout is the remainder after causal embargo). ``num_boost_round`` is boosting
-    iterations. Outputs also include the realized ``train_supervised_row_count`` after split.
+    Explicit ``tail_bars`` still slices the entire CSV to the last N bars (legacy smoke).
+
+    ``train_supervised_row_count`` applies only when ``holdout_tail_bars`` is unset.
     """
     merged = dict(params)
-    if "tail_bars" not in merged and "window_hours" in merged:
-        merged["tail_bars"] = merged["window_hours"]
+    if "holdout_tail_bars" not in merged and "window_hours" in merged:
+        merged["holdout_tail_bars"] = merged["window_hours"]
     return merged
 
 
