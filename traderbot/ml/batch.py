@@ -44,6 +44,8 @@ def run_batch_on_directory(
     model_id = "lightgbm",
     min_bars = 50,
     train_ratio = 0.8,
+    train_supervised_row_count: int | None = None,
+    holdout_tail_bars: int | None = None,
     render_plots = True,
     all_horizons = False,
     auto_fine = True,
@@ -87,7 +89,15 @@ def run_batch_on_directory(
             horizon_specs = [(horizon_bars_default, "")]
 
         for horizon_bars, _label in horizon_specs:
-            need = min_bars_for_forecast_eval(horizon_bars) if all_horizons else min_bars
+            need = (
+                min_bars_for_forecast_eval(
+                    horizon_bars,
+                    train_ratio=train_ratio,
+                    train_supervised_row_count=train_supervised_row_count,
+                )
+                if all_horizons or train_supervised_row_count is not None
+                else min_bars
+            )
             if len(bars) < need:
                 continue
             one_minute_bars = load_one_minute_bars(
@@ -108,6 +118,8 @@ def run_batch_on_directory(
                 horizon_bars=horizon_bars,
                 bar_minutes=bar_minutes,
                 train_ratio=train_ratio,
+                train_supervised_row_count=train_supervised_row_count,
+                holdout_tail_bars=holdout_tail_bars,
                 one_minute_bars=one_minute_bars,
                 simulation_config=sim_cfg,
             )
@@ -130,6 +142,9 @@ def run_batch_on_directory(
         "model_id": model_id,
         "csv_dir": str(csv_dir),
         "all_horizons": all_horizons,
+        "train_ratio": train_ratio,
+        "train_supervised_row_count": train_supervised_row_count,
+        "holdout_tail_bars": holdout_tail_bars,
         "run_count": len(results),
         "runs": runs_meta,
     }

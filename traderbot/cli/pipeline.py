@@ -7,6 +7,10 @@ from pathlib import Path
 
 from traderbot.pipelines.registry import list_pipelines, run_pipeline
 from traderbot.solutions.layout import SOLUTIONS_ROOT, solution_slug
+from traderbot.utils.constants import (
+    DEFAULT_LIGHTGBM_NUM_BOOST_ROUND,
+    DEFAULT_ML_TRAIN_RATIO,
+)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -60,6 +64,26 @@ def main(argv: list[str] | None = None) -> None:
         default=None,
         help="For crypto-1h-local: use only the last N 1h candles (default: entire CSV).",
     )
+    run.add_argument(
+        "--window-hours",
+        type=int,
+        default=None,
+        help="For crypto-1h-local: test steps — last N hours evaluated as holdout (default: temporal split).",
+    )
+    run.add_argument(
+        "--holdout-tail-bars",
+        type=int,
+        default=None,
+        help="For crypto-1h-local: test steps — last N bars evaluated as holdout (overrides --window-hours).",
+    )
+    run.add_argument(
+        "--train-samples",
+        type=int,
+        default=None,
+        help="For crypto-1h-local: training samples — supervised rows for LightGBM (default: train-ratio split).",
+    )
+    run.add_argument("--train-ratio", type=float, default=DEFAULT_ML_TRAIN_RATIO, help="Train fraction when --train-samples is unset.")
+    run.add_argument("--num-boost-round", type=int, default=DEFAULT_LIGHTGBM_NUM_BOOST_ROUND, help="LightGBM boosting rounds.")
     run.add_argument(
         "--symbol",
         default=None,
@@ -119,6 +143,14 @@ def main(argv: list[str] | None = None) -> None:
             kwargs["all_assets"] = True
         if args.tail_bars is not None:
             kwargs["tail_bars"] = args.tail_bars
+        if args.window_hours is not None:
+            kwargs["holdout_tail_bars"] = args.window_hours
+        if args.holdout_tail_bars is not None:
+            kwargs["holdout_tail_bars"] = args.holdout_tail_bars
+        if args.train_samples is not None:
+            kwargs["train_supervised_row_count"] = args.train_samples
+        kwargs["train_ratio"] = args.train_ratio
+        kwargs["num_boost_round"] = args.num_boost_round
 
     if pid in (
         "multisource-export",

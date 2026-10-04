@@ -134,8 +134,16 @@ def _export_btc_argv() -> Argv:
 def _ml_run_argv() -> Argv:
     csv = _prompt_path("OHLC CSV", _default_csv())
     model = input("Model [lightgbm]: ").strip() or "lightgbm"
+    horizon = input("Horizon bars [4]: ").strip() or "4"
+    test_bars = input("Test steps — holdout tail bars (empty=train-ratio split): ").strip()
+    train_samples = input("Training samples — supervised rows (empty=train-ratio split): ").strip()
     out = _prompt_path("Results dir", "results/ml/btc_60")
-    return ["ml", "run", csv, "--model", model, "--out", out]
+    argv: Argv = ["ml", "run", csv, "--model", model, "--horizon-bars", horizon, "--out", out]
+    if test_bars:
+        argv.extend(["--holdout-tail-bars", test_bars])
+    if train_samples:
+        argv.extend(["--train-samples", train_samples])
+    return argv
 
 
 def _ml_batch_viz_argv() -> Argv:
@@ -236,7 +244,7 @@ MENUS: tuple[MenuGroup, ...] = (
                 ],
             ),
             MenuAction("Single strategy backtest charts", _strategy_backtest_viz_argv),
-            MenuAction("ML eval charts (one CSV)", _ml_run_argv),
+            MenuAction("ML forecast: train & eval one dataset", _ml_run_argv),
             MenuAction("ML batch charts (folder)", _ml_batch_viz_argv),
             MenuAction("Browse saved results", _view_saved_results_argv),
             MenuAction("Visualization pickable workflow", _pick_visualization_workflow),
@@ -276,6 +284,10 @@ MENUS: tuple[MenuGroup, ...] = (
                 "Run experiment from config (crypto 1h smoke)",
                 ["pipeline", "run-config", "config/experiment.crypto-1h-smoke.json"],
             ),
+            MenuAction(
+                "Run ML forecast eval (BTC 1h, test steps + training samples)",
+                ["pipeline", "run-config", "config/experiment.ml-forecast-eval.json"],
+            ),
         ),
     ),
     MenuGroup(
@@ -308,7 +320,7 @@ MENUS: tuple[MenuGroup, ...] = (
         title="Machine learning",
         actions=(
             MenuAction("Model catalog (implemented)", ["ml", "catalog", "--implemented-only"]),
-            MenuAction("LightGBM eval on one CSV", _ml_run_argv),
+            MenuAction("LightGBM forecast: train & eval one dataset", _ml_run_argv),
             MenuAction(
                 "Batch LightGBM (4h horizon folder)",
                 [

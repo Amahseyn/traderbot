@@ -36,6 +36,18 @@ def main(argv: list[str] | None = None) -> None:
         help="Experiment root (default: results/ml/<csv_stem>/runs/<horizon>/)",
     )
     run.add_argument("--train-ratio", type=float, default=0.8)
+    run.add_argument(
+        "--train-samples",
+        type=int,
+        default=None,
+        help="Training samples: supervised rows used for training (overrides --train-ratio).",
+    )
+    run.add_argument(
+        "--holdout-tail-bars",
+        type=int,
+        default=None,
+        help="Test steps: last N bars evaluated as holdout (default: temporal --train-ratio split).",
+    )
     add_fine_coarse_flags(run)
     add_simulation_cli_flags(run)
 
@@ -51,6 +63,18 @@ def main(argv: list[str] | None = None) -> None:
     batch.add_argument("--train-ratio", type=float, default=0.8)
     batch.add_argument("--min-bars", type=int, default=50)
     batch.add_argument("--no-plots", action="store_true")
+    batch.add_argument(
+        "--train-samples",
+        type=int,
+        default=None,
+        help="Training samples: supervised rows used for training (overrides --train-ratio).",
+    )
+    batch.add_argument(
+        "--holdout-tail-bars",
+        type=int,
+        default=None,
+        help="Test steps: last N bars evaluated as holdout (default: temporal --train-ratio split).",
+    )
     batch.add_argument(
         "--all-horizons",
         action="store_true",
@@ -74,6 +98,8 @@ def main(argv: list[str] | None = None) -> None:
             model_id=args.model,
             min_bars=args.min_bars,
             train_ratio=args.train_ratio,
+            train_supervised_row_count=args.train_samples,
+            holdout_tail_bars=args.holdout_tail_bars,
             render_plots=not args.no_plots,
             all_horizons=args.all_horizons,
             auto_fine=not args.no_auto_fine,
@@ -114,6 +140,8 @@ def main(argv: list[str] | None = None) -> None:
         horizon_bars=args.horizon_bars,
         bar_minutes=args.bar_minutes,
         train_ratio=args.train_ratio,
+        train_supervised_row_count=args.train_samples,
+        holdout_tail_bars=args.holdout_tail_bars,
         one_minute_bars=one_minute_bars,
         simulation_config=sim_cfg,
     )

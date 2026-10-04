@@ -236,8 +236,8 @@ def all_pickables() -> list[Pickable]:
         ),
         _invoke(
             "ml/run-lightgbm-btc60",
-            "LightGBM eval on BTC 1h CSV",
-            "Single run with plots under results/ml.",
+            "LightGBM forecast — train & eval on BTC 1h dataset",
+            "Single train/eval run with plots under results/ml.",
             (
                 "ml",
                 "run",
@@ -371,6 +371,13 @@ def all_pickables() -> list[Pickable]:
             "Uses config/experiment.crypto-1h-smoke.json (BTC, 24 bars, default LightGBM).",
             ("pipeline", "run-config", "config/experiment.crypto-1h-smoke.json"),
             tags=("pipeline", "strategy", "experiment"),
+        ),
+        _invoke(
+            "experiment/run-ml-forecast-eval",
+            "Run ML forecast eval (BTC 1h, test steps + training samples)",
+            "Uses config/experiment.ml-forecast-eval.json; test steps and training samples per step.",
+            ("pipeline", "run-config", "config/experiment.ml-forecast-eval.json"),
+            tags=("pipeline", "ml", "experiment"),
         ),
         *pipeline_picks,
     ]
