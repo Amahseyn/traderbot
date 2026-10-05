@@ -3,8 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { api, API_BASE } from "@/lib/api";
-import { formatUtcTimestamp } from "@/lib/format";
+import { formatReturnPct, returnPctClassName } from "@/lib/format";
 import { WorkflowCards } from "@/components/WorkflowCards";
+import { RunsTable } from "@/components/RunsTable";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 
@@ -29,54 +30,66 @@ export default function DashboardPage() {
   }
 
   const stats = statsQuery.data!;
+  const recentRuns = runsQuery.data ?? [];
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Research overview"
-        description="Export data, run strategies in Lab, then inspect runs and configs."
+        description="Export market data, run backtests from Custom research, then review runs and trade logs."
         actions={
-          <Link href="/experiments">
-            <Button>Open Lab</Button>
+          <Link href="/custom">
+            <Button>New research job</Button>
           </Link>
         }
       />
 
       <WorkflowCards />
 
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {(
-          [
-            { label: "Runs", value: stats.run_count, href: "/runs" },
-            { label: "Configurations", value: stats.config_count, href: "/configs" },
-            { label: "Compare sessions", value: stats.compare_count, href: "/experiments#compares" },
-            { label: "Experiment configs", value: stats.experiment_count, href: "/experiments#pipelines" },
-          ] as const
-        ).map(({ label, value, href }) => (
-          <Link key={label} href={href} className="stat-card block">
-            <div className="text-muted text-xs uppercase tracking-wide">{label}</div>
-            <div className="text-2xl font-semibold mt-1 text-white">{value}</div>
-          </Link>
-        ))}
+      <section className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        <Link href="/runs" className="stat-card block">
+          <div className="text-muted text-xs uppercase tracking-wide">Runs</div>
+          <div className="text-2xl font-semibold mt-1 text-white">{stats.run_count}</div>
+        </Link>
+        <Link href="/data" className="stat-card block">
+          <div className="text-muted text-xs uppercase tracking-wide">Compare sessions</div>
+          <div className="text-2xl font-semibold mt-1 text-white">{stats.compare_count}</div>
+        </Link>
+        <Link href="/custom" className="stat-card block">
+          <div className="text-muted text-xs uppercase tracking-wide">Parameter sweeps</div>
+          <div className="text-2xl font-semibold mt-1 text-white">{stats.sweep_count}</div>
+        </Link>
       </section>
 
-      <section className="grid gap-6 md:grid-cols-2">
+      <section className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-panel p-4">
-          <h2 className="text-lg font-medium mb-2 text-white">Top strategies (return %)</h2>
+          <h2 className="section-title mb-1">Top strategies</h2>
+          <p className="section-lead mb-4">Best return % seen across recorded backtests.</p>
           <table className="data">
             <thead>
               <tr>
                 <th>Strategy</th>
-                <th>Runs</th>
-                <th>Best</th>
+                <th className="text-right">Runs</th>
+                <th className="text-right">Best return</th>
               </tr>
             </thead>
             <tbody>
+              {stats.top_strategies.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="text-muted text-sm">No strategy runs yet.</td>
+                </tr>
+              )}
               {stats.top_strategies.map((row) => (
                 <tr key={row.strategy_id}>
-                  <td>{row.strategy_id}</td>
-                  <td>{row.n}</td>
-                  <td>{row.best_return ?? "—"}</td>
+                  <td className="font-medium">{row.strategy_id}</td>
+                  <td className="text-right tabular-nums">{row.n}</td>
+                  <td
+                    className={`text-right font-mono text-sm tabular-nums ${returnPctClassName(
+                      row.best_return,
+                    )}`}
+                  >
+                    {formatReturnPct(row.best_return)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -84,56 +97,30 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-border bg-panel p-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-lg font-medium text-white">Recent runs</h2>
-          <Link href="/runs" className="text-sm text-accent hover:underline">View all</Link>
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="section-title">Recent runs</h2>
+            <p className="section-lead mt-1">Latest backtests synced into the catalog.</p>
+          </div>
+          <Link href="/runs" className="text-sm text-accent hover:underline shrink-0">
+            View all
+          </Link>
         </div>
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Kind</th>
-              <th>Symbol</th>
-              <th>Strategy / model</th>
-              <th>Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(runsQuery.data ?? []).length === 0 && !runsQuery.isLoading && (
-              <tr>
-                <td colSpan={4} className="text-muted text-sm">
-                  No runs in the catalog yet.{" "}
-                  <Link href="/data" className="text-accent hover:underline">
-                    Export data
-                  </Link>{" "}
-                  or{" "}
-                  <Link href="/experiments" className="text-accent hover:underline">
-                    open Lab
-                  </Link>
-                  .
-                </td>
-              </tr>
-            )}
-            {(runsQuery.data ?? []).map((run) => (
-              <tr key={run.id}>
-                <td>
-                  <span
-                    className={`badge ${
-                      run.run_kind === "strategy_backtest" ? "badge-strategy" : "badge-model"
-                    }`}
-                  >
-                    {run.run_kind === "strategy_backtest" ? "strategy" : "model"}
-                  </span>
-                </td>
-                <td>{run.symbol ?? "—"}</td>
-                <td>{run.strategy_id ?? run.model_id ?? "—"}</td>
-                <td>
-                  <Link href={`/runs/${run.id}`}>{formatUtcTimestamp(run.created_at_utc)}</Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {recentRuns.length === 0 && !runsQuery.isLoading && (
+          <p className="text-muted text-sm">
+            No runs yet.{" "}
+            <Link href="/data" className="text-accent hover:underline">
+              Export data
+            </Link>{" "}
+            or{" "}
+            <Link href="/custom" className="text-accent hover:underline">
+              start Custom research
+            </Link>
+            .
+          </p>
+        )}
+        {recentRuns.length > 0 && <RunsTable runs={recentRuns} variant="compact" />}
       </section>
     </div>
   );

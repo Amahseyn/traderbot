@@ -3,6 +3,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 CONFIG_KIND_STRATEGY = "strategy"
+CONFIG_KIND_SWEEP_BEST = "sweep_best"
 CONFIG_KIND_EXPERIMENT = "experiment"
 
 RUN_KIND_STRATEGY_BACKTEST = "strategy_backtest"

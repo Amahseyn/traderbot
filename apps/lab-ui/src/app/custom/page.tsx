@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { JobErrorAlert } from "@/components/JobErrorAlert";
+import { JobForms } from "@/components/JobForms";
 import { JobMonitor } from "@/components/JobMonitor";
 import {
   PipelineDataSection,
@@ -24,8 +25,14 @@ import {
 const INITIAL_DATA_STATE: PipelineDataSectionState = {
   dataSourceMode: "existing",
   exportDays: "30",
+  exportDaysByInterval: {},
+  exportHistoryMode: "days",
+  exportSteps: "500",
+  exportStepsByInterval: {},
   exportMarketSymbol: "",
   exportInterval: "60",
+  exportMarketSymbols: [],
+  exportIntervals: [],
   useAllHourly: false,
   datasetIds: [],
   catalogSearch: "",
@@ -73,6 +80,9 @@ export default function CustomPipelinePage() {
   const [enabledStrategyIds, setEnabledStrategyIds] = useState<Set<string>>(new Set());
 
   const [cash, setCash] = useState("10000");
+  const [feePct, setFeePct] = useState("0.1");
+  const [slippagePct, setSlippagePct] = useState("0.05");
+  const [execution, setExecution] = useState("close");
   const [visualize, setVisualize] = useState(true);
   const [limitRunWindow, setLimitRunWindow] = useState(false);
   const [runStartLocal, setRunStartLocal] = useState("");
@@ -146,10 +156,45 @@ export default function CustomPipelinePage() {
         compare_strategies: compareStrategies,
         visualize,
         cash: Number(cash),
+        fee: Number(feePct) / 100,
+        slippage: Number(slippagePct) / 100,
+        execution,
       };
+      if (dataState.exportHistoryMode === "steps") {
+        if (dataState.exportSteps.trim() !== "") {
+          body.export_steps = Number(dataState.exportSteps);
+        }
+        const stepsByInterval: Record<string, number> = {};
+        for (const [interval, steps] of Object.entries(dataState.exportStepsByInterval)) {
+          if (String(steps).trim() !== "") {
+            stepsByInterval[interval] = Number(steps);
+          }
+        }
+        if (Object.keys(stepsByInterval).length > 0) {
+          body.export_steps_by_interval = stepsByInterval;
+        }
+      } else {
+        const daysByInterval: Record<string, number> = {};
+        for (const [interval, days] of Object.entries(dataState.exportDaysByInterval)) {
+          if (String(days).trim() !== "") {
+            daysByInterval[interval] = Number(days);
+          }
+        }
+        if (Object.keys(daysByInterval).length > 0) {
+          body.export_days_by_interval = daysByInterval;
+        }
+      }
       if (dataState.dataSourceMode === "download" && dataState.exportMarketSymbol.trim()) {
         body.export_market_symbol = dataState.exportMarketSymbol.trim();
         body.interval = dataState.exportInterval;
+      }
+      if (dataState.dataSourceMode === "download" && dataState.exportMarketSymbols.length > 0) {
+        body.export_market_symbols = dataState.exportMarketSymbols;
+        if (dataState.exportIntervals.length > 0) {
+          body.export_intervals = dataState.exportIntervals;
+        } else if (dataState.exportInterval) {
+          body.export_intervals = [dataState.exportInterval];
+        }
       }
       if (maxStrategies.trim()) {
         body.max_strategies = Number(maxStrategies);
@@ -190,7 +235,7 @@ export default function CustomPipelinePage() {
       <PageHeader
         eyebrow="Research loop"
         title="Custom pipeline"
-        description="Configure an end-to-end run: download or pick OHLC files, then compare rule-based strategies (with a cap or subset)."
+        description="Configure an end-to-end run: download one or a batch of markets × horizons from Nobitex, or pick OHLC files, then compare rule-based strategies (with a cap or subset)."
       />
 
       <form
@@ -270,7 +315,36 @@ export default function CustomPipelinePage() {
                 />
                 Save compare charts
               </label>
+              <Field label="Fee per side (%)" hint="Exchange fee deducted on every fill.">
+                <TextInput
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="any"
+                  value={feePct}
+                  onChange={(event) => setFeePct(event.target.value)}
+                />
+              </Field>
+              <Field label="Slippage per fill (%)" hint="Worse fill vs signal price (buy higher, sell lower).">
+                <TextInput
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="any"
+                  value={slippagePct}
+                  onChange={(event) => setSlippagePct(event.target.value)}
+                />
+              </Field>
             </div>
+            <Field
+              label="Execution"
+              hint="next_open fills at the next bar open (realistic delay; last-bar signals expire). Returns are net of fee + slippage."
+            >
+              <SelectInput value={execution} onChange={(event) => setExecution(event.target.value)}>
+                <option value="close">Signal-bar close (optimistic)</option>
+                <option value="next_open">Next-bar open (realistic)</option>
+              </SelectInput>
+            </Field>
 
             <div className="panel-inset space-y-3">
               <label className="flex items-center gap-2 text-sm text-slate-200">
@@ -315,6 +389,15 @@ export default function CustomPipelinePage() {
           {runMutation.isPending ? "Starting…" : "Run custom pipeline"}
         </Button>
       </form>
+
+      <section id="quick-jobs" className="scroll-mt-24">
+      <Card
+        title="Quick jobs"
+        description="Run a single backtest, a local strategy compare, or a parameter sweep on one dataset — without the full multi-file pipeline above."
+      >
+        <JobForms onJob={setJobId} />
+      </Card>
+      </section>
       </div>
 
       <div className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:self-start lg:overflow-y-auto">

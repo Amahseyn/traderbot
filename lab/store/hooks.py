@@ -12,12 +12,14 @@ from lab.store.canonical import (
 )
 from lab.store.constants import (
     CONFIG_KIND_STRATEGY,
+    CONFIG_KIND_SWEEP_BEST,
     RUN_KIND_STRATEGY_BACKTEST,
 )
 from lab.store.database import open_database
 from lab.store.record import (
     insert_compare_session,
     insert_evaluation_run,
+    insert_sweep_session,
     upsert_configuration,
     upsert_experiment,
 )
@@ -112,6 +114,73 @@ def record_compare_session(
             bar_count=compare_payload.get("bars"),
             best_strategy_id=compare_payload.get("best_strategy_id"),
             summary=compare_payload,
+        )
+
+    try:
+        return _commit_record(connection, write)
+    finally:
+        connection.close()
+
+
+def record_sweep_session(
+    *,
+    sweep_payload: dict[str, Any],
+    manifest_path: Path | str | None = None,
+    database_path: Path | None = None,
+) -> str | None:
+    best = sweep_payload.get("best") or {}
+    best_params = dict(sweep_payload.get("best_params") or {})
+    connection = open_database(database_path)
+
+    def write(connection) -> str:
+        csv_text = str(sweep_payload.get("csv", ""))
+        strategy_id = str(sweep_payload.get("strategy_id", ""))
+        symbol, resolution = parse_symbol_resolution_from_csv(csv_text)
+        if csv_text:
+            upsert_dataset(
+                connection,
+                repo_path=csv_text,
+                source="sweep_session",
+                symbol=symbol,
+                resolution=resolution,
+            )
+        config_id = upsert_configuration(
+            connection,
+            config_kind=CONFIG_KIND_SWEEP_BEST,
+            strategy_id=strategy_id or None,
+            model_id=None,
+            symbol=symbol,
+            resolution=resolution,
+            horizon_label=None,
+            parameters={"strategy_id": strategy_id, **best_params},
+            data_context={
+                "csv": csv_text,
+                "bars": sweep_payload.get("bars"),
+                "rank_by": sweep_payload.get("rank_by"),
+                "holdout_tail_bars": sweep_payload.get("holdout_tail_bars"),
+            },
+        )
+        return insert_sweep_session(
+            connection,
+            strategy_id=strategy_id,
+            symbol=symbol,
+            resolution=resolution,
+            horizon_label=None,
+            csv_path=csv_text,
+            bar_count=sweep_payload.get("bars"),
+            rank_by=str(sweep_payload.get("rank_by", "")),
+            holdout_tail_bars=sweep_payload.get("holdout_tail_bars"),
+            min_trades=sweep_payload.get("min_trades"),
+            cash=sweep_payload.get("cash"),
+            fee=sweep_payload.get("fee"),
+            param_grid={k: list(v) for k, v in dict(sweep_payload.get("param_grid", {}) or {}).items()},
+            best_params=best_params,
+            best_metrics={
+                key: best.get(key)
+                for key in ("return_pct", "holdout_return_pct", "trades", "final_equity")
+            },
+            config_id=config_id,
+            manifest_path=str(manifest_path) if manifest_path else None,
         )
 
     try:

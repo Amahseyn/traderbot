@@ -1,0 +1,287 @@
+{
+  "resolution:60": {
+    "sma_cross": {
+      "robust_params": {
+        "fast": 20,
+        "slow": 50
+      },
+      "best_params": {
+        "fast": 20,
+        "slow": 50
+      },
+      "basis": {
+        "assets": [
+          "data/EDGEUSDT_60.csv",
+          "data/EGALAUSDT_60.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -10.415244535425606,
+        "eligible_assets": 2,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "ema_cross": {
+      "robust_params": {
+        "fast": 20,
+        "slow": 100
+      },
+      "best_params": {
+        "fast": 10,
+        "slow": 100
+      },
+      "basis": {
+        "assets": [
+          "data/EDGEUSDT_60.csv",
+          "data/EGALAUSDT_60.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -18.716292424532547,
+        "eligible_assets": 2,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "rsi_threshold": {
+      "robust_params": {
+        "period": 7,
+        "oversold": 30.0
+      },
+      "best_params": {
+        "period": 7,
+        "oversold": 30.0
+      },
+      "basis": {
+        "assets": [
+          "data/EDGEUSDT_60.csv",
+          "data/EGALAUSDT_60.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 64.40132805509003,
+        "eligible_assets": 2,
+        "param_grid": {
+          "period": [
+            7,
+            14,
+            21
+          ],
+          "oversold": [
+            20,
+            30.0
+          ]
+        }
+      }
+    },
+    "macd_cross": {
+      "robust_params": {
+        "fast": 12,
+        "slow": 26
+      },
+      "best_params": {
+        "fast": 12,
+        "slow": 26
+      },
+      "basis": {
+        "assets": [
+          "data/EDGEUSDT_60.csv",
+          "data/EGALAUSDT_60.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -66.77514699541771,
+        "eligible_assets": 2,
+        "param_grid": {
+          "fast": [
+            8,
+            12
+          ],
+          "slow": [
+            21,
+            26
+          ]
+        }
+      }
+    },
+    "bollinger_mean_reversion": {
+      "robust_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "best_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "basis": {
+        "assets": [
+          "data/EDGEUSDT_60.csv",
+          "data/EGALAUSDT_60.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 131.5852070824141,
+        "eligible_assets": 2,
+        "param_grid": {
+          "period": [
+            14,
+            20,
+            30
+          ],
+          "num_std": [
+            1.5,
+            2.0,
+            2.5
+          ]
+        }
+      }
+    },
+    "breakout_atr": {
+      "robust_params": {
+        "lookback_bars": 40,
+        "atr_multiplier": 1.0
+      },
+      "best_params": {
+        "lookback_bars": 40,
+        "atr_multiplier": 1.0
+      },
+      "basis": {
+        "assets": [
+          "data/EDGEUSDT_60.csv",
+          "data/EGALAUSDT_60.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -12.827478687417022,
+        "eligible_assets": 2,
+        "param_grid": {
+          "lookback_bars": [
+            10,
+            20,
+            40
+          ],
+          "atr_multiplier": [
+            1.0,
+            1.5,
+            2.0
+          ]
+        }
+      }
+    },
+    "chart_patterns": {
+      "robust_params": {
+        "swing_window_bars": 3,
+        "pattern_score_threshold": 0.35
+      },
+      "best_params": {
+        "swing_window_bars": 3,
+        "pattern_score_threshold": 0.35
+      },
+      "basis": {
+        "assets": [
+          "data/EDGEUSDT_60.csv",
+          "data/EGALAUSDT_60.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -24.420136215549007,
+        "eligible_assets": 2,
+        "param_grid": {
+          "swing_window_bars": [
+            3,
+            5
+          ],
+          "pattern_score_threshold": [
+            0.35,
+            0.5
+          ]
+        }
+      }
+    }
+  },
+  "horizon:5m": {
+    "sma_cross": {
+      "robust_params": {
+        "fast": 20,
+        "slow": 50
+      },
+      "best_params": {
+        "fast": 5,
+        "slow": 100
+      },
+      "basis": {
+        "assets": [
+          "data/WIFIRT_5.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 0.18914956011730766,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "bollinger_mean_reversion": {
+      "robust_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "best_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "basis": {
+        "assets": [
+          "data/WIFIRT_5.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 1.529298132646506,
+        "eligible_assets": 1,
+        "param_grid": {
+          "period": [
+            14,
+            20,
+            30
+          ],
+          "num_std": [
+            1.5,
+            2.0,
+            2.5
+          ]
+        }
+      }
+    }
+  }
+}

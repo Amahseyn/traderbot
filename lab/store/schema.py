@@ -1,4 +1,4 @@
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 CREATE_TABLES_SQL = """
 CREATE TABLE IF NOT EXISTS schema_meta (
@@ -96,4 +96,27 @@ CREATE TABLE IF NOT EXISTS market_catalog (
 
 CREATE INDEX IF NOT EXISTS idx_market_catalog_scope ON market_catalog(catalog_scope);
 CREATE INDEX IF NOT EXISTS idx_market_catalog_symbol ON market_catalog(symbol);
+
+CREATE TABLE IF NOT EXISTS sweep_sessions (
+    id TEXT PRIMARY KEY,
+    strategy_id TEXT NOT NULL,
+    symbol TEXT,
+    resolution TEXT,
+    horizon_label TEXT,
+    csv_path TEXT NOT NULL,
+    bar_count INTEGER,
+    rank_by TEXT NOT NULL,
+    holdout_tail_bars INTEGER,
+    min_trades INTEGER,
+    cash REAL,
+    fee REAL,
+    param_grid_json TEXT NOT NULL,
+    best_params_json TEXT NOT NULL,
+    best_metrics_json TEXT NOT NULL,
+    config_id TEXT REFERENCES configurations(id),
+    manifest_path TEXT,
+    created_at_utc TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_sweep_lookup ON sweep_sessions(strategy_id, symbol, resolution);
 """

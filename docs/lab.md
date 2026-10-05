@@ -86,7 +86,7 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 | `/data` | Export OHLC job + download CSVs from `data/` |
 | `/runs`, `/runs/[id]` | Browse runs, metrics, PNG charts, `results.json` download |
 | `/configs` | Configuration snapshots |
-| `/experiments` | Lab — strategy test and compare, pipelines, compare charts. Sections: Run, Pipelines (`#pipelines`), Compare results (`#compares`) |
+| `/experiments` | Lab — strategy test and compare, optimizer sweeps, pipelines, compare charts. Sections: Run, Pipelines (`#pipelines`), Compare results (`#compares`), Sweeps (`#sweeps`) |
 | `/actions` | Redirects to `/experiments` |
 | `/custom` | Custom end-to-end pipeline (export, multi-dataset, compare) |
 | `/settings` | Nobitex login, API keys, profile |
@@ -95,7 +95,7 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 
 | Method | Path | Notes |
 |--------|------|--------|
-| GET | `/api/stats`, `/api/runs`, `/api/runs/{id}`, `/api/configurations`, `/api/experiments`, `/api/compare-sessions`, `/api/pipelines` | Catalog |
+| GET | `/api/stats`, `/api/runs`, `/api/runs/{id}`, `/api/configurations`, `/api/experiments`, `/api/compare-sessions`, `/api/sweeps`, `/api/sweeps/best`, `/api/pipelines` | Catalog |
 | POST | `/api/experiments/sync` | Register `config/experiment*.json` in SQLite (no pipeline run) |
 | GET | `/api/datasets` | Catalog OHLC datasets. `label` includes horizon (when the file is under `horizons/<label>/`) and the CSV start and end dates. |
 | GET | `/api/datasets/{id}/download` | Download a catalog dataset file |
@@ -107,13 +107,15 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 | POST | `/api/jobs/{id}/stop` | Stop a queued or running in-process job |
 | GET | `/api/auth/status`, `/api/auth/profile`, `/api/auth/api-keys` | Nobitex credentials (`.env` on API host) |
 | POST | `/api/auth/login`, `/api/auth/api-keys` | Session login / create API key (writes `.env` when requested) |
-| GET | `/api/catalog/strategies`, `/api/catalog/terminal` | Strategy and terminal catalogs |
-| POST | `/api/jobs/export`, `/api/jobs/strategy-test`, `/api/jobs/strategy-compare`, `/api/jobs/pipeline-run`, `/api/jobs/pipeline-run-config`, `/api/jobs/custom-research`, `/api/jobs/terminal-once`, `/api/jobs/terminal-replay`, `/api/jobs/terminal-live` | In-process background jobs |
+| GET | `/api/catalog/strategies`, `/api/catalog/strategy-params?strategy_id=`, `/api/catalog/terminal` | Strategy and terminal catalogs |
+| POST | `/api/jobs/export`, `/api/jobs/strategy-test`, `/api/jobs/strategy-compare`, `/api/jobs/strategy-sweep`, `/api/jobs/pipeline-run`, `/api/jobs/pipeline-run-config`, `/api/jobs/custom-research`, `/api/jobs/terminal-once`, `/api/jobs/terminal-replay`, `/api/jobs/terminal-live` | In-process background jobs |
 
 `GET /api/pipelines` includes `full`, `steps`, and `inputs` for the Lab Pipelines tab. Full pipelines are the end-to-end jobs. The Pipelines tab keeps Active (run forms) separate from a library where you turn pipelines on or rename the label in this browser. `POST /api/jobs/pipeline-run` takes `pipeline_id` plus those inputs (`dataset_id`, `days`, `all_assets`, `horizon`, `fast`, `slow`). Saved configs use `pipeline-run-config`, which accepts the same `params` and per-step `step_params` the form shows.
 
-`strategy-test` and `strategy-compare` take `mode`: `strategies` (rule strategies only). `strategy-test` also requires `strategy_id`. Both jobs accept optional `cash`, `fee`, `vectorbt`, and strategy knobs (`fast`, `slow`, `signal`, `period`, `oversold`, `overbought`, `num_std`, `context_bars`, `price_confirm`).
+`strategy-test` and `strategy-compare` take `mode`: `strategies` (rule strategies only). `strategy-test` also requires `strategy_id`. Both jobs accept optional `cash`, `fee`, `slippage` (fractions, e.g. `0.001`), `execution` (`close` or `next_open`), `vectorbt`, and strategy knobs (`fast`, `slow`, `signal`, `period`, `oversold`, `overbought`, `num_std`, `context_bars`, `price_confirm`). Returns are net of fee + slippage; `next_open` fills at the next bar open (last-bar signals expire).
 
-`POST /api/jobs/custom-research` runs optional `export_market_symbol` + `interval` + `export_days`, then on each selected catalog `dataset_ids` entry and/or `use_all_hourly_files` (`*_60.csv`): optional `compare_strategies` (`max_strategies`, `strategy_ids`, `cash`, `visualize`). At least one data source and `compare_strategies` is required.
+`strategy-sweep` (optimizer) takes `dataset_id` (or `csv`), `strategy_id`, `mode`, and a 1–2 param grid as `params` (`{name: [values]}`) or `param_specs` (`["name=v1,v2"]`). Grid names must be strategy-namespace fields; `GET /api/catalog/strategy-params?strategy_id=` lists the knobs each strategy actually consumes (with kinds and defaults). Optional `cash`, `fee`, `slippage`, `execution`, `holdout_tail_bars` (rank by the last N bars; omit for full-run return), `min_trades`, `max_combos`, plus any other strategy-namespace knob as the base value underneath the grid. It writes `sweep_manifest.json` (default `results/strategies/sweep/<csv>_<strategy>/`) and records the winner in SQLite (`/api/sweeps`, `/api/sweeps/best`).
+
+`POST /api/jobs/custom-research` runs optional `export_market_symbol` + `interval` + `export_days` (or a batch `export_market_symbols` × `export_intervals` matrix, max 24 combos; per-horizon history via `export_days_by_interval` like `{"15": 7}`, falling back to `export_days`; or step-based via `export_steps` / `export_steps_by_interval`, which sizes days as `ceil(steps × minutes / 1440) + 1` and trims files to the last N bars), then on each selected catalog `dataset_ids` entry and/or `use_all_hourly_files` (`*_60.csv`): optional `compare_strategies` (`max_strategies`, `strategy_ids`, `cash`, `fee`, `slippage`, `execution`, `visualize`). Files with no bars (empty file or outside the run window) are skipped, not fatal, unless every file is skipped. At least one data source and `compare_strategies` is required.
 
 Agent conventions for the UI: `.cursor/rules/lab-ui.mdc`.

@@ -164,3 +164,21 @@ def strategy_kwargs_from_namespace(strategy_id: str, namespace: Any) -> dict[str
     if builder is None:
         return {}
     return builder(namespace)
+
+
+_ALGO_KWARG_TO_NAMESPACE_FIELD = {
+    "low_tolerance_ratio": "pattern_tolerance_ratio",
+    "high_tolerance_ratio": "pattern_tolerance_ratio",
+}
+
+
+def strategy_param_names(strategy_id: str) -> list[str]:
+    """Namespace field names this strategy actually consumes (sweepable knobs)."""
+    if strategy_id not in _IMPLEMENTED:
+        known = ", ".join(sorted(_IMPLEMENTED))
+        raise ValueError(f"unsupported strategy_id={strategy_id!r}; implemented: {known}")
+    from traderbot.algorithms.cli_args import default_strategy_namespace
+
+    kwargs = strategy_kwargs_from_namespace(strategy_id, default_strategy_namespace())
+    names = [_ALGO_KWARG_TO_NAMESPACE_FIELD.get(key, key) for key in kwargs]
+    return list(dict.fromkeys(names))

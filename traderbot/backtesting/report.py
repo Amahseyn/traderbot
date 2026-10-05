@@ -5,7 +5,11 @@ from pathlib import Path
 from typing import Any
 
 from traderbot.algorithms.base import Algorithm
-from traderbot.backtesting.engine import BacktestResult
+from traderbot.backtesting.engine import (
+    BacktestResult,
+    build_cash_flow_summary,
+    build_trade_log_entries,
+)
 
 
 def backtest_summary_dict(
@@ -22,6 +26,12 @@ def backtest_summary_dict(
         "initial_cash": result.initial_cash,
         "final_equity": round(result.final_equity, 6),
         "return_pct": round(result.return_pct, 6),
+        "fee_rate": result.fee_rate,
+        "slippage_rate": result.slippage_rate,
+        "execution": result.execution,
+        "total_fees": round(result.total_fees, 6),
+        "cash_flow": build_cash_flow_summary(result),
+        "trade_logs": build_trade_log_entries(result),
     }
     if extra:
         payload.update(extra)

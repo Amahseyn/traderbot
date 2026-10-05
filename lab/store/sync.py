@@ -4,7 +4,25 @@ import json
 from pathlib import Path
 
 from lab.store.database import open_database
-from lab.store.hooks import record_strategy_backtest
+from lab.store.hooks import record_strategy_backtest, record_sweep_session
+
+
+def _sync_sweep_manifests(root: Path, *, database_path: Path | None, counts: dict[str, int]) -> None:
+    for manifest_path in root.rglob("sweep_manifest.json"):
+        try:
+            payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            counts["skipped"] += 1
+            continue
+        if not payload.get("strategy_id") or not payload.get("best_params"):
+            counts["skipped"] += 1
+            continue
+        record_sweep_session(
+            sweep_payload=payload,
+            manifest_path=manifest_path,
+            database_path=database_path,
+        )
+        counts["sweep"] += 1
 
 
 def sync_results_tree(
@@ -12,8 +30,8 @@ def sync_results_tree(
     *,
     database_path: Path | None = None,
 ) -> dict[str, int]:
-    """Index existing ``backtest_summary.json`` files under ``root``."""
-    counts = {"strategy": 0, "skipped": 0}
+    """Index existing ``backtest_summary.json`` and ``sweep_manifest.json`` files under ``root``."""
+    counts = {"strategy": 0, "sweep": 0, "skipped": 0}
     connection = open_database(database_path)
     try:
         for summary_path in root.rglob("backtest_summary.json"):
@@ -51,6 +69,7 @@ def sync_results_tree(
                 database_path=database_path,
             )
             counts["strategy"] += 1
+        _sync_sweep_manifests(root, database_path=database_path, counts=counts)
     finally:
         connection.close()
     return counts

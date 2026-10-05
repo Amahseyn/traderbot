@@ -57,39 +57,65 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
     End-to-end research job: optional single-market export and strategy compare.
 
     Body keys (see job_resolvers.resolve_custom_research_body):
-    export_market_symbol, export_days, dataset_ids, use_all_hourly_files,
+    export_market_symbol (+interval), export_market_symbols × export_intervals,
+    export_days, dataset_ids, use_all_hourly_files,
     compare_strategies, max_strategies, strategy_ids, ...
     """
     summary: dict[str, Any] = {"steps": []}
 
     export_paths: list[Path] = []
+    export_jobs: list[dict[str, Any]] = [dict(item) for item in body.get("export_jobs") or []]
     export_fields = body.get("export_fields")
-    if export_fields:
-        src = export_fields.get("src")
-        dst = export_fields.get("dst")
-        interval = export_fields.get("interval")
-        if not src or not dst or not interval:
-            raise ValueError("export_fields requires src, dst, and interval")
-        symbol = build_market_symbol(str(src), str(dst))
-        export_days = int(export_fields.get("days") or body.get("export_days") or 30)
-        output_dir = Path(str(export_fields.get("out") or "data"))
-        crypto_layout = bool(export_fields.get("crypto_layout"))
-        jobs = [{"symbol": symbol, "interval": str(interval), "days": export_days}]
-        log(f"custom: exporting {symbol} {interval} ({export_days} days)…", flush=True)
-        written = run_export(
-            jobs,
-            days=export_days,
-            output_dir=output_dir,
-            to_ts=None,
-            crypto_layout=crypto_layout,
-        )
+    if export_fields and not export_jobs:
+        export_jobs.append(dict(export_fields))
+    if export_jobs:
+        jobs: list[dict[str, Any]] = []
+        first_out = str(export_jobs[0].get("out") or "data")
+        first_crypto_layout = bool(export_jobs[0].get("crypto_layout"))
+        export_days = int(body.get("export_days") or 30)
+        for export_job in export_jobs:
+            src = export_job.get("src")
+            dst = export_job.get("dst")
+            interval = export_job.get("interval")
+            if not src or not dst or not interval:
+                raise ValueError("export jobs require src, dst, and interval")
+            jobs.append(
+                {
+                    "symbol": build_market_symbol(str(src), str(dst)),
+                    "interval": str(interval),
+                    "days": int(export_job.get("days") or export_days),
+                    "max_bars": export_job.get("max_bars"),
+                }
+            )
+        def _combo_label(job: dict[str, Any]) -> str:
+            label = f"{job['symbol']}:{job['interval']}:{job['days']}d"
+            if job.get("max_bars") is not None:
+                label += f"/{job['max_bars']}bars"
+            return label
+
+        combo_label = ", ".join(_combo_label(job) for job in jobs)
+        log(f"custom: exporting {len(jobs)} market × horizon combo(s): {combo_label}", flush=True)
+        try:
+            written = run_export(
+                jobs,
+                days=export_days,
+                output_dir=Path(first_out),
+                to_ts=None,
+                crypto_layout=first_crypto_layout,
+            )
+        except Exception as exc:
+            raise ValueError(f"export failed for [{combo_label}]: {exc}") from exc
         export_paths.extend(written)
-        summary["export_market"] = {
-            "symbol": symbol,
-            "interval": str(interval),
-            "paths": [str(path) for path in written],
-        }
-        summary["steps"].append({"step": "export_market", "csv_count": len(written)})
+        summary["export_markets"] = [
+            {
+                "symbol": job["symbol"],
+                "interval": job["interval"],
+                "days": job["days"],
+                "max_bars": job.get("max_bars"),
+            }
+            for job in jobs
+        ]
+        summary["steps"].append({"step": "export_markets", "csv_count": len(written)})
 
     csv_paths: list[Path] = []
     for path in export_paths:
@@ -122,25 +148,40 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
     compare_results: list[dict[str, Any]] = []
     for index, csv_path in enumerate(csv_paths, start=1):
         log(f"custom: compare [{index}/{len(csv_paths)}] {csv_path.name}", flush=True)
-        payload = run_strategy_compare(
-            StrategyCompareOptions(
-                csv_path=csv_path,
-                visualize=bool(body.get("visualize", True)),
-                cash=float(body.get("cash") or 10_000.0),
-                fee=float(body.get("fee") or 0.0),
-                vectorbt=bool(body.get("vectorbt")),
-                strategy_namespace=namespace,
-                mode=mode,
-                strategy_ids=strategy_id_set,
-                max_strategies=max_strategies,
-                run_start_unix_seconds=body.get("run_start_unix_seconds"),
-                run_end_unix_seconds=body.get("run_end_unix_seconds"),
-            ),
-            log=log,
-        )
+        try:
+            payload = run_strategy_compare(
+                StrategyCompareOptions(
+                    csv_path=csv_path,
+                    visualize=bool(body.get("visualize", True)),
+                    cash=float(body.get("cash") or 10_000.0),
+                    fee=float(body.get("fee") or 0.0),
+                    slippage=float(body.get("slippage") or 0.0),
+                    execution=str(body.get("execution") or "close"),
+                    vectorbt=bool(body.get("vectorbt")),
+                    strategy_namespace=namespace,
+                    mode=mode,
+                    strategy_ids=strategy_id_set,
+                    max_strategies=max_strategies,
+                    run_start_unix_seconds=body.get("run_start_unix_seconds"),
+                    run_end_unix_seconds=body.get("run_end_unix_seconds"),
+                ),
+                log=log,
+            )
+        except ValueError as exc:
+            if "No bars in CSV" not in str(exc):
+                raise
+            log(f"custom: skip {csv_path.name}: {exc}", flush=True)
+            compare_results.append({"csv": str(csv_path), "skipped": True, "reason": str(exc)})
+            continue
         compare_results.append({"csv": str(csv_path), "best_strategy_id": payload.get("best_strategy_id")})
+    succeeded = [entry for entry in compare_results if not entry.get("skipped")]
+    if not succeeded:
+        reasons = "; ".join(str(entry.get("reason", entry.get("csv"))) for entry in compare_results)
+        raise ValueError(f"no dataset left bars in the run window: {reasons}")
     summary["compare"] = compare_results
-    summary["steps"].append({"step": "compare", "datasets": len(compare_results)})
+    summary["steps"].append(
+        {"step": "compare", "datasets": len(succeeded), "skipped": len(compare_results) - len(succeeded)}
+    )
 
     log(json.dumps(summary, indent=2), flush=True)
     return summary

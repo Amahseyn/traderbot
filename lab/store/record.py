@@ -127,6 +127,61 @@ def insert_compare_session(
     return session_id
 
 
+def insert_sweep_session(
+    connection: sqlite3.Connection,
+    *,
+    sweep_id: str | None = None,
+    strategy_id: str,
+    symbol: str | None,
+    resolution: str | None,
+    horizon_label: str | None,
+    csv_path: str,
+    bar_count: int | None,
+    rank_by: str,
+    holdout_tail_bars: int | None,
+    min_trades: int | None,
+    cash: float | None,
+    fee: float | None,
+    param_grid: dict[str, Any],
+    best_params: dict[str, Any],
+    best_metrics: dict[str, Any],
+    config_id: str | None = None,
+    manifest_path: str | None = None,
+) -> str:
+    session_id = sweep_id or uuid.uuid4().hex
+    connection.execute(
+        """
+        INSERT OR REPLACE INTO sweep_sessions (
+            id, strategy_id, symbol, resolution, horizon_label, csv_path, bar_count,
+            rank_by, holdout_tail_bars, min_trades, cash, fee,
+            param_grid_json, best_params_json, best_metrics_json,
+            config_id, manifest_path, created_at_utc
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            session_id,
+            strategy_id,
+            symbol,
+            resolution,
+            horizon_label,
+            csv_path,
+            bar_count,
+            rank_by,
+            holdout_tail_bars,
+            min_trades,
+            cash,
+            fee,
+            json.dumps(param_grid, default=str),
+            json.dumps(best_params, default=str),
+            json.dumps(best_metrics, default=str),
+            config_id,
+            manifest_path,
+            _utc_now(),
+        ),
+    )
+    return session_id
+
+
 def upsert_experiment(
     connection: sqlite3.Connection,
     *,

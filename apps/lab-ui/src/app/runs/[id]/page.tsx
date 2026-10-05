@@ -7,6 +7,7 @@ import { useState } from "react";
 import { ArtifactGallery } from "@/components/ArtifactGallery";
 import { CompareSessionPanel } from "@/components/CompareSessionPanel";
 import { RunDetailOverview } from "@/components/RunDetailOverview";
+import { TradeLogsTable } from "@/components/TradeLogsTable";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { JsonBlock } from "@/components/ui/JsonBlock";
@@ -48,7 +49,7 @@ export default function RunDetailPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="4 · Review"
+        eyebrow="Review"
         title={titleParts.length > 0 ? titleParts.join(" · ") : `Run ${run.id.slice(0, 8)}…`}
         description={subtitle}
         actions={
@@ -65,6 +66,8 @@ export default function RunDetailPage() {
 
       <RunDetailOverview run={run} />
 
+      {run.run_kind === "strategy_backtest" && <TradeLogsTable metrics={run.metrics} />}
+
       {run.compare_session_id && run.run_kind === "strategy_backtest" && (
         <CompareSessionPanel
           sessionId={run.compare_session_id}
@@ -78,11 +81,11 @@ export default function RunDetailPage() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Parameters" description="Strategy or model configuration stored with this run.">
-          <JsonBlock value={run.parameters} />
+        <Card title="Parameters" description="Strategy inputs and simulation settings recorded with this run.">
+          <JsonBlock value={run.parameters} collapsed />
         </Card>
-        <Card title="Data context" description="Bars and market metadata used for evaluation.">
-          <JsonBlock value={run.data_context} />
+        <Card title="Data context" description="Dataset path, bar count, and market metadata.">
+          <JsonBlock value={run.data_context} collapsed />
         </Card>
       </div>
 

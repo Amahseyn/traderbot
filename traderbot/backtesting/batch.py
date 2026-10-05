@@ -27,6 +27,8 @@ class StrategyBatchOptions:
     out_dir: Path | None = None
     cash: float = 10_000.0
     fee: float = 0.0
+    slippage: float = 0.0
+    execution: str = "close"
     min_bars: int = 30
     visualize: bool = False
     vectorbt: bool = False
@@ -51,7 +53,14 @@ def run_strategy_batch(options: StrategyBatchOptions) -> dict[str, Any]:
             continue
         kwargs = strategy_kwargs_from_namespace(options.strategy_id, namespace)
         algo = algorithm_for_id(options.strategy_id, **kwargs)
-        result = run_backtest(algo, bars, initial_cash=options.cash, fee_rate=options.fee)
+        result = run_backtest(
+            algo,
+            bars,
+            initial_cash=options.cash,
+            fee_rate=options.fee,
+            slippage_rate=options.slippage,
+            execution=options.execution,
+        )
         vbt_extra = (
             vectorbt_extra_for_backtest(
                 algo,

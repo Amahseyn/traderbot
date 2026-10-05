@@ -1,22 +1,26 @@
 from lab.store.database import default_database_path, open_database
 from lab.store.queries import (
+    fetch_best_sweep,
     fetch_dashboard_stats,
     fetch_evaluation_run,
     list_compare_sessions,
     list_configurations,
     list_evaluation_runs,
     list_experiments,
+    list_sweep_sessions,
 )
 from traderbot.recording import set_recorder
 
 __all__ = [
     "default_database_path",
+    "fetch_best_sweep",
     "fetch_dashboard_stats",
     "fetch_evaluation_run",
     "list_compare_sessions",
     "list_configurations",
     "list_evaluation_runs",
     "list_experiments",
+    "list_sweep_sessions",
     "open_database",
 ]
 
@@ -38,6 +42,12 @@ def _dispatch_recording(kind: str, **payload):
         store_try_record(
             "compare session",
             lambda: hooks.record_compare_session(**payload),
+        )
+        return
+    if kind == "sweep_session":
+        store_try_record(
+            "sweep session",
+            lambda: hooks.record_sweep_session(**payload),
         )
         return
     if kind == "experiment_snapshot":

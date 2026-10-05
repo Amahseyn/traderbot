@@ -7,9 +7,9 @@ import { JobErrorAlert } from "@/components/JobErrorAlert";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Field, SelectInput, TextInput } from "@/components/ui/Field";
-import { api, type DatasetRow } from "@/lib/api";
+import { api, type DatasetRow, type StrategyParamField } from "@/lib/api";
 
-type JobTab = "test" | "compare";
+type JobTab = "test" | "compare" | "sweep";
 
 type BacktestParamState = {
   cash: string;
@@ -41,6 +41,82 @@ function backtestParamsBody(params: BacktestParamState): Record<string, unknown>
     context_bars: Number(params.contextBars),
     price_confirm: params.priceConfirm,
   };
+}
+
+function parseSweepValues(text: string): unknown[] {
+  const values: unknown[] = [];
+  for (const token of text.split(",")) {
+    const cleaned = token.trim();
+    if (!cleaned) continue;
+    const lowered = cleaned.toLowerCase();
+    if (lowered === "true" || lowered === "false") {
+      values.push(lowered === "true");
+      continue;
+    }
+    const numeric = Number(cleaned);
+    values.push(Number.isNaN(numeric) ? cleaned : numeric);
+  }
+  return values;
+}
+
+function prettyParamLabel(name: string): string {
+  return name.replaceAll("_", " ");
+}
+
+function SweepBaseParamsFields({
+  fields,
+  values,
+  onChange,
+}: {
+  fields: StrategyParamField[];
+  values: Record<string, unknown>;
+  onChange: (name: string, value: unknown) => void;
+}) {
+  if (fields.length === 0) {
+    return <p className="text-sm text-muted">No tunable parameters for this strategy.</p>;
+  }
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {fields.map((field) => {
+        const value = values[field.name];
+        const label = prettyParamLabel(field.name);
+        if (field.kind === "bool") {
+          return (
+            <label key={field.name} className="flex items-center gap-2 text-sm text-slate-200">
+              <input
+                type="checkbox"
+                checked={value === true}
+                onChange={(event) => onChange(field.name, event.target.checked)}
+              />
+              {label}
+            </label>
+          );
+        }
+        if (field.kind === "string") {
+          return (
+            <Field key={field.name} label={label}>
+              <TextInput
+                value={value == null ? "" : String(value)}
+                onChange={(event) => onChange(field.name, event.target.value)}
+              />
+            </Field>
+          );
+        }
+        return (
+          <Field key={field.name} label={label}>
+            <TextInput
+              type="number"
+              step={field.kind === "int" ? 1 : "any"}
+              value={value == null || value === "" ? "" : String(value)}
+              onChange={(event) =>
+                onChange(field.name, event.target.value === "" ? null : Number(event.target.value))
+              }
+            />
+          </Field>
+        );
+      })}
+    </div>
+  );
 }
 
 const DEFAULT_BACKTEST_PARAMS: BacktestParamState = {
@@ -229,6 +305,22 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
   const [testVisualize, setTestVisualize] = useState(true);
   const [testStrategyId, setTestStrategyId] = useState("");
 
+  const [sweepDatasetId, setSweepDatasetId] = useState("");
+  const [sweepStrategyId, setSweepStrategyId] = useState("");
+  const [sweepParamA, setSweepParamA] = useState("fast");
+  const [sweepValuesA, setSweepValuesA] = useState("5, 10, 20");
+  const [sweepUseSecondParam, setSweepUseSecondParam] = useState(true);
+  const [sweepParamB, setSweepParamB] = useState("slow");
+  const [sweepValuesB, setSweepValuesB] = useState("20, 50");
+  const [sweepCash, setSweepCash] = useState("10000");
+  const [sweepFee, setSweepFee] = useState("0");
+  const [sweepHoldout, setSweepHoldout] = useState("");
+  const [sweepMinTrades, setSweepMinTrades] = useState("0");
+  const [sweepMaxCombos, setSweepMaxCombos] = useState("64");
+  const [sweepBase, setSweepBase] = useState<Record<string, unknown>>({});
+  const [sweepBaseFor, setSweepBaseFor] = useState("");
+  const [showSweepBase, setShowSweepBase] = useState(false);
+
   useEffect(() => {
     const datasets = datasetsQuery.data ?? [];
     if (!compareDatasetId && datasets[0]) {
@@ -237,7 +329,10 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
     if (!testDatasetId && datasets[0]) {
       setTestDatasetId(datasets[0].id);
     }
-  }, [datasetsQuery.data, compareDatasetId, testDatasetId]);
+    if (!sweepDatasetId && datasets[0]) {
+      setSweepDatasetId(datasets[0].id);
+    }
+  }, [datasetsQuery.data, compareDatasetId, testDatasetId, sweepDatasetId]);
 
   const catalogStrategies = strategiesQuery.data ?? [];
 
@@ -245,9 +340,89 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
     if (!catalogStrategies.some((strategy) => strategy.id === testStrategyId) && catalogStrategies[0]) {
       setTestStrategyId(catalogStrategies[0].id);
     }
-  }, [catalogStrategies, testStrategyId]);
+    if (!catalogStrategies.some((strategy) => strategy.id === sweepStrategyId) && catalogStrategies[0]) {
+      setSweepStrategyId(catalogStrategies[0].id);
+    }
+  }, [catalogStrategies, testStrategyId, sweepStrategyId]);
 
   const datasetOptions = datasetsQuery.data ?? [];
+
+  const sweepDataset = datasetOptions.find((dataset) => dataset.id === sweepDatasetId);
+  const bestSweepQuery = useQuery({
+    queryKey: ["best-sweep", sweepStrategyId, sweepDataset?.symbol, sweepDataset?.resolution],
+    queryFn: () =>
+      api.bestSweep(
+        sweepStrategyId,
+        sweepDataset?.symbol ?? undefined,
+        sweepDataset?.resolution ?? undefined,
+      ),
+    enabled: Boolean(sweepStrategyId),
+    retry: false,
+    staleTime: 30_000,
+  });
+  const sweepBestParams: Record<string, unknown> = bestSweepQuery.data?.best_params ?? {};
+
+  const strategyParamsQuery = useQuery({
+    queryKey: ["strategy-params", sweepStrategyId],
+    queryFn: () => api.strategyParams(sweepStrategyId),
+    enabled: Boolean(sweepStrategyId),
+    staleTime: 60_000,
+  });
+  const sweepParamFields = strategyParamsQuery.data?.params ?? [];
+  const sweepParamNames = sweepParamFields.map((field) => field.name);
+
+  function sweepValuesForParam(name: string, currentText: string): string {
+    const field = sweepParamFields.find((entry) => entry.name === name);
+    const parsed = parseSweepValues(currentText);
+    if (field?.kind === "bool") {
+      if (parsed.length > 0 && parsed.every((value) => typeof value === "boolean")) return currentText;
+      return "true, false";
+    }
+    if (parsed.length > 0 && parsed.every((value) => typeof value === "number")) return currentText;
+    const fallback = field?.default;
+    return fallback == null ? "" : String(fallback);
+  }
+
+  useEffect(() => {
+    const names = (strategyParamsQuery.data?.params ?? []).map((field) => field.name);
+    if (names.length === 0) return;
+    const nextA = names.includes(sweepParamA) ? sweepParamA : names[0];
+    if (nextA !== sweepParamA) {
+      setSweepParamA(nextA);
+      setSweepValuesA((current) => sweepValuesForParam(nextA, current));
+      return;
+    }
+    const secondChoices = names.filter((name) => name !== nextA);
+    if (!sweepParamB || !secondChoices.includes(sweepParamB)) {
+      const fallback = secondChoices[0] ?? "";
+      setSweepParamB(fallback);
+      if (fallback) setSweepValuesB((current) => sweepValuesForParam(fallback, current));
+    }
+  }, [strategyParamsQuery.data, sweepParamA, sweepParamB]);
+
+  useEffect(() => {
+    const fields = strategyParamsQuery.data?.params;
+    if (!sweepStrategyId || !fields || sweepBaseFor === sweepStrategyId) return;
+    const initial: Record<string, unknown> = {};
+    for (const field of fields) initial[field.name] = field.default ?? null;
+    setSweepBase(initial);
+    setSweepBaseFor(sweepStrategyId);
+  }, [strategyParamsQuery.data, sweepStrategyId, sweepBaseFor]);
+
+  function sweepOptimumText(paramName: string): string | null {
+    const value = sweepBestParams[paramName];
+    if (value == null) return null;
+    return `Optimum from last sweep: ${paramName} = ${String(value)}`;
+  }
+
+  function sweepValuesHint(valuesText: string, paramName: string, placeholder: string): string {
+    const parts: string[] = [];
+    const count = parseSweepValues(valuesText).length;
+    parts.push(count > 0 ? `${count} values` : placeholder);
+    const optimum = sweepOptimumText(paramName);
+    if (optimum) parts.push(optimum);
+    return parts.join(" · ");
+  }
 
   const compareMutation = useMutation({
     mutationFn: () =>
@@ -271,9 +446,40 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
     onSuccess: (data) => onJob(data.id),
   });
 
+  const sweepValuesPreviewA = parseSweepValues(sweepValuesA);
+  const sweepValuesPreviewB = parseSweepValues(sweepValuesB);
+  const sweepMutation = useMutation({
+    mutationFn: () => {
+      const params: Record<string, unknown[]> = { [sweepParamA]: parseSweepValues(sweepValuesA) };
+      if (sweepUseSecondParam && sweepParamB && sweepParamB !== sweepParamA) {
+        const second = parseSweepValues(sweepValuesB);
+        if (second.length > 0) params[sweepParamB] = second;
+      }
+      return api.postJob("strategy-sweep", {
+        dataset_id: sweepDatasetId,
+        mode: "strategies",
+        strategy_id: sweepStrategyId,
+        params,
+        ...sweepBase,
+        cash: Number(sweepCash),
+        fee: Number(sweepFee),
+        holdout_tail_bars: sweepHoldout === "" ? null : Number(sweepHoldout),
+        min_trades: Number(sweepMinTrades),
+        max_combos: Number(sweepMaxCombos),
+      });
+    },
+    onSuccess: (data) => onJob(data.id),
+  });
+  const sweepReady =
+    Boolean(sweepDatasetId) &&
+    Boolean(sweepStrategyId) &&
+    sweepValuesPreviewA.length > 0 &&
+    (!sweepUseSecondParam || sweepValuesPreviewB.length > 0);
+
   const tabs: { id: JobTab; label: string }[] = [
     { id: "test", label: "Strategy test" },
     { id: "compare", label: "Strategy compare" },
+    { id: "sweep", label: "Optimizer" },
   ];
 
   return (
@@ -403,6 +609,191 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
                   disabled={compareMutation.isPending || !compareDatasetId}
                 >
                   Start compare
+                </Button>
+              </form>
+              )}
+            </Card>
+          )}
+
+          {tab === "sweep" && (
+            <Card
+              title="Optimizer"
+              description="Grid-search 1–2 parameters for one strategy, ranked by holdout tail or full return. The grid and base knobs follow the selected strategy."
+            >
+              {datasetsQuery.isLoading ? (
+                <p className="text-sm text-muted">Loading datasets…</p>
+              ) : datasetOptions.length === 0 ? (
+                <EmptyDatasets failed={datasetsQuery.isError} />
+              ) : (
+              <form
+                className="space-y-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  sweepMutation.mutate();
+                }}
+              >
+                <Field label="Dataset">
+                  <SelectInput
+                    value={sweepDatasetId}
+                    onChange={(event) => setSweepDatasetId(event.target.value)}
+                  >
+                    {datasetOptions.map((dataset) => (
+                      <option key={dataset.id} value={dataset.id}>
+                        {dataset.label}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </Field>
+                <Field label="Strategy">
+                  <SelectInput
+                    value={sweepStrategyId}
+                    onChange={(event) => setSweepStrategyId(event.target.value)}
+                  >
+                    {catalogStrategies.map((strategy) => (
+                      <option key={strategy.id} value={strategy.id}>
+                        {strategy.name || strategy.id}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </Field>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Parameter 1">
+                    <SelectInput
+                      value={sweepParamA}
+                      onChange={(event) => {
+                        const next = event.target.value;
+                        setSweepParamA(next);
+                        setSweepValuesA((current) => sweepValuesForParam(next, current));
+                      }}
+                    >
+                      {sweepParamNames.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </SelectInput>
+                  </Field>
+                  <Field
+                    label="Values 1"
+                    hint={sweepValuesHint(sweepValuesA, sweepParamA, "Comma-separated, e.g. 5, 10, 20")}
+                  >
+                    <TextInput
+                      value={sweepValuesA}
+                      onChange={(event) => setSweepValuesA(event.target.value)}
+                      placeholder="5, 10, 20"
+                    />
+                  </Field>
+                </div>
+                <label className="flex items-center gap-2 text-sm text-muted">
+                  <input
+                    type="checkbox"
+                    checked={sweepUseSecondParam}
+                    onChange={(event) => setSweepUseSecondParam(event.target.checked)}
+                  />
+                  Sweep a second parameter (max 2)
+                </label>
+                {sweepUseSecondParam && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Parameter 2">
+                      <SelectInput
+                        value={sweepParamB}
+                        onChange={(event) => {
+                          const next = event.target.value;
+                          setSweepParamB(next);
+                          setSweepValuesB((current) => sweepValuesForParam(next, current));
+                        }}
+                      >
+                        {sweepParamNames.filter((name) => name !== sweepParamA).map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                      </SelectInput>
+                    </Field>
+                    <Field
+                      label="Values 2"
+                      hint={sweepValuesHint(sweepValuesB, sweepParamB, "Comma-separated")}
+                    >
+                      <TextInput
+                        value={sweepValuesB}
+                        onChange={(event) => setSweepValuesB(event.target.value)}
+                        placeholder="20, 50"
+                      />
+                    </Field>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="text-sm text-accent hover:underline"
+                  onClick={() => setShowSweepBase((open) => !open)}
+                >
+                  {showSweepBase
+                    ? "Hide base strategy parameters"
+                    : "Base strategy parameters (used for every knob outside the grid)"}
+                </button>
+                {showSweepBase && (
+                  strategyParamsQuery.isLoading ? (
+                    <p className="text-sm text-muted">Loading parameters…</p>
+                  ) : (
+                    <SweepBaseParamsFields
+                      fields={sweepParamFields}
+                      values={sweepBase}
+                      onChange={(name, value) =>
+                        setSweepBase((current) => ({ ...current, [name]: value }))
+                      }
+                    />
+                  )
+                )}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Starting cash">
+                    <TextInput
+                      type="number"
+                      min={1}
+                      value={sweepCash}
+                      onChange={(event) => setSweepCash(event.target.value)}
+                    />
+                  </Field>
+                  <Field label="Fee per trade" hint="Fraction, e.g. 0.001 = 0.1%.">
+                    <TextInput
+                      type="number"
+                      min={0}
+                      step={0.0001}
+                      value={sweepFee}
+                      onChange={(event) => setSweepFee(event.target.value)}
+                    />
+                  </Field>
+                  <Field label="Holdout bars" hint="Rank by the last N bars. Empty = full return.">
+                    <TextInput
+                      type="number"
+                      min={1}
+                      value={sweepHoldout}
+                      onChange={(event) => setSweepHoldout(event.target.value)}
+                      placeholder="e.g. 50"
+                    />
+                  </Field>
+                  <Field label="Min trades" hint="Combos with fewer trades rank lower.">
+                    <TextInput
+                      type="number"
+                      min={0}
+                      value={sweepMinTrades}
+                      onChange={(event) => setSweepMinTrades(event.target.value)}
+                    />
+                  </Field>
+                  <Field label="Max combos" hint="Guard against huge grids.">
+                    <TextInput
+                      type="number"
+                      min={1}
+                      value={sweepMaxCombos}
+                      onChange={(event) => setSweepMaxCombos(event.target.value)}
+                    />
+                  </Field>
+                </div>
+                <JobErrorAlert error={sweepMutation.error} />
+                <Button
+                  type="submit"
+                  disabled={sweepMutation.isPending || !sweepReady}
+                >
+                  Start sweep
                 </Button>
               </form>
               )}

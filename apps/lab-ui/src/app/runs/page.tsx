@@ -4,10 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
+import { RunsTable } from "@/components/RunsTable";
 import { Field, SelectInput } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { api } from "@/lib/api";
-import { formatUtcTimestamp } from "@/lib/format";
 import { HORIZON_OPTIONS } from "@/lib/pipelines";
 
 function RunsPageContent() {
@@ -15,7 +15,6 @@ function RunsPageContent() {
   const [runKind, setRunKind] = useState(() => searchParams.get("run_kind") ?? "");
   const [symbol, setSymbol] = useState(() => searchParams.get("symbol") ?? "");
   const [strategyId, setStrategyId] = useState(() => searchParams.get("strategy_id") ?? "");
-  const [modelId, setModelId] = useState(() => searchParams.get("model_id") ?? "");
   const [horizonLabel, setHorizonLabel] = useState(() => searchParams.get("horizon_label") ?? "");
 
   const queryString = useMemo(() => {
@@ -23,11 +22,10 @@ function RunsPageContent() {
     if (runKind) params.set("run_kind", runKind);
     if (symbol) params.set("symbol", symbol);
     if (strategyId) params.set("strategy_id", strategyId);
-    if (modelId) params.set("model_id", modelId);
     if (horizonLabel) params.set("horizon_label", horizonLabel);
     const serialized = params.toString();
     return serialized ? `?${serialized}` : "";
-  }, [runKind, symbol, strategyId, modelId, horizonLabel]);
+  }, [runKind, symbol, strategyId, horizonLabel]);
 
   const runsQuery = useQuery({
     queryKey: ["runs", queryString],
@@ -53,12 +51,12 @@ function RunsPageContent() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="4 · Review"
+        eyebrow="Review"
         title="Runs"
-        description="Strategy backtests recorded in SQLite. Filter, then open a run for metrics and charts."
+        description="Strategy backtests in the catalog. Filter the list, then open a run for trade logs, charts, and parameters."
       />
 
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5 text-sm">
+      <div className="panel-inset grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
         <Field label="Kind">
           <SelectInput value={runKind} onChange={(event) => setRunKind(event.target.value)}>
             <option value="">All</option>
@@ -100,7 +98,7 @@ function RunsPageContent() {
         </Field>
       </div>
 
-      {runsQuery.isLoading && <p className="text-muted">Loading…</p>}
+      {runsQuery.isLoading && <p className="text-muted">Loading runs…</p>}
       {runsQuery.isError && <p className="text-red-400">Failed to load runs.</p>}
 
       {!runsQuery.isLoading && rows.length === 0 && (
@@ -110,55 +108,20 @@ function RunsPageContent() {
             Data
           </Link>{" "}
           or start a job from{" "}
-          <Link href="/experiments" className="text-accent hover:underline">
-            Lab
+          <Link href="/custom" className="text-accent hover:underline">
+            Custom research
           </Link>
           .
         </p>
       )}
 
       {rows.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-border">
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Kind</th>
-                <th>Symbol</th>
-                <th>Horizon</th>
-                <th>Strategy / model</th>
-                <th>Return / metrics</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((run) => (
-                <tr key={run.id}>
-                  <td>
-                    <span
-                      className={`badge ${
-                        run.run_kind === "strategy_backtest" ? "badge-strategy" : "badge-model"
-                      }`}
-                    >
-                      {run.run_kind === "strategy_backtest" ? "strategy" : "model"}
-                    </span>
-                  </td>
-                  <td>{run.symbol ?? "—"}</td>
-                  <td>{run.horizon_label ?? run.resolution ?? "—"}</td>
-                  <td>{run.strategy_id ?? run.model_id ?? "—"}</td>
-                  <td className="font-mono text-xs">
-                    {run.run_kind === "strategy_backtest"
-                      ? String(run.metrics.return_pct ?? "—")
-                      : String(run.metrics.directional_accuracy ?? "—")}
-                  </td>
-                  <td>
-                    <Link href={`/runs/${run.id}`}>{formatUtcTimestamp(run.created_at_utc)}</Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <p className="text-muted text-xs">
+          {rows.length} run{rows.length === 1 ? "" : "s"} — click a timestamp or ID to open details.
+        </p>
       )}
+
+      {rows.length > 0 && <RunsTable runs={rows} variant="full" />}
     </div>
   );
 }

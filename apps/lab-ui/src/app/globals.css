@@ -24,6 +24,14 @@ table.data th {
   @apply bg-panel text-muted font-medium;
 }
 
+table.data.runs-table tbody tr {
+  @apply transition-colors;
+}
+
+table.data.runs-table tbody tr:hover {
+  @apply bg-surface/70;
+}
+
 .badge {
   @apply inline-block rounded px-2 py-0.5 text-xs font-medium;
 }

@@ -3,7 +3,9 @@ import json
 from pathlib import Path
 
 from traderbot.markets.market_data import fetch_ohlc_range, market_symbol
+from traderbot.utils.bars import filter_bars_by_unix_range
 from traderbot.utils.constants import SECONDS_PER_DAY
+from traderbot.utils.resolution import resolution_minutes
 
 CSV_FIELDS = [
     "symbol",
@@ -91,6 +93,19 @@ def run_export(
             history_from_unix_seconds=history_from_unix_seconds,
             history_to_unix_seconds=to_ts,
         )
+        try:
+            bar_minutes = resolution_minutes(resolution)
+        except ValueError:
+            bar_minutes = None
+        if bar_minutes is not None:
+            rows = filter_bars_by_unix_range(
+                rows,
+                end_unix_seconds=to_ts,
+                bar_minutes=bar_minutes,
+            )
+        max_bars = job.get("max_bars")
+        if max_bars is not None and int(max_bars) >= 1:
+            rows = rows[-int(max_bars):]
         filename = f"{symbol}_{resolution}.csv"
         path = output_dir / filename
         write_csv(path, rows)

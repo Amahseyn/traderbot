@@ -5,12 +5,14 @@ from typing import Any
 
 from lab.store import (
     default_database_path,
+    fetch_best_sweep,
     fetch_dashboard_stats,
     fetch_evaluation_run,
     list_compare_sessions,
     list_configurations,
     list_evaluation_runs,
     list_experiments,
+    list_sweep_sessions,
     open_database,
 )
 from lab.store.queries import fetch_experiment
@@ -48,6 +50,7 @@ LAB_API_FEATURES = (
     "auth_api",
     "terminal_jobs",
     "catalog_api",
+    "strategy_sweep",
 )
 
 
@@ -248,6 +251,37 @@ def create_app(database_path: Path | None = None):
             return [_compare_to_api(connection, row) for row in rows]
         finally:
             connection.close()
+
+    @app.get("/api/sweeps")
+    def api_sweeps(
+        strategy_id: str | None = Query(default=None),
+        symbol: str | None = Query(default=None),
+        limit: int = Query(default=50, le=200),
+    ):
+        connection = get_connection()
+        try:
+            return list_sweep_sessions(
+                connection, strategy_id=strategy_id, symbol=symbol, limit=limit
+            )
+        finally:
+            connection.close()
+
+    @app.get("/api/sweeps/best")
+    def api_sweeps_best(
+        strategy_id: str = Query(...),
+        symbol: str | None = Query(default=None),
+        resolution: str | None = Query(default=None),
+    ):
+        connection = get_connection()
+        try:
+            row = fetch_best_sweep(
+                connection, strategy_id=strategy_id, symbol=symbol, resolution=resolution
+            )
+        finally:
+            connection.close()
+        if row is None:
+            raise HTTPException(status_code=404, detail="no sweep winner found")
+        return row
 
     @app.get("/api/compare-sessions/{session_id}/artifact")
     def api_compare_session_artifact(session_id: str, path: str = Query(..., min_length=1)):

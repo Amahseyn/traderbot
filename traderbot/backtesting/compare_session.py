@@ -45,6 +45,8 @@ class StrategyCompareOptions:
     visualize: bool = True
     cash: float = 10_000.0
     fee: float = 0.0
+    slippage: float = 0.0
+    execution: str = "close"
     vectorbt: bool = False
     strategy_namespace: Any | None = None
     mode: str = "strategies"
@@ -86,7 +88,10 @@ def _algorithm_kwargs(strategy_id: str, options: StrategyCompareOptions) -> dict
 
 def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None = None) -> dict[str, Any]:
     csv_path = options.csv_path.resolve()
-    bars = enrich_bars_for_csv(load_bars_csv(csv_path), csv_path, options.strategy_namespace)
+    raw_bars = enrich_bars_for_csv(load_bars_csv(csv_path), csv_path, options.strategy_namespace)
+    if not raw_bars:
+        raise ValueError(f"No bars in CSV: {csv_path}")
+    bars = raw_bars
     resolution = resolution_from_csv_path(csv_path.name)
     bar_minutes = resolution_minutes(resolution) or 60
     bars = filter_bars_by_unix_range(
@@ -96,7 +101,11 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
         bar_minutes=bar_minutes,
     )
     if not bars:
-        raise ValueError(f"No bars in CSV after run window: {csv_path}")
+        window_label = f"{options.run_start_unix_seconds}..{options.run_end_unix_seconds}"
+        file_label = f"{raw_bars[0]['timestamp']}..{raw_bars[-1]['timestamp']}"
+        raise ValueError(
+            f"No bars in CSV after run window {window_label} (file covers {file_label}): {csv_path}"
+        )
 
     mode = normalize_strategy_mode(options.mode)
     plan = strategy_compare_plan(mode)
@@ -116,14 +125,21 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
     tree = result_tree_at(compare_root, run_id=csv_path.stem) if compare_root is not None else None
     viz = compare_root is not None and options.visualize
     compare_session_id = str(uuid.uuid4())
-    _log(log, f"compare: {mode} mode, {len(plan)} strategies on {csv_path.name} ({len(bars)} bars)")
+    _log(log, f"compare: {mode} mode, {len(plan)} strategies on {csv_path.name} ({len(bars)} bars, {options.execution} fills)")
 
     for index, (strategy_id, algorithm_id, extra) in enumerate(plan, start=1):
         _log(log, f"compare: [{index}/{len(plan)}] {strategy_id}")
         kwargs = _algorithm_kwargs(algorithm_id, options)
         kwargs.update(extra)
         algo = algorithm_for_id(algorithm_id, **kwargs)
-        result = run_backtest(algo, bars, initial_cash=options.cash, fee_rate=options.fee)
+        result = run_backtest(
+            algo,
+            bars,
+            initial_cash=options.cash,
+            fee_rate=options.fee,
+            slippage_rate=options.slippage,
+            execution=options.execution,
+        )
         equity_by_strategy[strategy_id] = list(result.equity_curve)
         row = backtest_summary_dict(
             algo,
@@ -159,6 +175,10 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
         "csv": str(csv_path),
         "bars": len(bars),
         "mode": mode,
+        "cash": options.cash,
+        "fee": options.fee,
+        "slippage": options.slippage,
+        "execution": options.execution,
         "best_strategy_id": best["strategy_id"] if best else None,
         "strategies": ranked,
     }
@@ -197,6 +217,8 @@ class StrategyTestOptions:
     visualize: bool = True
     cash: float = 10_000.0
     fee: float = 0.0
+    slippage: float = 0.0
+    execution: str = "close"
     vectorbt: bool = False
     strategy_namespace: Any | None = None
     mode: str = "strategies"
@@ -212,6 +234,8 @@ def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None)
         csv_path=options.csv_path,
         cash=options.cash,
         fee=options.fee,
+        slippage=options.slippage,
+        execution=options.execution,
         vectorbt=options.vectorbt,
         strategy_namespace=options.strategy_namespace,
         mode=mode,
@@ -221,10 +245,17 @@ def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None)
     if not bars:
         raise ValueError(f"No bars in CSV: {csv_path}")
 
-    _log(log, f"strategy test: {mode} mode, {options.strategy_id} on {csv_path.name} ({len(bars)} bars)")
+    _log(log, f"strategy test: {mode} mode, {options.strategy_id} on {csv_path.name} ({len(bars)} bars, {compare_options.execution} fills)")
     kwargs = _algorithm_kwargs(options.strategy_id, compare_options)
     algo = algorithm_for_id(options.strategy_id, **kwargs)
-    result = run_backtest(algo, bars, initial_cash=options.cash, fee_rate=options.fee)
+    result = run_backtest(
+        algo,
+        bars,
+        initial_cash=options.cash,
+        fee_rate=options.fee,
+        slippage_rate=options.slippage,
+        execution=options.execution,
+    )
     summary = backtest_summary_dict(
         algo,
         result,

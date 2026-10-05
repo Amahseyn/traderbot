@@ -9,6 +9,7 @@ export type DashboardStats = {
   run_count: number;
   config_count: number;
   compare_count: number;
+  sweep_count: number;
   experiment_count: number;
   top_strategies: Array<{ strategy_id: string; n: number; best_return: number | null }>;
 };
@@ -101,12 +102,39 @@ export type CompareSession = {
   artifacts: ArtifactRef[];
 };
 
+export type SweepSession = {
+  id: string;
+  strategy_id: string;
+  symbol: string | null;
+  resolution: string | null;
+  horizon_label: string | null;
+  csv_path: string;
+  bar_count: number | null;
+  rank_by: string;
+  holdout_tail_bars: number | null;
+  min_trades: number | null;
+  cash: number | null;
+  fee: number | null;
+  param_grid: Record<string, unknown[]>;
+  best_params: Record<string, unknown>;
+  best_metrics: Record<string, unknown>;
+  config_id: string | null;
+  manifest_path: string | null;
+  created_at_utc: string;
+};
+
 export type CatalogStrategy = {
   id: string;
   name: string;
   summary: string;
   style: string;
   implemented: boolean;
+};
+
+export type StrategyParamField = {
+  name: string;
+  kind: "int" | "float" | "bool" | "optional_float" | "string";
+  default: unknown;
 };
 
 export type AuthStatus = {
@@ -216,6 +244,13 @@ export const api = {
     }
   },
   compareSessions: () => fetchJson<CompareSession[]>("/api/compare-sessions"),
+  sweeps: (query = "") => fetchJson<SweepSession[]>(`/api/sweeps${query}`),
+  bestSweep: (strategyId: string, symbol?: string, resolution?: string) => {
+    const params = new URLSearchParams({ strategy_id: strategyId });
+    if (symbol) params.set("symbol", symbol);
+    if (resolution) params.set("resolution", resolution);
+    return fetchJson<SweepSession>(`/api/sweeps/best?${params.toString()}`);
+  },
   jobs: (limit = 50) => fetchJson<JobRow[]>(`/api/jobs?limit=${limit}`),
   datasets: (limit = 200) => fetchJson<DatasetRow[]>(`/api/datasets?limit=${limit}`),
   /** Same rows as datasets — catalog OHLC files under data/ (SQLite-backed). */
@@ -284,6 +319,10 @@ export const api = {
   catalogStrategies: (implementedOnly = true) =>
     fetchJson<CatalogStrategy[]>(
       `/api/catalog/strategies?implemented_only=${implementedOnly ? "true" : "false"}`,
+    ),
+  strategyParams: (strategyId: string) =>
+    fetchJson<{ strategy_id: string; params: StrategyParamField[] }>(
+      `/api/catalog/strategy-params?strategy_id=${encodeURIComponent(strategyId)}`,
     ),
   stopJob: async (jobId: string) => {
     const response = await fetch(`${API_BASE}/api/jobs/${encodeURIComponent(jobId)}/stop`, {

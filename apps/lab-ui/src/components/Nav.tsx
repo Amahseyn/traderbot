@@ -9,10 +9,8 @@ type NavLink = { href: string; label: string };
 
 const LOOP_LINKS: NavLink[] = [
   { href: "/data", label: "Data" },
-  { href: "/experiments", label: "Lab" },
   { href: "/custom", label: "Custom" },
   { href: "/runs", label: "Runs" },
-  { href: "/configs", label: "Configs" },
 ];
 
 const TOOL_LINKS: NavLink[] = [{ href: "/settings", label: "Settings" }];

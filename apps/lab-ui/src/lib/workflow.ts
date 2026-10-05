@@ -1,6 +1,6 @@
 /** Research loop for overview cards. Nav links to the same pages once. */
 
-export type WorkflowStepId = "overview" | "data" | "lab" | "results";
+export type WorkflowStepId = "overview" | "data" | "research" | "results";
 
 export type WorkflowStep = {
   id: WorkflowStepId;
@@ -30,20 +30,20 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
     matchPrefixes: ["/data"],
   },
   {
-    id: "lab",
-    label: "Lab",
-    short: "2 · Run",
-    description: "Strategy test and compare, saved pipelines, and compare charts.",
-    href: "/experiments",
-    matchPrefixes: ["/experiments", "/actions", "/custom"],
+    id: "research",
+    label: "Custom research",
+    short: "2 · Research",
+    description: "Export, multi-dataset backtests, strategy compare, and sweeps.",
+    href: "/custom",
+    matchPrefixes: ["/custom", "/actions"],
   },
   {
     id: "results",
     label: "Results",
     short: "3 · Review",
-    description: "Evaluation runs and configuration snapshots.",
+    description: "Backtest runs with metrics, trade logs, and charts.",
     href: "/runs",
-    matchPrefixes: ["/runs", "/configs"],
+    matchPrefixes: ["/runs"],
   },
 ];
 

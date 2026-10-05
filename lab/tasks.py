@@ -36,24 +36,24 @@ def run_export_task(fields: dict[str, Any]) -> None:
 def _strategy_namespace_from_body(body: dict[str, Any]) -> Any:
     from traderbot.algorithms.cli_args import default_strategy_namespace
 
-    return default_strategy_namespace(
-        fast=int(body.get("fast") or 5),
-        slow=int(body.get("slow") or 20),
-        signal=int(body.get("signal") or 9),
-        period=int(body.get("period") or 14),
-        oversold=float(body.get("oversold") or 30.0),
-        overbought=float(body.get("overbought") or 70.0),
-        num_std=float(body.get("num_std") or 2.0),
-        context_bars=int(body.get("context_bars") or 0),
-        price_confirm=bool(body.get("price_confirm")),
-        lookback_bars=int(body.get("lookback_bars") or 20),
-        atr_period=int(body.get("atr_period") or 14),
-        atr_multiplier=float(body.get("atr_multiplier") or 1.5),
-        swing_window_bars=int(body.get("swing_window_bars") or 3),
-        min_swing_separation_bars=int(body.get("min_swing_separation_bars") or 4),
-        pattern_tolerance_ratio=float(body.get("pattern_tolerance_ratio") or 0.02),
-        pattern_score_threshold=float(body.get("pattern_score_threshold") or 0.35),
-    )
+    defaults = default_strategy_namespace()
+    overrides: dict[str, Any] = {}
+    for key, default in vars(defaults).items():
+        if key not in body or body[key] in (None, ""):
+            continue
+        raw = body[key]
+        try:
+            if isinstance(default, bool):
+                overrides[key] = raw if isinstance(raw, bool) else str(raw).lower() not in ("0", "false", "no", "off", "")
+            elif isinstance(default, int) and not isinstance(raw, bool):
+                overrides[key] = int(raw)
+            elif isinstance(default, float) and not isinstance(raw, bool):
+                overrides[key] = float(raw)
+            else:
+                overrides[key] = raw
+        except (TypeError, ValueError):
+            overrides[key] = raw
+    return default_strategy_namespace(**overrides)
 
 
 def run_strategy_compare_task(body: dict[str, Any], csv_path: str) -> None:
@@ -68,12 +68,55 @@ def run_strategy_compare_task(body: dict[str, Any], csv_path: str) -> None:
             visualize=bool(body.get("visualize", True)),
             cash=float(body.get("cash") or 10_000.0),
             fee=float(body.get("fee") or 0.0),
+            slippage=float(body.get("slippage") or 0.0),
+            execution=str(body.get("execution") or "close"),
             vectorbt=bool(body.get("vectorbt")),
             strategy_namespace=_strategy_namespace_from_body(body),
             mode=mode,
         ),
         log=lambda message: print(message, flush=True),
     )
+
+
+def run_strategy_sweep_task(body: dict[str, Any], csv_path: str) -> None:
+    import json
+
+    from traderbot.backtesting.sweep import SweepOptions, run_strategy_sweep
+
+    csv = Path(csv_path)
+    strategy_id = str(body.get("strategy_id") or "")
+    param_grid = {name: list(values) for name, values in dict(body.get("param_grid") or {}).items()}
+    holdout_raw = body.get("holdout_tail_bars")
+    print(f"sweep: preparing {strategy_id} on {csv.name} ({len(param_grid)} params) …", flush=True)
+    payload = run_strategy_sweep(
+        SweepOptions(
+            csv_path=csv,
+            strategy_id=strategy_id,
+            param_grid=param_grid,
+            cash=float(body.get("cash") or 10_000.0),
+            fee=float(body.get("fee") or 0.0),
+            slippage=float(body.get("slippage") or 0.0),
+            execution=str(body.get("execution") or "close"),
+            holdout_tail_bars=None if holdout_raw in (None, "") else int(holdout_raw),
+            min_trades=int(body.get("min_trades") or 0),
+            max_combos=int(body.get("max_combos") or 64),
+        ),
+        base_namespace=_strategy_namespace_from_body(body),
+    )
+    out = body.get("out")
+    out_dir = Path(str(out)) if out else Path("results") / "strategies" / "sweep" / f"{csv.stem}_{strategy_id}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = out_dir / "sweep_manifest.json"
+    manifest_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    payload["manifest"] = str(manifest_path)
+    from traderbot.recording import try_record
+
+    try_record(
+        "sweep_session",
+        sweep_payload=payload,
+        manifest_path=manifest_path,
+    )
+    print(json.dumps(payload, indent=2))
 
 
 def run_strategy_test_task(body: dict[str, Any], csv_path: str) -> None:
@@ -90,6 +133,8 @@ def run_strategy_test_task(body: dict[str, Any], csv_path: str) -> None:
             visualize=bool(body.get("visualize", True)),
             cash=float(body.get("cash") or 10_000.0),
             fee=float(body.get("fee") or 0.0),
+            slippage=float(body.get("slippage") or 0.0),
+            execution=str(body.get("execution") or "close"),
             vectorbt=bool(body.get("vectorbt")),
             strategy_namespace=_strategy_namespace_from_body(body),
             mode=mode,

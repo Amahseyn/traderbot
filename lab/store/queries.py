@@ -49,6 +49,7 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
     run_count = connection.execute("SELECT COUNT(*) FROM evaluation_runs").fetchone()[0]
     config_count = connection.execute("SELECT COUNT(*) FROM configurations").fetchone()[0]
     compare_count = connection.execute("SELECT COUNT(*) FROM compare_sessions").fetchone()[0]
+    sweep_count = connection.execute("SELECT COUNT(*) FROM sweep_sessions").fetchone()[0]
     experiment_count = connection.execute("SELECT COUNT(*) FROM experiments").fetchone()[0]
     top_strategies = connection.execute(
         """
@@ -66,6 +67,7 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
         "run_count": run_count,
         "config_count": config_count,
         "compare_count": compare_count,
+        "sweep_count": sweep_count,
         "experiment_count": experiment_count,
         "top_strategies": [dict(row) for row in top_strategies],
     }
@@ -227,3 +229,73 @@ def _compare_session_to_api(row: sqlite3.Row) -> dict[str, Any]:
         "summary": json.loads(row["summary_json"]),
         "created_at_utc": row["created_at_utc"],
     }
+
+
+def _sweep_session_to_api(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "strategy_id": row["strategy_id"],
+        "symbol": row["symbol"],
+        "resolution": row["resolution"],
+        "horizon_label": row["horizon_label"],
+        "csv_path": row["csv_path"],
+        "bar_count": row["bar_count"],
+        "rank_by": row["rank_by"],
+        "holdout_tail_bars": row["holdout_tail_bars"],
+        "min_trades": row["min_trades"],
+        "cash": row["cash"],
+        "fee": row["fee"],
+        "param_grid": json.loads(row["param_grid_json"]),
+        "best_params": json.loads(row["best_params_json"]),
+        "best_metrics": json.loads(row["best_metrics_json"]),
+        "config_id": row["config_id"],
+        "manifest_path": row["manifest_path"],
+        "created_at_utc": row["created_at_utc"],
+    }
+
+
+def list_sweep_sessions(
+    connection: sqlite3.Connection,
+    *,
+    strategy_id: str | None = None,
+    symbol: str | None = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    clauses = ["1=1"]
+    params: list[Any] = []
+    if strategy_id:
+        clauses.append("strategy_id = ?")
+        params.append(strategy_id)
+    if symbol:
+        clauses.append("symbol = ?")
+        params.append(symbol.upper())
+    params.append(limit)
+    rows = connection.execute(
+        f"SELECT * FROM sweep_sessions WHERE {' AND '.join(clauses)}"
+        " ORDER BY created_at_utc DESC LIMIT ?",
+        params,
+    ).fetchall()
+    return [_sweep_session_to_api(row) for row in rows]
+
+
+def fetch_best_sweep(
+    connection: sqlite3.Connection,
+    *,
+    strategy_id: str,
+    symbol: str | None = None,
+    resolution: str | None = None,
+) -> dict[str, Any] | None:
+    clauses = ["strategy_id = ?"]
+    params: list[Any] = [strategy_id]
+    if symbol:
+        clauses.append("symbol = ?")
+        params.append(symbol.upper())
+    if resolution:
+        clauses.append("resolution = ?")
+        params.append(resolution)
+    row = connection.execute(
+        f"SELECT * FROM sweep_sessions WHERE {' AND '.join(clauses)}"
+        " ORDER BY created_at_utc DESC LIMIT 1",
+        params,
+    ).fetchone()
+    return _sweep_session_to_api(row) if row is not None else None

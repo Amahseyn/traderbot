@@ -6,7 +6,7 @@ import { useEffect } from "react";
 export default function ActionsRedirectPage() {
   const router = useRouter();
   useEffect(() => {
-    router.replace("/experiments");
+    router.replace("/custom");
   }, [router]);
-  return <p className="text-sm text-muted">Opening Lab…</p>;
+  return <p className="text-sm text-muted">Opening Custom research…</p>;
 }

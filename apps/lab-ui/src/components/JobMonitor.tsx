@@ -89,6 +89,7 @@ export function JobMonitor({ activeJobId, onSelectJob }: JobMonitorProps) {
     if (status === "completed") {
       queryClient.invalidateQueries({ queryKey: ["runs"] });
       queryClient.invalidateQueries({ queryKey: ["compares"] });
+      queryClient.invalidateQueries({ queryKey: ["sweeps"] });
       queryClient.invalidateQueries({ queryKey: ["experiments"] });
       queryClient.invalidateQueries({ queryKey: ["experiment-artifacts"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
@@ -197,24 +198,33 @@ export function JobMonitor({ activeJobId, onSelectJob }: JobMonitorProps) {
                 {displayJob.status === "completed" && displayJob.job_type === "strategy-compare" && (
                   <p className="text-sm text-emerald-300/90">
                     Compare finished — open{" "}
-                    <a href="/experiments#compares" className="text-accent hover:underline">
-                      Compare results
+                    <a href="/runs" className="text-accent hover:underline">
+                      Runs
                     </a>{" "}
-                    for charts (enable visualize on the next run if empty).
+                    for per-strategy summaries (enable visualize on the next run if charts are empty).
+                  </p>
+                )}
+                {displayJob.status === "completed" && displayJob.job_type === "strategy-sweep" && (
+                  <p className="text-sm text-emerald-300/90">
+                    Sweep finished — open{" "}
+                    <a href="/runs" className="text-accent hover:underline">
+                      Runs
+                    </a>{" "}
+                    for the winning backtest and parameters.
                   </p>
                 )}
                 {displayJob.status === "failed" && (
                   <p className="text-sm text-red-400">
                     Job failed — see output below. Fix the issue and retry from{" "}
-                    <a href="/data" className="text-accent hover:underline">Data</a> or the{" "}
-                    <a href="/experiments" className="text-accent hover:underline">Lab</a>.
+                    <a href="/data" className="text-accent hover:underline">Data</a> or{" "}
+                    <a href="/custom" className="text-accent hover:underline">Custom research</a>.
                   </p>
                 )}
                 {showStaleLogHint && (
                   <p className="text-sm text-amber-200/90">
                     No log lines yet. If this stays empty, the Lab API may have restarted while an
                     older job was still marked running — run compare again from{" "}
-                    <a href="/experiments" className="text-accent hover:underline">Lab</a> (or
+                    <a href="/custom" className="text-accent hover:underline">Custom research</a> (or
                     restart with <code className="text-xs">./run-lab-api.sh</code> and start a new
                     job).
                   </p>

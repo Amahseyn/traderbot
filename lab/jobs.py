@@ -28,6 +28,7 @@ from lab.job_resolvers import (
     resolve_pipeline_run_body,
     resolve_custom_research_body,
     resolve_export_argv_fields,
+    resolve_sweep_body,
 )
 from lab.task_log import CancellableJobLogWriter
 from lab.tasks import (
@@ -35,6 +36,7 @@ from lab.tasks import (
     run_named_pipeline_task,
     run_pipeline_config_task,
     run_strategy_compare_task,
+    run_strategy_sweep_task,
     run_strategy_test_task,
     run_custom_research_task,
 )
@@ -379,6 +381,27 @@ def register_job_routes(app, get_connection: Callable) -> None:
             job_id,
             "strategy-test",
             lambda: run_strategy_test_task(body, csv_path),
+        )
+        return {"id": job_id, "status": JOB_STATUS_QUEUED}
+
+    @app.post("/api/jobs/strategy-sweep")
+    def job_strategy_sweep(body: dict[str, Any]):
+        connection = get_connection()
+        try:
+            prepared = resolve_sweep_body(connection, body)
+            csv_path = str(prepared.pop("csv"))
+        except JobPayloadError as exc:
+            connection.close()
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        try:
+            job_id = _insert_job(connection, "strategy-sweep", prepared)
+        finally:
+            connection.close()
+        _start_inprocess(
+            get_connection,
+            job_id,
+            "strategy-sweep",
+            lambda: run_strategy_sweep_task(prepared, csv_path),
         )
         return {"id": job_id, "status": JOB_STATUS_QUEUED}
 
