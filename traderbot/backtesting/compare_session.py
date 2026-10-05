@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from traderbot.algorithms.forecast_backtest import strategy_compare_plan
 from traderbot.algorithms.registry import (
     algorithm_for_id,
+    backtest_strategy_ids,
     normalize_strategy_mode,
     strategy_ids_for_mode,
     strategy_kwargs_from_namespace,
@@ -28,6 +28,11 @@ from traderbot.results.layout import (
     default_strategy_compare_out,
     result_tree_at,
 )
+
+
+def strategy_compare_plan(_mode: str | None) -> list[tuple[str, str, dict[str, Any]]]:
+    """Rows for strategy compare: (result id, algorithm id, extra kwargs)."""
+    return [(strategy_id, strategy_id, {}) for strategy_id in backtest_strategy_ids()]
 
 
 LogFn = Callable[[str], None]

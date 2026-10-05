@@ -11,12 +11,6 @@ export type DashboardStats = {
   compare_count: number;
   experiment_count: number;
   top_strategies: Array<{ strategy_id: string; n: number; best_return: number | null }>;
-  top_models: Array<{
-    model_id: string;
-    horizon_label: string;
-    n: number;
-    best_dir: number | null;
-  }>;
 };
 
 export type ArtifactRef = {
@@ -290,10 +284,6 @@ export const api = {
   catalogStrategies: (implementedOnly = true) =>
     fetchJson<CatalogStrategy[]>(
       `/api/catalog/strategies?implemented_only=${implementedOnly ? "true" : "false"}`,
-    ),
-  catalogModels: (implementedOnly = true) =>
-    fetchJson<Array<{ id: string; title: string; implemented: boolean }>>(
-      `/api/catalog/models?implemented_only=${implementedOnly ? "true" : "false"}`,
     ),
   stopJob: async (jobId: string) => {
     const response = await fetch(`${API_BASE}/api/jobs/${encodeURIComponent(jobId)}/stop`, {

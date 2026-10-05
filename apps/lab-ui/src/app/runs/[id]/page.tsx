@@ -43,7 +43,7 @@ export default function RunDetailPage() {
   const titleParts = [run.symbol, run.strategy_id ?? run.model_id].filter(Boolean);
   const subtitle =
     run.dataset_label ??
-    (run.run_kind === "strategy_backtest" ? "Strategy backtest" : "ML forecast run");
+    (run.run_kind === "strategy_backtest" ? "Strategy backtest" : "Run");
 
   return (
     <div className="space-y-8">
@@ -88,7 +88,7 @@ export default function RunDetailPage() {
 
       <Card
         title="Full metrics"
-        description="Raw summary JSON from the backtest or forecast eval."
+        description="Raw summary JSON from the backtest."
       >
         <Button
           type="button"

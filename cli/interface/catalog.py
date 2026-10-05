@@ -7,7 +7,6 @@ from cli.interface.command_tree import command_tree
 from cli.interface.pickables import all_pickables as _all_pickables
 from cli.interface.pickables import list_pickable_dicts, pickable_to_dict
 from cli.interface.runner import format_invocation
-from traderbot.ml.registry import list_models
 from traderbot.pipelines.registry import list_pipelines
 
 
@@ -27,14 +26,12 @@ def catalog_dict(*, include_examples = True) -> dict:
         "pickables": pickables,
         "pickable_index": list_pickable_dicts(),
         "strategies": [asdict(s) for s in list_strategies(implemented_only=False)],
-        "models": [asdict(m) for m in list_models(implemented_only=False)],
         "pipelines": [
             {"id": p.id, "title": p.title, "description": p.description}
             for p in list_pipelines()
         ],
         "nested_catalogs": {
             "strategies": "traderbot strategy catalog [--implemented-only]",
-            "models": "traderbot ml catalog [--implemented-only]",
             "terminal": "traderbot terminal catalog",
             "pick": "traderbot interface list | pick | run <id>",
         },

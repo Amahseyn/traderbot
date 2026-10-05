@@ -84,14 +84,14 @@ Optional recent-price filters: `--context-bars 3` (mean-reversion / MACD), `--pr
 Use `--visualize` to force charts, `--no-visualize` (or `--no-plot`) to skip.  
 Batch: `traderbot strategy batch data/crypto/ohlc --strategy ema_cross` → `results/strategies/batch/<strategy>/`
 
-Interactive CLI (recommended): run `traderbot` or `traderbot cli` in a terminal — pick a menu (**Charts & compare**, data, strategy, ML, auth, …), then an action. Press `0` to go back or exit.
+Interactive CLI (recommended): run `traderbot` or `traderbot cli` in a terminal — pick a menu (**Charts & compare**, data, strategy, auth, …), then an action. Press `0` to go back or exit.
 
 Quick check with API keys: section **Nobitex profile** in the menu, or `traderbot auth check`
 
-Research CLI catalog (export, charts, ML, pipelines — not live trading):
+Research CLI catalog (export, charts, pipelines — not live trading):
 
 ```bash
-traderbot interface catalog          # full JSON: command_tree, pickables, strategies, models
+traderbot interface catalog          # full JSON: command_tree, pickables, strategies
 traderbot interface list             # pickable ids (use --kind workflow --tag data)
 traderbot interface describe workflow/download-crypto-1h
 traderbot interface pick             # numbered menu (TTY); add --run to execute
@@ -124,7 +124,7 @@ Several assets and intervals — copy `export.jobs.example.json` and edit:
 traderbot export --jobs export.jobs.json --out data
 ```
 
-Five crypto markets, all candle intervals (writes `data/crypto/ohlc/` plus complete tail slices per forecast horizon under `data/crypto/horizons/`):
+Five crypto markets, all candle intervals (writes `data/crypto/ohlc/` plus complete tail slices per horizon under `data/crypto/horizons/`):
 
 ```bash
 traderbot export --jobs export.jobs.example.json --out data/crypto
@@ -135,20 +135,10 @@ traderbot data live --interval 60 --poll-sec 60   # refresh PNG every minute
 
 # Rebuild horizon folders from existing OHLC without re-downloading:
 traderbot data horizons --from data/crypto/ohlc
-
-traderbot ml batch data/crypto/ohlc --model lightgbm --all-horizons   # → results/ml/ohlc/
-# Or one horizon at a time (every CSV in the folder is complete for that window):
-traderbot ml batch data/crypto/horizons/4h --model lightgbm   # → results/ml/4h/
 pytest tests/test_multisource_data.py -q
 ```
 
 Legacy flat exports under `data/multisource/` still work; run `traderbot data horizons --from data/multisource` to migrate into `data/crypto/`.
-
-Full LightGBM grid (all exported assets × default horizons **1m, 5m, 1h, 2h, 4h, 6h, 12h, 1d** where valid):
-
-```bash
-pytest tests/test_full_matrix_lightgbm.py -q -m full_matrix
-```
 
 ### Pipelines (full workflows)
 
@@ -159,18 +149,13 @@ traderbot pipeline list
 | ID | What it does |
 |----|----------------|
 | `crypto-jobs-export` | Crypto 1h jobs file → `data/crypto/` (`ohlc/` + `horizons/`) |
-| `lightgbm-multisource-default` | LightGBM batch, **1h** horizon per CSV |
-| `lightgbm-multisource-all-horizons` | LightGBM batch, **all default horizons** + PNGs |
 | `sma-backtest` | SMA cross backtest JSON |
 | `full-research-strategies` | Export (90d) + strategy compare on hourly files |
 | `crypto-1h-local` | Strategy compare on existing `*_60.csv` files |
 
 ```bash
-# Export + all horizons + visualizations (same as manual export + ml batch --all-horizons)
-traderbot pipeline run full-research-lightgbm --export-days 90
-
-# Use existing CSVs only
-traderbot pipeline run lightgbm-multisource-all-horizons --data-dir data/crypto/ohlc --skip-export
+# Export + strategy compare + visualizations on hourly files
+traderbot pipeline run full-research-strategies --export-days 90
 
 traderbot pipeline run sma-backtest --csv data/BTCIRT_D.csv --fast 5 --slow 20
 ```
@@ -178,15 +163,13 @@ traderbot pipeline run sma-backtest --csv data/BTCIRT_D.csv --fast 5 --slow 20
 Outputs live under **`solutions/<pipeline_slug>/`** (not loose `results/` folders):
 
 ```
-solutions/lightgbm_multisource_all_horizons/
+solutions/full_research_strategies/
   README.md
   data/                          # OHLC CSVs (export pipelines)
-  runs/BTCIRT_60/4h/
-    results.json
-    visualizations/*.png
+  runs/compare/BTCIRT_60/…
   reports/
     pipeline_summary.json
-    batch_manifest.json
+    compare_manifest.json
     solution_meta.json
 ```
 
@@ -196,13 +179,12 @@ Ad-hoc CLI output uses the same tree shape as pipelines, under typed folders in 
 
 ```
 results/
-  ml/<batch_name>/runs/<asset>/<horizon>/results.json + visualizations/
   strategies/compare/<asset>/runs/<strategy_id>/…
   strategies/batch/<strategy>/runs/<csv_stem>/…
   data/live/visualizations/
 ```
 
-Manifests: `reports/batch_manifest.json`, `reports/compare_manifest.json`. Per-run PNGs live in `visualizations/`. Charts and stderr include MAE/RMSE and profit vs buy & hold where applicable.
+Manifests: `reports/batch_manifest.json`, `reports/compare_manifest.json`. Per-run PNGs live in `visualizations/`. Charts and stderr include profit vs buy & hold where applicable.
 
 **Output paths:** `traderbot pipeline run …` writes under **`solutions/<pipeline_slug>/`**. Ad-hoc commands default into **`results/<domain>/…`** (override with `--out`).
 
@@ -214,7 +196,7 @@ pytest          # unit tests (excludes integration marker)
 
 ### Lab (result catalog + UI)
 
-Browse backtests and ML runs in a local Next.js UI backed by SQLite (`data/traderbot.db`).
+Browse backtests in a local Next.js UI backed by SQLite (`data/traderbot.db`).
 
 ```bash
 pip install -e ".[ui,dev]"

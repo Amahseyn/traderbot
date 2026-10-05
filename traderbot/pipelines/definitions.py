@@ -142,7 +142,7 @@ def _run_crypto_1h_local_for_csv(
     equity_by_strategy: dict[str, list[tuple[int, float]]] = {}
     compare_root = layout.runs / "strategy_compare" / source_csv.stem
     tree = result_tree_at(compare_root, run_id=slice_path.stem)
-    for strategy_id in backtest_strategy_ids(include_forecast_strategies=False):
+    for strategy_id in backtest_strategy_ids():
         algo = algorithm_for_id(strategy_id)
         backtest_result = run_backtest(algo, bars, initial_cash=initial_cash, fee_rate=0.0)
         equity_by_strategy[strategy_id] = list(backtest_result.equity_curve)

@@ -22,14 +22,6 @@ def _slug(name: str) -> str:
     return solution_slug(name.replace(" ", "_"))
 
 
-def default_ml_batch_out(csv_dir: Path) -> Path:
-    return RESULTS_ROOT / "ml" / _slug(csv_dir.name or "batch")
-
-
-def default_ml_run_out(csv: Path) -> Path:
-    return RESULTS_ROOT / "ml" / _slug(csv.stem or "run")
-
-
 def default_strategy_batch_out(strategy_id: str) -> Path:
     return RESULTS_ROOT / "strategies" / "batch" / _slug(strategy_id)
 

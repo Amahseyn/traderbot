@@ -83,10 +83,7 @@ export default function CustomPipelinePage() {
     queryKey: ["catalog-strategies"],
     queryFn: () => api.catalogStrategies(true),
   });
-  const ruleStrategies = useMemo(
-    () => (strategiesQuery.data ?? []).filter((row) => row.style !== "ml"),
-    [strategiesQuery.data],
-  );
+  const ruleStrategies = useMemo(() => strategiesQuery.data ?? [], [strategiesQuery.data]);
 
   useEffect(() => {
     if (ruleStrategies.length === 0) return;
@@ -147,7 +144,6 @@ export default function CustomPipelinePage() {
         use_all_hourly_files: dataState.useAllHourly,
         dataset_ids: dataState.datasetIds,
         compare_strategies: compareStrategies,
-        run_forecasts: false,
         visualize,
         cash: Number(cash),
       };

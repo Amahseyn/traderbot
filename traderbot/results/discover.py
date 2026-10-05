@@ -108,9 +108,7 @@ def discover_result_groups(
 ) -> list[ResultGroup]:
     compare_dirs: list[Path] = []
     strategy_batches: list[tuple[Path, dict]] = []
-    ml_batches: list[tuple[Path, dict]] = []
     backtests: list[ResultChoice] = []
-    ml_runs: list[ResultChoice] = []
     live_runs: list[ResultChoice] = []
     compare_roots: set[Path] = set()
 
@@ -126,12 +124,8 @@ def discover_result_groups(
         for manifest_path in sorted(root.rglob("batch_manifest.json")):
             parent = manifest_parent_dir(manifest_path)
             data = _read_json(manifest_path)
-            if "model_id" in data:
-                ml_batches.append((parent, data))
-            elif "strategy_id" in data:
+            if "strategy_id" in data:
                 strategy_batches.append((parent, data))
-            elif manifest_path.parent.name == "reports" and solutions_root in manifest_path.parents:
-                ml_batches.append((parent, data))
         for manifest_path in sorted(root.rglob("backtest_summary.json")):
             parent = manifest_path.parent.resolve()
             if _under_compare(parent, compare_roots) or parent in compare_roots:
@@ -143,22 +137,6 @@ def discover_result_groups(
             ret = summary.get("return_pct")
             detail = f"return {ret}%" if ret is not None else ""
             backtests.append(ResultChoice(parent, str(algo), detail))
-        for manifest_path in sorted(root.rglob("results.json")):
-            parent = manifest_path.parent.resolve()
-            in_batch = any(
-                (ancestor / "batch_manifest.json").is_file()
-                or (ancestor / "reports" / "batch_manifest.json").is_file()
-                for ancestor in (parent, *parent.parents)
-            )
-            if in_batch or not _has_charts(parent):
-                continue
-            data = _read_json(manifest_path)
-            model = data.get("model_id", "ml")
-            horizon = data.get("horizon_label", "")
-            label = f"{model} — {horizon}" if horizon else model
-            ml_runs.append(
-                ResultChoice(parent, label, f"{data.get('n_samples', '?')} holdout samples")
-            )
         for manifest_path in sorted(root.rglob("live_markets_manifest.json")):
             parent = manifest_path.parent.resolve()
             if _has_charts(parent):
@@ -187,15 +165,6 @@ def discover_result_groups(
         for batch_dir, manifest in sorted(strategy_batches, key=lambda x: str(x[0]))
     ]
 
-    ml_batch_runs = [
-        ResultChoice(
-            batch_dir.resolve(),
-            batch_dir.name,
-            f"{manifest.get('model_id', 'ml')}, {manifest.get('run_count') or len(manifest.get('runs', []))} run(s)",
-        )
-        for batch_dir, manifest in sorted(ml_batches, key=lambda x: str(x[0]))
-    ]
-
     groups: list[ResultGroup] = []
     if compare_runs:
         groups.append(ResultGroup("compare", "Strategy compare", compare_runs))
@@ -203,10 +172,6 @@ def discover_result_groups(
         groups.append(ResultGroup("backtest", "Single strategy backtest", _dedupe_choices(backtests)))
     if strategy_batch_runs:
         groups.append(ResultGroup("strategy_batch", "Strategy batch", strategy_batch_runs))
-    if ml_runs:
-        groups.append(ResultGroup("ml_run", "ML eval run", _dedupe_choices(ml_runs)))
-    if ml_batch_runs:
-        groups.append(ResultGroup("ml_batch", "ML batch", ml_batch_runs))
     if live_runs:
         groups.append(ResultGroup("live", "Live markets", _dedupe_choices(live_runs)))
     return groups
@@ -219,7 +184,7 @@ def subchoices_for_run(group: ResultGroup, run: ResultChoice) -> list[ResultChoi
         if manifest_path is not None:
             return _compare_subchoices(path, _read_json(manifest_path))
         return None
-    if group.kind in ("strategy_batch", "ml_batch"):
+    if group.kind == "strategy_batch":
         manifest_path = _manifest_at(path, "batch_manifest.json")
         if manifest_path is not None:
             return _batch_subchoices(path, _read_json(manifest_path))

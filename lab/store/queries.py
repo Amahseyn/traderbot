@@ -62,25 +62,12 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
         LIMIT 8
         """
     ).fetchall()
-    top_models = connection.execute(
-        """
-        SELECT c.model_id, c.horizon_label, COUNT(*) AS n,
-               MAX(CAST(json_extract(r.metrics_json, '$.directional_accuracy') AS REAL)) AS best_dir
-        FROM evaluation_runs r
-        JOIN configurations c ON c.id = r.config_id
-        WHERE r.run_kind = 'model_forecast' AND c.model_id IS NOT NULL
-        GROUP BY c.model_id, c.horizon_label
-        ORDER BY best_dir DESC NULLS LAST
-        LIMIT 8
-        """
-    ).fetchall()
     return {
         "run_count": run_count,
         "config_count": config_count,
         "compare_count": compare_count,
         "experiment_count": experiment_count,
         "top_strategies": [dict(row) for row in top_strategies],
-        "top_models": [dict(row) for row in top_models],
     }
 
 

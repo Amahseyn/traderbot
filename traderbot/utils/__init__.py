@@ -1,7 +1,7 @@
-"""Shared helpers used across backtest, ML, and data loading.
+"""Shared helpers used across backtests and data loading.
 
-Domain-specific facades: ``traderbot.utils.ml``, ``traderbot.utils.algorithms``.
-Package-level mirrors: ``traderbot.ml.utils``, ``traderbot.algorithms.utils``.
+Domain-specific facades live alongside their packages (e.g. ``traderbot.utils.algorithms``).
+Package-level mirrors: ``traderbot.algorithms.utils``.
 """
 
 from traderbot.utils.bars import bars_from_ohlc_rows, load_bars_csv, normalize_bar

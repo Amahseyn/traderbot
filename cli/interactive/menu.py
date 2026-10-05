@@ -131,31 +131,6 @@ def _export_btc_argv() -> Argv:
     ]
 
 
-def _ml_run_argv() -> Argv:
-    csv = _prompt_path("OHLC CSV", _default_csv())
-    model = input("Model [lightgbm]: ").strip() or "lightgbm"
-    horizon = input("Horizon bars [4]: ").strip() or "4"
-    test_bars = input("Test steps — holdout tail bars (empty=train-ratio split): ").strip()
-    train_samples = input("Training samples — supervised rows (empty=train-ratio split): ").strip()
-    out = _prompt_path("Results dir", "results/ml/btc_60")
-    argv: Argv = ["ml", "run", csv, "--model", model, "--horizon-bars", horizon, "--out", out]
-    if test_bars:
-        argv.extend(["--holdout-tail-bars", test_bars])
-    if train_samples:
-        argv.extend(["--train-samples", train_samples])
-    return argv
-
-
-def _ml_batch_viz_argv() -> Argv:
-    folder = _prompt_path("CSV directory", "data/crypto/horizons/4h")
-    out = _prompt_path("Results dir", "results/ml/horizons_4h")
-    model = input("Model [lightgbm]: ").strip() or "lightgbm"
-    argv: Argv = ["ml", "batch", folder, "--model", model, "--out", out]
-    if input("All forecast horizons per file? [Y/n]: ").strip().lower() not in ("n", "no"):
-        argv.append("--all-horizons")
-    return argv
-
-
 def _run_pickable_workflow(pick_id: str) -> Argv | None:
     confirm = input(f"Run workflow {pick_id}? [y/N]: ").strip().lower()
     if confirm not in ("y", "yes"):
@@ -244,8 +219,6 @@ MENUS: tuple[MenuGroup, ...] = (
                 ],
             ),
             MenuAction("Single strategy backtest charts", _strategy_backtest_viz_argv),
-            MenuAction("ML forecast: train & eval one dataset", _ml_run_argv),
-            MenuAction("ML batch charts (folder)", _ml_batch_viz_argv),
             MenuAction("Browse saved results", _view_saved_results_argv),
             MenuAction("Visualization pickable workflow", _pick_visualization_workflow),
         ),
@@ -284,10 +257,6 @@ MENUS: tuple[MenuGroup, ...] = (
                 "Run experiment from config (crypto 1h smoke)",
                 ["pipeline", "run-config", "config/experiment.crypto-1h-smoke.json"],
             ),
-            MenuAction(
-                "Run ML forecast eval (BTC 1h, test steps + training samples)",
-                ["pipeline", "run-config", "config/experiment.ml-forecast-eval.json"],
-            ),
         ),
     ),
     MenuGroup(
@@ -312,24 +281,6 @@ MENUS: tuple[MenuGroup, ...] = (
                     "--out",
                     _prompt_path("Output dir", "results/strategies/backtest/btc_sma_cross"),
                     "--visualize",
-                ],
-            ),
-        ),
-    ),
-    MenuGroup(
-        title="Machine learning",
-        actions=(
-            MenuAction("Model catalog (implemented)", ["ml", "catalog", "--implemented-only"]),
-            MenuAction("LightGBM forecast: train & eval one dataset", _ml_run_argv),
-            MenuAction(
-                "Batch LightGBM (4h horizon folder)",
-                [
-                    "ml",
-                    "batch",
-                    "data/crypto/horizons/4h",
-                    "--model",
-                    "lightgbm",
-                    "--all-horizons",
                 ],
             ),
         ),
@@ -361,7 +312,7 @@ MENUS: tuple[MenuGroup, ...] = (
         title="Pipelines",
         actions=(
             MenuAction("List pipelines", ["pipeline", "list"]),
-            MenuAction("Run full-research-lightgbm", ["pipeline", "run", "full-research-lightgbm"]),
+            MenuAction("Run full-research-strategies", ["pipeline", "run", "full-research-strategies"]),
         ),
     ),
     MenuGroup(

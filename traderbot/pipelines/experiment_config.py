@@ -70,13 +70,11 @@ def resolve_one_hour_window_params(params: dict[str, Any]) -> dict[str, Any]:
     """
     For 1h OHLC experiments: ``window_hours`` is the **holdout eval window** (recent hours).
 
-    Maps to ``holdout_tail_bars`` (one bar per hour on ``*_60.csv``). Training uses the
-    full on-disk CSV; only ML metrics and ``holdout_return_pct`` strategies use this tail.
-    ``null`` = no fixed tail (temporal train/holdout split on all data).
+    Maps to ``holdout_tail_bars`` (one bar per hour on ``*_60.csv``). The pipeline
+    compares rule-based strategies; ``holdout_tail_bars`` selects the tail used for
+    ``holdout_return_pct`` ranking. ``null`` = rank on the full data.
 
     Explicit ``tail_bars`` still slices the entire CSV to the last N bars (legacy smoke).
-
-    ``train_supervised_row_count`` applies only when ``holdout_tail_bars`` is unset.
     """
     merged = dict(params)
     if "holdout_tail_bars" not in merged and "window_hours" in merged:
@@ -90,6 +88,7 @@ def apply_experiment_param_defaults(params: dict[str, Any]) -> dict[str, Any]:
     merged.pop("run_lightgbm", None)
     merged.pop("num_boost_round", None)
     merged.pop("train_supervised_row_count", None)
+    merged.pop("train_ratio", None)
     return merged
 
 
@@ -152,7 +151,7 @@ def merge_experiment_params(
     config: ExperimentConfig,
     step: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Base ``params`` merged with a test step's ``params`` (step wins), then ML defaults."""
+    """Base ``params`` merged with a test step's ``params`` (step wins), then normalized."""
     merged = dict(config.params)
     if step is not None:
         step_params = step.get("params") or {}

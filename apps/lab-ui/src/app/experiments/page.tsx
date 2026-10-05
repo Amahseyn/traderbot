@@ -147,14 +147,10 @@ type ExperimentRunBody = {
 };
 
 const PARAM_LABELS: Record<string, string> = {
-  model_id: "Model",
   horizon: "Horizon",
-  run_lightgbm: "Run LightGBM",
   all_assets: "Every file",
   symbol: "Symbol",
   window_hours: "Holdout window",
-  train_supervised_row_count: "Training rows",
-  num_boost_round: "Boosting rounds",
   initial_cash: "Starting cash",
   train_ratio: "Training share",
   fast: "Fast window",
@@ -170,8 +166,6 @@ const HORIZON_PIPELINES = new Set(["crypto-1h-local"]);
 const DEFAULT_HORIZON: Record<string, string> = {
   "crypto-1h-local": "1h",
 };
-
-const MODEL_OPTIONS: { value: string; label: string }[] = [];
 
 const WINDOW_OPTIONS = [
   { value: "", label: "Entire file" },
@@ -203,7 +197,7 @@ function ParamFields({
       {orderedParamKeys(values).map((key) => {
         const value = values[key];
         const label = PARAM_LABELS[key] ?? key.replaceAll("_", " ");
-        if (typeof value === "boolean" || key === "run_lightgbm" || key === "all_assets") {
+        if (typeof value === "boolean" || key === "all_assets") {
           return (
             <label key={key} className="flex items-center gap-2 text-sm text-slate-200">
               <input
@@ -215,9 +209,9 @@ function ParamFields({
             </label>
           );
         }
-        if (key === "model_id" || key === "horizon" || key === "window_hours") {
+        if (key === "horizon" || key === "window_hours") {
           const options =
-            key === "model_id" ? MODEL_OPTIONS : key === "horizon" ? HORIZON_OPTIONS : WINDOW_OPTIONS;
+            key === "horizon" ? HORIZON_OPTIONS : WINDOW_OPTIONS;
           const current = value == null || value === "" ? "" : String(value);
           const choices = options.some((option) => option.value === current)
             ? options
@@ -506,7 +500,7 @@ export default function ExperimentsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Lab"
-        description="Run a strategy, forecast, or saved pipeline, then watch the job on the right. Compare charts stay on this page. A single test is listed under Runs."
+        description="Run a strategy or saved pipeline, then watch the job on the right. Compare charts stay on this page. A single test is listed under Runs."
       />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">

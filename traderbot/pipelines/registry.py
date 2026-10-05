@@ -147,7 +147,7 @@ PIPELINES: tuple[PipelineSpec, ...] = (
     PipelineSpec(
         id="full-research-strategies",
         title="Download, then strategies only",
-        description="Export crypto 1h jobs, then compare rule-based strategies on each hourly file. Skips LightGBM.",
+        description="Export crypto 1h jobs, then compare rule-based strategies on each hourly file.",
         fn=lambda **kwargs: pipeline_export_then_hourly(
             pipeline_id="full-research-strategies",
             title="Download, then strategies only",

@@ -61,7 +61,7 @@ class LogEntry:
     module: str = ""
     message: str = ""
     context: dict[str, Any] = field(default_factory=dict)
-    source: str = "app"  # 'app', 'job', 'api', 'ml', etc.
+    source: str = "app"  # 'app', 'job', 'api', etc.
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

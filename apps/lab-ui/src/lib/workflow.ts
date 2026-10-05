@@ -33,7 +33,7 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
     id: "lab",
     label: "Lab",
     short: "2 · Run",
-    description: "Strategy test and compare, forecasts, saved pipelines, and compare charts.",
+    description: "Strategy test and compare, saved pipelines, and compare charts.",
     href: "/experiments",
     matchPrefixes: ["/experiments", "/actions", "/custom"],
   },

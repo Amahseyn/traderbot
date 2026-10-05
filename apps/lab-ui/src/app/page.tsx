@@ -34,7 +34,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <PageHeader
         title="Research overview"
-        description="Export data, run strategies and forecasts in Lab, then inspect runs and configs."
+        description="Export data, run strategies in Lab, then inspect runs and configs."
         actions={
           <Link href="/experiments">
             <Button>Open Lab</Button>
@@ -77,27 +77,6 @@ export default function DashboardPage() {
                   <td>{row.strategy_id}</td>
                   <td>{row.n}</td>
                   <td>{row.best_return ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="rounded-xl border border-border bg-panel p-4">
-          <h2 className="text-lg font-medium mb-2 text-white">Top models (directional accuracy)</h2>
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Model</th>
-                <th>Horizon</th>
-                <th>Best</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.top_models.map((row) => (
-                <tr key={`${row.model_id}-${row.horizon_label}`}>
-                  <td>{row.model_id}</td>
-                  <td>{row.horizon_label}</td>
-                  <td>{row.best_dir ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

@@ -55,7 +55,6 @@ def create_app_with_infrastructure(database_path: Path | None = None):
         EventType,
     )
     from lab.infrastructure_routes import attach_infrastructure_routes
-    from lab.ml_routes import attach_ml_routes
 
     # Initialize service registry
     service_registry = ServiceRegistry()
@@ -119,11 +118,9 @@ def create_app_with_infrastructure(database_path: Path | None = None):
                 "experiment_sync",
                 "live_job_logs",
                 "auth_api",
-                "ml_batch",
                 "terminal_jobs",
                 "catalog_api",
                 "infrastructure",  # NEW
-                "ml_routes",  # NEW
             ],
             "infrastructure": {
                 "cache_stats": cache_layer.stats(),
@@ -151,9 +148,8 @@ def create_app_with_infrastructure(database_path: Path | None = None):
         finally:
             connection.close()
 
-    # Attach new infrastructure and ML routes
+    # Attach new infrastructure routes
     attach_infrastructure_routes(app, service_registry)
-    attach_ml_routes(app, service_registry)
 
     # ... rest of existing routes (list_runs, etc.) unchanged ...
     # They can optionally use cache_layer.get/set() for performance

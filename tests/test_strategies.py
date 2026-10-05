@@ -122,7 +122,7 @@ def test_default_strategy_namespace_covers_rule_compare():
     from traderbot.algorithms.registry import backtest_strategy_ids, strategy_kwargs_from_namespace
 
     namespace = default_strategy_namespace()
-    for strategy_id in backtest_strategy_ids(include_forecast_strategies=False):
+    for strategy_id in backtest_strategy_ids():
         strategy_kwargs_from_namespace(strategy_id, namespace)
 
     partial = merge_strategy_namespace(Namespace(fast=5, slow=20, period=14))
@@ -131,7 +131,7 @@ def test_default_strategy_namespace_covers_rule_compare():
 
 
 def test_strategy_compare_plan_rules_only():
-    from traderbot.algorithms.forecast_backtest import strategy_compare_plan
+    from traderbot.backtesting.compare_session import strategy_compare_plan
 
     rules = strategy_compare_plan("strategies")
     assert len(rules) == 7

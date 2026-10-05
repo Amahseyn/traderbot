@@ -11,9 +11,7 @@ from lab.store.canonical import (
     parse_symbol_resolution_from_csv,
 )
 from lab.store.constants import (
-    CONFIG_KIND_MODEL,
     CONFIG_KIND_STRATEGY,
-    RUN_KIND_MODEL_FORECAST,
     RUN_KIND_STRATEGY_BACKTEST,
 )
 from lab.store.database import open_database
@@ -88,76 +86,6 @@ def record_strategy_backtest(
             out_dir=out_dir,
             metrics=summary,
             compare_session_id=compare_session_id,
-            experiment_id=experiment_id,
-        )
-
-    try:
-        return _commit_record(connection, write)
-    finally:
-        connection.close()
-
-
-def record_model_forecast(
-    *,
-    result_dict: dict[str, Any],
-    out_dir: Path,
-    csv_path: Path | str | None = None,
-    train_ratio: float | None = None,
-    experiment_id: str | None = None,
-    database_path: Path | None = None,
-) -> str | None:
-    model_id = result_dict.get("model_id")
-    horizon_label = result_dict.get("horizon_label")
-    horizon_bars = result_dict.get("horizon_bars")
-    extra = result_dict.get("extra") or {}
-    symbol, resolution = parse_symbol_resolution_from_csv(csv_path or extra.get("dataset"))
-    bar_minutes = extra.get("simulation", {}).get("bar_minutes")
-    if bar_minutes is None and resolution and str(resolution).isdigit():
-        bar_minutes = int(resolution)
-    parameters = {
-        "horizon_bars": horizon_bars,
-        "bar_minutes": bar_minutes,
-        "train_ratio": train_ratio or extra.get("train_ratio"),
-        "train_supervised_row_count": extra.get("train_supervised_row_count_requested")
-        or extra.get("train_supervised_row_count"),
-        "num_boost_round": extra.get("num_boost_round"),
-        "simulation": extra.get("simulation"),
-    }
-    data_context = {
-        "csv": str(csv_path) if csv_path else extra.get("dataset"),
-        "symbol": symbol,
-        "resolution": resolution,
-        "n_samples": result_dict.get("n_samples"),
-    }
-    connection = open_database(database_path)
-
-    def write(connection) -> str:
-        csv_text = str(csv_path) if csv_path else extra.get("dataset")
-        if csv_text:
-            upsert_dataset(
-                connection,
-                repo_path=str(csv_text),
-                source="model_forecast",
-                symbol=symbol,
-                resolution=str(resolution) if resolution else None,
-            )
-        config_id = upsert_configuration(
-            connection,
-            config_kind=CONFIG_KIND_MODEL,
-            strategy_id=None,
-            model_id=str(model_id) if model_id else None,
-            symbol=symbol,
-            resolution=str(resolution) if resolution else None,
-            horizon_label=str(horizon_label) if horizon_label else None,
-            parameters=parameters,
-            data_context=data_context,
-        )
-        return insert_evaluation_run(
-            connection,
-            config_id=config_id,
-            run_kind=RUN_KIND_MODEL_FORECAST,
-            out_dir=out_dir,
-            metrics=result_dict.get("metrics") or {},
             experiment_id=experiment_id,
         )
 

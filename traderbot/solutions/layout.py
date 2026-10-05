@@ -9,7 +9,7 @@ SOLUTIONS_ROOT = Path("solutions")
 
 
 def solution_slug(pipeline_id: str) -> str:
-    """``lightgbm-multisource-all-horizons`` → ``lightgbm_multisource_all_horizons``."""
+    """``full-research-strategies`` → ``full_research_strategies``."""
     return pipeline_id.replace("-", "_")
 
 

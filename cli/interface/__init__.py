@@ -1,1 +1,1 @@
-"""Discoverable catalog for research/backtest CLI commands (export, strategy, ml, data, pipeline)."""
+"""Discoverable catalog for research/backtest CLI commands (export, strategy, data, pipeline)."""

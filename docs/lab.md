@@ -1,12 +1,12 @@
 # Traderbot Lab
 
-Lab catalogs strategy backtests and ML forecast runs in SQLite, exposes a JSON HTTP API, and ships a Next.js UI for browsing results.
+Lab catalogs strategy backtests in SQLite, exposes a JSON HTTP API, and ships a Next.js UI for browsing results.
 
 ## Data flow
 
 ```mermaid
 flowchart LR
-  CLI["traderbot CLI\nexport / backtest / ml / strategy / pipeline"]
+  CLI["traderbot CLI\nexport / backtest / strategy / pipeline"]
   Disk["results/ solutions/ data/"]
   Hooks["store hooks"]
   DB["SQLite\ndata/traderbot.db"]
@@ -29,7 +29,7 @@ flowchart LR
 4. `python -m lab serve` reads the database and serves REST JSON plus safe file paths via `/artifact`.
 5. `apps/lab-ui` calls the API from the browser (CORS enabled for `http://localhost:3000`).
 
-Lab jobs (export, ML, strategy compare, pipelines) run **in-process** in the API — no `cli` subprocess.
+Lab jobs (export, strategy compare, pipelines) run **in-process** in the API — no `cli` subprocess.
 
 ## Environment
 
@@ -75,7 +75,7 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 - `lab/store/` — schema, upserts, queries (no HTTP).
 - `lab/` — FastAPI app, CORS, artifacts, allowlisted jobs.
 - `cli/` — operator CLI (`python -m cli` / `traderbot`).
-- `traderbot/` — strategies, ML, pipelines, backtests, markets, live terminal.
+- `traderbot/` — strategies, pipelines, backtests, markets, live terminal.
 - `apps/lab-ui/` — Next.js App Router UI only.
 
 ## UI routes
@@ -86,9 +86,9 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 | `/data` | Export OHLC job + download CSVs from `data/` |
 | `/runs`, `/runs/[id]` | Browse runs, metrics, PNG charts, `results.json` download |
 | `/configs` | Configuration snapshots |
-| `/experiments` | Lab — strategy test and compare, forecast, ML batch, pipelines, compare charts. Sections: Run, Pipelines (`#pipelines`), Compare results (`#compares`) |
+| `/experiments` | Lab — strategy test and compare, pipelines, compare charts. Sections: Run, Pipelines (`#pipelines`), Compare results (`#compares`) |
 | `/actions` | Redirects to `/experiments` |
-| `/custom` | Custom end-to-end pipeline (export, multi-dataset, compare, forecasts) |
+| `/custom` | Custom end-to-end pipeline (export, multi-dataset, compare) |
 | `/settings` | Nobitex login, API keys, profile |
 
 ## API (UI-facing)
@@ -107,13 +107,13 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 | POST | `/api/jobs/{id}/stop` | Stop a queued or running in-process job |
 | GET | `/api/auth/status`, `/api/auth/profile`, `/api/auth/api-keys` | Nobitex credentials (`.env` on API host) |
 | POST | `/api/auth/login`, `/api/auth/api-keys` | Session login / create API key (writes `.env` when requested) |
-| GET | `/api/catalog/strategies`, `/api/catalog/models`, `/api/catalog/terminal` | Strategy, model, terminal catalogs |
+| GET | `/api/catalog/strategies`, `/api/catalog/terminal` | Strategy and terminal catalogs |
 | POST | `/api/jobs/export`, `/api/jobs/strategy-test`, `/api/jobs/strategy-compare`, `/api/jobs/pipeline-run`, `/api/jobs/pipeline-run-config`, `/api/jobs/custom-research`, `/api/jobs/terminal-once`, `/api/jobs/terminal-replay`, `/api/jobs/terminal-live` | In-process background jobs |
 
 `GET /api/pipelines` includes `full`, `steps`, and `inputs` for the Lab Pipelines tab. Full pipelines are the end-to-end jobs. The Pipelines tab keeps Active (run forms) separate from a library where you turn pipelines on or rename the label in this browser. `POST /api/jobs/pipeline-run` takes `pipeline_id` plus those inputs (`dataset_id`, `days`, `all_assets`, `horizon`, `fast`, `slow`). Saved configs use `pipeline-run-config`, which accepts the same `params` and per-step `step_params` the form shows.
 
-`strategy-test` and `strategy-compare` take `mode`: `strategies` (rule strategies only) or `ml` (`ml_run_id` of a finished forecast; uses that run's `holdout_forecasts.json`). `strategy-test` also requires `strategy_id`. Both jobs accept optional `cash`, `fee`, `vectorbt`, and strategy knobs (`fast`, `slow`, `signal`, `period`, `oversold`, `overbought`, `num_std`, `context_bars`, `price_confirm`, `forecast_threshold`). In `ml` mode, `ml_gated` accepts `gate_mode` and `ml_gated_base` (compare applies `ml_gated_base` to both gated rows in the ranking).
+`strategy-test` and `strategy-compare` take `mode`: `strategies` (rule strategies only). `strategy-test` also requires `strategy_id`. Both jobs accept optional `cash`, `fee`, `vectorbt`, and strategy knobs (`fast`, `slow`, `signal`, `period`, `oversold`, `overbought`, `num_std`, `context_bars`, `price_confirm`).
 
-`POST /api/jobs/custom-research` runs optional `export_market_symbol` + `interval` + `export_days`, then on each selected catalog `dataset_ids` entry and/or `use_all_hourly_files` (`*_60.csv`): optional `compare_strategies` (`max_strategies`, `strategy_ids`, `cash`, `visualize`). Forecast / ML training jobs are not supported. At least one data source and `compare_strategies` is required.
+`POST /api/jobs/custom-research` runs optional `export_market_symbol` + `interval` + `export_days`, then on each selected catalog `dataset_ids` entry and/or `use_all_hourly_files` (`*_60.csv`): optional `compare_strategies` (`max_strategies`, `strategy_ids`, `cash`, `visualize`). At least one data source and `compare_strategies` is required.
 
 Agent conventions for the UI: `.cursor/rules/lab-ui.mdc`.

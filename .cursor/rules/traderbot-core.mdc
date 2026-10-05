@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Naming (Python)
 
-When editing **`traderbot/`** or **`tests/`**, follow **`traderbot-naming.mdc`**. Glob-specific: **`ml-features.mdc`**, **`strategies-recent-price.mdc`**.
+When editing **`traderbot/`** or **`tests/`**, follow **`traderbot-naming.mdc`**. Glob-specific: **`strategies-recent-price.mdc`**.
 
 ## Bars and causality
 
@@ -28,7 +28,7 @@ When editing **`traderbot/`** or **`tests/`**, follow **`traderbot-naming.mdc`**
 - Domain-agnostic helpers: top-level ``utils/`` (series lookups, matplotlib layout). Import from the defining module.
 - Trading-domain helpers: ``traderbot/utils/`` — import from the defining module; small re-export set on ``traderbot.utils`` only.
 - Package-local duplicates → `{package}/utils.py` (`markets/utils.py`, `terminal/utils.py`); keep orchestration in named modules.
-- Facades: `traderbot/utils/{ml,algorithms}.py` with thin re-exports at `traderbot.ml.utils` / `traderbot.algorithms.utils`.
+- Facades: `traderbot/utils/algorithms.py` with thin re-exports at `traderbot.algorithms.utils`.
 
 ## Development mode (always)
 
@@ -40,8 +40,7 @@ When editing **`traderbot/`** or **`tests/`**, follow **`traderbot-naming.mdc`**
 
 ## Other
 
-- Reuse indicators: `ml/features.py`, `algorithms/bands.py`, `algorithms/streaming.py`.
-- ML: causal features; time split + embargo (`ml/dataset.py`, `tests/test_holdout_and_models.py`).
+- Reuse indicators: `algorithms/bands.py`, `algorithms/streaming.py`.
 - Lab entry: `python -m lab` (`serve`, `init`, `sync`) or `./run-lab-api.sh`. CLI: `python -m cli`. New strategies → `algorithms/registry.py`.
 - Backtesting: `from traderbot.backtesting import …` only. Keep `traderbot/__init__.py` minimal.
 - Imports at module level only (lazy only for cycles or optional extras e.g. `matplotlib`).

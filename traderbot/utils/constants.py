@@ -15,11 +15,8 @@ MIN_BAR_COUNT_TO_TRIM_FORMING_CANDLE = 2
 NOBITEX_HTTP_TIMEOUT_SECONDS = 60
 NOBITEX_PAGE_DELAY_SECONDS = 0.2
 
-# Fast pytest / connectivity only — not enough for LightGBM or reliable strategy ranks.
+# Fast pytest / connectivity only — not enough bars for reliable strategy ranks.
 CRYPTO_1H_SMOKE_TAIL_BARS = 24
-
-DEFAULT_ML_TRAIN_RATIO = 0.8
-DEFAULT_LIGHTGBM_NUM_BOOST_ROUND = 50
 
 INTRAHOUR_FEATURE_KEYS: tuple[str, ...] = (
     "fine_return_in_bar",

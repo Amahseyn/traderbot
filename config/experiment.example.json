@@ -1,5 +1,5 @@
 {
-  "comment": "window_hours → tail_bars for 1h CSVs. train_supervised_row_count = supervised rows for ML training; num_boost_round = LightGBM iterations.",
+  "comment": "window_hours maps to holdout_tail_bars for 1h CSVs; the holdout tail is used for strategy ranking.",
   "schema_version": 1,
   "experiment_id": "my-experiment",
   "title": "Human-readable title",
@@ -12,10 +12,6 @@
   "last_error": null,
   "result_solution_root": null,
   "params": {
-    "model_id": "lightgbm",
-    "run_lightgbm": true,
-    "train_supervised_row_count": 80,
-    "num_boost_round": 50,
     "symbol": "BTCIRT",
     "all_assets": false,
     "initial_cash": 10000.0
@@ -27,10 +23,6 @@
       "status": "pending",
       "params": {
         "window_hours": 24,
-        "model_id": "lightgbm",
-        "run_lightgbm": true,
-        "train_supervised_row_count": 8,
-        "num_boost_round": 50,
         "symbol": "BTCIRT",
         "all_assets": false
       }
@@ -41,10 +33,6 @@
       "status": "pending",
       "params": {
         "window_hours": 60,
-        "model_id": "lightgbm",
-        "run_lightgbm": true,
-        "train_supervised_row_count": 30,
-        "num_boost_round": 50,
         "symbol": "BTCIRT",
         "all_assets": false
       }
@@ -55,10 +43,6 @@
       "status": "pending",
       "params": {
         "window_hours": null,
-        "model_id": "lightgbm",
-        "run_lightgbm": true,
-        "train_supervised_row_count": 500,
-        "num_boost_round": 50,
         "symbol": "BTCIRT",
         "all_assets": false
       }

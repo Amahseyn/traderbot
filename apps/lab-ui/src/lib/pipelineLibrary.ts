@@ -5,7 +5,7 @@ export type PipelineLibraryState = {
 
 const STORAGE_KEY = "traderbot.lab.pipelines";
 
-export const DEFAULT_ACTIVE_PIPELINE_IDS = ["full-research-lightgbm"];
+export const DEFAULT_ACTIVE_PIPELINE_IDS = ["full-research-strategies"];
 
 export function loadPipelineLibrary(): PipelineLibraryState {
   if (typeof window === "undefined") {

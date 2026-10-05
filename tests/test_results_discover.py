@@ -71,36 +71,6 @@ def test_discover_legacy_compare_layout(tmp_path):
     assert any(c.label == "sma_cross" for c in sub)
 
 
-def test_discover_ml_batch_under_reports(tmp_path):
-    batch_root = tmp_path / "ml_batch"
-    run = batch_root / "runs" / "BTCIRT_60" / "4h"
-    viz = run / "visualizations"
-    viz.mkdir(parents=True)
-    (viz / "actual_vs_predicted.png").write_bytes(b"x")
-    (run / "results.json").write_text(
-        json.dumps({"model_id": "lightgbm", "horizon_label": "4h", "n_samples": 10}),
-        encoding="utf-8",
-    )
-    reports = batch_root / "reports"
-    reports.mkdir(parents=True)
-    (reports / "batch_manifest.json").write_text(
-        json.dumps(
-            {
-                "model_id": "lightgbm",
-                "run_count": 1,
-                "runs": [{"dataset": "BTCIRT_60", "horizon_label": "4h", "out_dir": str(run)}],
-            }
-        ),
-        encoding="utf-8",
-    )
-    groups = discover_result_groups(results_root=tmp_path, solutions_root=tmp_path / "none")
-    ml_batch = next(g for g in groups if g.kind == "ml_batch")
-    assert ml_batch.runs[0].path == batch_root.resolve()
-    sub = subchoices_for_run(ml_batch, ml_batch.runs[0])
-    assert sub is not None
-    assert any("BTCIRT_60" in c.label for c in sub)
-
-
 def test_discover_single_backtest_not_under_compare(tmp_path):
     run = tmp_path / "backtest_sma"
     run.mkdir()

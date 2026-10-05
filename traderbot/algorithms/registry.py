@@ -133,7 +133,7 @@ def implemented_strategy_ids() -> list[str]:
     return sorted(_IMPLEMENTED)
 
 
-def backtest_strategy_ids(*, include_forecast_strategies: bool = False) -> list[str]:
+def backtest_strategy_ids() -> list[str]:
     return implemented_strategy_ids()
 
 

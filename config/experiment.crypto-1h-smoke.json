@@ -1,5 +1,5 @@
 {
-  "comment": "Smoke on BTCIRT 1h CSV. window_hours = recent 1h bars; train_supervised_row_count = supervised rows for LightGBM training.",
+  "comment": "Smoke on BTCIRT 1h CSV. window_hours = recent 1h bars for holdout strategy ranking.",
   "schema_version": 1,
   "experiment_id": "crypto-1h-local-btc-smoke",
   "title": "Crypto 1h smoke — BTCIRT",
@@ -8,10 +8,6 @@
   "solutions_root": "solutions",
   "solution_root": null,
   "params": {
-    "model_id": "lightgbm",
-    "run_lightgbm": true,
-    "train_supervised_row_count": 8,
-    "num_boost_round": 50,
     "symbol": "BTCIRT"
   },
   "test_steps": [
@@ -21,10 +17,6 @@
       "status": "pending",
       "params": {
         "window_hours": 24,
-        "model_id": "lightgbm",
-        "run_lightgbm": true,
-        "train_supervised_row_count": 8,
-        "num_boost_round": 50,
         "symbol": "BTCIRT"
       }
     }

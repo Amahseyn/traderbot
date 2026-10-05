@@ -42,7 +42,7 @@ def _interactive_pick(*, run: bool) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
-        description="Discover and run traderbot CLI actions (export, backtest, ML, pipelines).",
+        description="Discover and run traderbot CLI actions (export, backtest, pipelines).",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -51,7 +51,7 @@ def main(argv: list[str] | None = None) -> None:
 
     list_p = sub.add_parser("list", help="Pickable ids (for scripts and menus)")
     list_p.add_argument("--kind", choices=("workflow", "command", "pipeline"), default=None)
-    list_p.add_argument("--tag", default=None, help="Filter by tag (data, ml, strategy, …)")
+    list_p.add_argument("--tag", default=None, help="Filter by tag (data, strategy, …)")
 
     describe = sub.add_parser("describe", help="JSON for one pickable id")
     describe.add_argument("id", help="e.g. workflow/download-multisource")

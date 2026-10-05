@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from traderbot.results.layout import (
-    default_ml_batch_out,
     default_strategy_compare_out,
     manifest_parent_dir,
     result_tree_at,
@@ -16,7 +15,6 @@ def test_result_tree_matches_solution_shape(tmp_path):
 
 
 def test_default_paths_under_results_root():
-    assert default_ml_batch_out(Path("data/crypto/ohlc")).name == "ohlc"
     assert default_strategy_compare_out(Path("data/BTCIRT_60.csv")).parts[-2:] == ("compare", "BTCIRT_60")
 
 

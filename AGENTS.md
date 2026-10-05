@@ -1,6 +1,6 @@
 # Agent notes
 
-Rules: `.cursor/rules/` — **`reduce-token-usage.mdc`** and **`traderbot-core.mdc`** always apply (including **dev-mode only** for Lab, pytest, and installs); **`traderbot-naming.mdc`** on Python paths; **`lab-ui.mdc`** on `apps/lab-ui/**`; ML/strategy rules on matching globs.
+Rules: `.cursor/rules/` — **`reduce-token-usage.mdc`** and **`traderbot-core.mdc`** always apply (including **dev-mode only** for Lab, pytest, and installs); **`traderbot-naming.mdc`** on Python paths; **`lab-ui.mdc`** on `apps/lab-ui/**`; strategy rules on matching globs.
 
 **Index / ignore:** `.cursorignore` skips `data/`, `results/`, `solutions/`, CSVs, plots, Lab `node_modules/` and `.next/`. Pass explicit paths when reading run outputs.
 

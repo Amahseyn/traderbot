@@ -39,7 +39,7 @@ def attach_logging_routes(app: Any, log_collector: Any) -> None:
         - limit: Max entries (default 100, max 1000)
         - level: Filter by level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         - module: Filter by module name (substring match)
-        - source: Filter by source (app, job, api, ml, etc.)
+        - source: Filter by source (app, job, api, etc.)
         - since_timestamp: Unix timestamp to start from
         """
         try:

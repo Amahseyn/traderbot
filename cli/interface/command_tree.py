@@ -133,48 +133,21 @@ def command_tree() -> list[dict]:
             ),
         ),
         TopLevelCommandDoc(
-            name="ml",
-            summary="Crypto forecast models: catalog, single run, directory batch.",
-            subcommands=(
-                SubcommandDoc("catalog", "List models.", "traderbot ml catalog [--implemented-only]"),
-                SubcommandDoc(
-                    "run",
-                    "Train & eval a forecast on one dataset; test steps + training samples configurable; plots in --out.",
-                    "traderbot ml run PATH.csv --model lightgbm --horizon-bars 4 --holdout-tail-bars 24 --train-samples 500",
-                    flags=(
-                        FlagDoc("--holdout-tail-bars", "Test steps: last N bars as holdout (default: train-ratio split)."),
-                        FlagDoc("--train-samples", "Training samples: supervised rows for training (default: train-ratio split)."),
-                    ),
-                ),
-                SubcommandDoc(
-                    "batch",
-                    "Every CSV in a directory (test steps + training samples configurable).",
-                    "traderbot ml batch DIR --model lightgbm --all-horizons",
-                    flags=(
-                        FlagDoc("--no-plots", "Skip matplotlib outputs."),
-                        FlagDoc("--holdout-tail-bars", "Test steps: last N bars as holdout."),
-                        FlagDoc("--train-samples", "Training samples: supervised rows for training."),
-                    ),
-                ),
-            ),
-        ),
-        TopLevelCommandDoc(
             name="pipeline",
-            summary="Named end-to-end flows (export, ML grids) → solutions/.",
+            summary="Named end-to-end flows (export, strategy research) → solutions/.",
             subcommands=(
                 SubcommandDoc("list", "JSON list of pipeline ids.", "traderbot pipeline list"),
                 SubcommandDoc(
                     "run",
                     "Execute pipeline by id.",
-                    "traderbot pipeline run full-research-lightgbm [--data-dir ...] [--csv ...]",
+                    "traderbot pipeline run crypto-1h-local [--csv ...] [--tail-bars ...]",
                     flags=(
                         FlagDoc("--data-dir", "Override CSV input directory."),
                         FlagDoc("--csv", "Required for single-asset pipelines."),
                         FlagDoc("--skip-export", "Use existing data."),
                         FlagDoc("--export-days", "History for export steps."),
                         FlagDoc("--tail-bars", "crypto-1h-local: limit to last N 1h bars."),
-                        FlagDoc("--window-hours / --holdout-tail-bars", "crypto-1h-local: test steps in holdout tail."),
-                        FlagDoc("--train-samples", "crypto-1h-local: training samples (supervised rows)."),
+                        FlagDoc("--holdout-tail-bars", "crypto-1h-local: rank strategies on the last N bars."),
                         FlagDoc("--all-assets", "crypto-1h-local: every *_60.csv."),
                     ),
                 ),

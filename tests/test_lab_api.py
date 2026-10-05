@@ -383,14 +383,13 @@ def test_lab_api_pipelines_and_experiment_sync(tmp_path: Path):
     assert client.post("/api/jobs/custom-research", json={}).status_code == 400
     missing_data = client.post(
         "/api/jobs/custom-research",
-        json={"compare_strategies": True, "run_forecasts": False},
+        json={"compare_strategies": True},
     )
     assert missing_data.status_code == 400
     bad_window = client.post(
         "/api/jobs/custom-research",
         json={
             "compare_strategies": True,
-            "run_forecasts": False,
             "dataset_ids": ["does-not-exist"],
             "run_start_utc": "2024-01-02T00:00:00Z",
             "run_end_utc": "2024-01-01T00:00:00Z",

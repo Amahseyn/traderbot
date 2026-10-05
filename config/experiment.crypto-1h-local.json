@@ -1,5 +1,5 @@
 {
-  "comment": "Stepped 1h research. window_hours = holdout eval window (hours); training uses full CSV. train_supervised_row_count applies when window_hours is null.",
+  "comment": "Stepped 1h research. window_hours = holdout eval window (hours) for strategy ranking on the full on-disk CSV.",
   "schema_version": 1,
   "experiment_id": "crypto-1h-local-all",
   "title": "Crypto 1h local — stepped windows",
@@ -8,10 +8,6 @@
   "solutions_root": "solutions",
   "solution_root": null,
   "params": {
-    "model_id": "lightgbm",
-    "run_lightgbm": true,
-    "train_supervised_row_count": 80,
-    "num_boost_round": 50,
     "all_assets": true
   },
   "test_steps": [
@@ -21,10 +17,6 @@
       "status": "pending",
       "params": {
         "window_hours": 24,
-        "model_id": "lightgbm",
-        "run_lightgbm": true,
-        "train_supervised_row_count": 8,
-        "num_boost_round": 50,
         "all_assets": true
       }
     },
@@ -34,10 +26,6 @@
       "status": "pending",
       "params": {
         "window_hours": 60,
-        "model_id": "lightgbm",
-        "run_lightgbm": true,
-        "train_supervised_row_count": 30,
-        "num_boost_round": 50,
         "all_assets": true
       }
     },
@@ -47,10 +35,6 @@
       "status": "pending",
       "params": {
         "window_hours": null,
-        "model_id": "lightgbm",
-        "run_lightgbm": true,
-        "train_supervised_row_count": 500,
-        "num_boost_round": 50,
         "all_assets": true
       }
     }

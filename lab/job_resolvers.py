@@ -156,15 +156,12 @@ def resolve_config_path_from_body(connection: sqlite3.Connection, body: dict[str
 
 def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str, Any]) -> dict[str, Any]:
     compare_strategies = bool(body.get("compare_strategies"))
-    run_forecasts = bool(body.get("run_forecasts"))
-    if run_forecasts:
-        raise JobPayloadError("run_forecasts is not supported")
     use_all_hourly_files = bool(body.get("use_all_hourly_files"))
     dataset_ids = body.get("dataset_ids")
     export_market_symbol = body.get("export_market_symbol")
     has_single_export = bool(export_market_symbol and str(export_market_symbol).strip())
-    if not compare_strategies and not run_forecasts:
-        raise JobPayloadError("enable compare_strategies or run_forecasts")
+    if not compare_strategies:
+        raise JobPayloadError("enable compare_strategies")
     if not use_all_hourly_files and not has_single_export:
         if not isinstance(dataset_ids, list) or not dataset_ids:
             raise JobPayloadError(
@@ -173,14 +170,12 @@ def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str,
 
     prepared: dict[str, Any] = {
         "compare_strategies": compare_strategies,
-        "run_forecasts": run_forecasts,
         "use_all_hourly_files": use_all_hourly_files,
         "visualize": bool(body.get("visualize", True)),
         "cash": body.get("cash"),
         "fee": body.get("fee"),
         "vectorbt": body.get("vectorbt"),
         "compare_mode": body.get("compare_mode") or "strategies",
-        "train_ratio": body.get("train_ratio"),
     }
 
     raw_export_days = body.get("export_days")
@@ -225,19 +220,6 @@ def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str,
         if max_value < 1:
             raise JobPayloadError("max_strategies must be at least 1")
         prepared["max_strategies"] = max_value
-
-    if run_forecasts:
-        model_ids = body.get("model_ids")
-        if not isinstance(model_ids, list) or not model_ids:
-            raise JobPayloadError("model_ids required when run_forecasts is true")
-        prepared["model_ids"] = [str(item) for item in model_ids]
-        for key in ("horizon_bars", "bar_minutes", "train_supervised_row_count", "test_supervised_row_count"):
-            raw = body.get(key)
-            if raw is not None and raw != "":
-                try:
-                    prepared[key] = int(raw)
-                except (TypeError, ValueError) as exc:
-                    raise JobPayloadError(f"{key} must be an integer") from exc
 
     for key in ("fast", "slow", "signal", "period", "context_bars"):
         if key in body and body[key] not in (None, ""):

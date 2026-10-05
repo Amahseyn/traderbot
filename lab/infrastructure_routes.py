@@ -6,7 +6,6 @@ This extends the main app.py with new endpoints for:
 - Cache management & health
 - Metrics dashboard
 - Async job status streaming
-- ML model introspection
 """
 
 from __future__ import annotations

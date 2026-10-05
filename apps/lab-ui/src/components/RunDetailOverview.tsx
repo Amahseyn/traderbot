@@ -39,13 +39,13 @@ export function RunDetailOverview({ run }: RunDetailOverviewProps) {
             <p className="text-muted text-xs uppercase tracking-wide">Primary metric</p>
             <p className={`mt-1 text-4xl font-semibold tabular-nums ${headlineClass}`}>{headline}</p>
             <p className="text-muted mt-2 text-sm">
-              {isStrategy ? "Total return over the backtest window" : "Holdout directional accuracy"}
+              {isStrategy ? "Total return over the backtest window" : "Headline metric for this run"}
             </p>
           </div>
           <span
             className={`badge ${isStrategy ? "badge-strategy" : "badge-model"}`}
           >
-            {isStrategy ? "Strategy" : "ML forecast"}
+            {isStrategy ? "Strategy" : "Run"}
           </span>
         </div>
         <dl className="mt-6 grid gap-3 sm:grid-cols-3 text-sm">

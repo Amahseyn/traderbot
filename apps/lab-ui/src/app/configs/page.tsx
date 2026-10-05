@@ -15,17 +15,13 @@ function configKindBadgeClass(kind: string): string {
 }
 
 const FIELD_LABELS: Record<string, string> = {
-  model_id: "Model",
   horizon: "Horizon",
   horizon_label: "Horizon",
   horizon_bars: "Bars ahead",
   bar_minutes: "Candle minutes",
-  run_lightgbm: "Run LightGBM",
   all_assets: "Every file",
   symbol: "Symbol",
   window_hours: "Holdout window",
-  train_supervised_row_count: "Training rows",
-  num_boost_round: "Boosting rounds",
   initial_cash: "Starting cash",
   train_ratio: "Training share",
   strategy_id: "Strategy",
@@ -180,7 +176,7 @@ export default function ConfigurationsPage() {
 
       {!configsQuery.isLoading && filteredRows.length === 0 && (
         <p className="text-muted text-sm">
-          No configuration snapshots yet. Run a backtest, ML job, or pipeline with store enabled (
+          No configuration snapshots yet. Run a backtest or pipeline with store enabled (
           <code className="text-slate-200">TRADERBOT_STORE</code>).
         </p>
       )}

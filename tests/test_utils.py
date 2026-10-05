@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from traderbot.algorithms.utils import price_context_kwargs_from_namespace
-from traderbot.utils.ml import horizon_label, price_series_from_bars
+from traderbot.utils.horizons import horizon_label, price_series_from_bars
 from traderbot.utils.bars import load_bars_csv, normalize_bar
 from traderbot.utils.equity import buy_hold_value, final_equity_from_curve
 from utils.plots import build_subplot_grid_shape, hide_unused_subplot_axes, visualizations_dir

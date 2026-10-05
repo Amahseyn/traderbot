@@ -7,17 +7,14 @@ from pathlib import Path
 
 from traderbot.pipelines.registry import list_pipelines, run_pipeline
 from traderbot.solutions.layout import SOLUTIONS_ROOT, solution_slug
-from traderbot.utils.constants import (
-    DEFAULT_LIGHTGBM_NUM_BOOST_ROUND,
-    DEFAULT_ML_TRAIN_RATIO,
-)
 
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Run named end-to-end traderbot pipelines.")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("list", help="List available pipelines")
+    list_cmd = sub.add_parser("list", help="List available pipelines")
+    list_cmd.add_argument("--solutions-root", type=Path, default=SOLUTIONS_ROOT, help="Parent of all solutions")
 
     run_config = sub.add_parser(
         "run-config",
@@ -42,7 +39,7 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     run = sub.add_parser("run", help="Execute a pipeline")
-    run.add_argument("pipeline_id", help="e.g. full-research-lightgbm")
+    run.add_argument("pipeline_id", help="e.g. crypto-1h-local")
     run.add_argument("--data-dir", type=Path, default=None, help="Override CSV input directory")
     run.add_argument(
         "--solution-root",
@@ -65,25 +62,11 @@ def main(argv: list[str] | None = None) -> None:
         help="For crypto-1h-local: use only the last N 1h candles (default: entire CSV).",
     )
     run.add_argument(
-        "--window-hours",
-        type=int,
-        default=None,
-        help="For crypto-1h-local: test steps — last N hours evaluated as holdout (default: temporal split).",
-    )
-    run.add_argument(
         "--holdout-tail-bars",
         type=int,
         default=None,
-        help="For crypto-1h-local: test steps — last N bars evaluated as holdout (overrides --window-hours).",
+        help="For crypto-1h-local: rank strategies on the last N bars (holdout_return_pct).",
     )
-    run.add_argument(
-        "--train-samples",
-        type=int,
-        default=None,
-        help="For crypto-1h-local: training samples — supervised rows for LightGBM (default: train-ratio split).",
-    )
-    run.add_argument("--train-ratio", type=float, default=DEFAULT_ML_TRAIN_RATIO, help="Train fraction when --train-samples is unset.")
-    run.add_argument("--num-boost-round", type=int, default=DEFAULT_LIGHTGBM_NUM_BOOST_ROUND, help="LightGBM boosting rounds.")
     run.add_argument(
         "--symbol",
         default=None,
@@ -128,7 +111,7 @@ def main(argv: list[str] | None = None) -> None:
     }
     pid = args.pipeline_id
 
-    if pid in ("lightgbm-single-asset", "chronos-single", "sma-backtest"):
+    if pid == "sma-backtest":
         if args.csv is None:
             print("--csv is required for this pipeline", file=sys.stderr)
             sys.exit(2)
@@ -143,33 +126,12 @@ def main(argv: list[str] | None = None) -> None:
             kwargs["all_assets"] = True
         if args.tail_bars is not None:
             kwargs["tail_bars"] = args.tail_bars
-        if args.window_hours is not None:
-            kwargs["holdout_tail_bars"] = args.window_hours
         if args.holdout_tail_bars is not None:
             kwargs["holdout_tail_bars"] = args.holdout_tail_bars
-        if args.train_samples is not None:
-            kwargs["train_supervised_row_count"] = args.train_samples
-        kwargs["train_ratio"] = args.train_ratio
-        kwargs["num_boost_round"] = args.num_boost_round
 
-    if pid in (
-        "multisource-export",
-        "lightgbm-multisource-default",
-        "lightgbm-multisource-all-horizons",
-        "full-research-lightgbm",
-    ):
+    if pid == "multisource-export":
         if args.data_dir is not None:
             kwargs["data_dir"] = args.data_dir
-
-    if pid.startswith("lightgbm-multisource"):
-        kwargs["skip_export"] = args.skip_export
-
-    if pid == "full-research-lightgbm":
-        kwargs["export_days"] = args.export_days
-
-    if pid == "chronos-single":
-        kwargs["horizon_bars"] = args.horizon_bars
-        kwargs["bar_minutes"] = args.bar_minutes
 
     if pid == "sma-backtest":
         kwargs["fast"] = args.fast

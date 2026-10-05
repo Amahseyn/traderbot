@@ -40,7 +40,7 @@ def _print_profile() -> None:
 def _build_root_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="traderbot",
-        description="Nobitex trading bot utilities (export, backtest, ML, pipelines).",
+        description="Nobitex trading bot utilities (export, backtest, pipelines).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "With no arguments: interactive menu (TTY) or this help. "
@@ -61,23 +61,21 @@ def _register_commands() -> None:
     from cli.data import main as data_main
     from cli.interface_cmd import main as interface_main
     from cli.interactive_cmd import main as interactive_main
-    from cli.ml import main as ml_main
     from cli.pipeline import main as pipeline_main
     from cli.strategy import main as strategy_main
     from cli.terminal import main as terminal_main
     from cli.export import main as export_main
 
-    _register("cli", "Interactive menu (data, strategy, ml, auth, …)", interactive_main)
+    _register("cli", "Interactive menu (data, strategy, auth, …)", interactive_main)
     _register("export", "Download OHLC candles to CSV", export_main)
     _register("auth", "Login, API key create/list, verify .env credentials", auth_main)
     _register("backtest", "Backtest one strategy on a CSV", backtest_main)
     _register("strategy", "Strategy catalog, compare, and batch backtests", strategy_main)
-    _register("ml", "Forecast model catalog and batch eval", ml_main)
     _register("pipeline", "Named end-to-end research pipelines", pipeline_main)
     _register("data", "Market list, live UDF charts, and horizon slices", data_main)
     _register(
         "interface",
-        "Catalog, list, pick, and run CLI actions (export, ML, strategy, pipelines)",
+        "Catalog, list, pick, and run CLI actions (export, strategy, pipelines)",
         interface_main,
     )
     _register("terminal", "Live, once, and CSV replay strategy loops", terminal_main)

@@ -1,10 +1,26 @@
 from __future__ import annotations
 
-from traderbot.utils.ml import horizon_label
 from traderbot.utils.resolution import resolution_minutes
 
-# Default export / eval windows for crypto (minutes, short name).
-DEFAULT_FORECAST_HORIZONS: tuple[tuple[int, str], ...] = (
+from typing import Any
+
+
+def horizon_label(bar_minutes: int, horizon_bars: int) -> str:
+    """Human label such as ``4h`` when bars are 60-minute."""
+    minutes = bar_minutes * horizon_bars
+    if minutes % (24 * 60) == 0:
+        days = minutes // (24 * 60)
+        return f"{days}d"
+    if minutes % 60 == 0:
+        return f"{minutes // 60}h"
+    return f"{minutes}m"
+
+
+def price_series_from_bars(bars: list[dict[str, Any]]) -> list[tuple[int, float]]:
+    return [(int(b["timestamp"]), float(b["close"])) for b in bars]
+
+# Default eval windows for crypto (minutes, short name).
+DEFAULT_HORIZONS: tuple[tuple[int, str], ...] = (
     (1, "1m"),
     (5, "5m"),
     (60, "1h"),
@@ -15,16 +31,16 @@ DEFAULT_FORECAST_HORIZONS: tuple[tuple[int, str], ...] = (
     (1440, "1d"),
 )
 
-FORECAST_TARGET_MINUTES: tuple[int, ...] = tuple(m for m, _ in DEFAULT_FORECAST_HORIZONS)
+HORIZON_TARGET_MINUTES: tuple[int, ...] = tuple(m for m, _ in DEFAULT_HORIZONS)
 DEFAULT_EVAL_TARGET_MINUTES = 60
 
 
-def forecast_horizons_for_resolution(resolution: str) -> list[tuple[int, str]]:
+def horizons_for_resolution(resolution: str) -> list[tuple[int, str]]:
     """``(horizon_bars, label)`` for each default window that aligns with bar size."""
     bar_minutes = resolution_minutes(resolution)
     out: list[tuple[int, str]] = []
     seen_bars: set[int] = set()
-    for target in FORECAST_TARGET_MINUTES:
+    for target in HORIZON_TARGET_MINUTES:
         if target % bar_minutes != 0:
             continue
         horizon_bars = target // bar_minutes
@@ -40,7 +56,7 @@ def forecast_horizons_for_resolution(resolution: str) -> list[tuple[int, str]]:
 def default_eval_horizon(resolution: str) -> tuple[int, int]:
     """Return ``(horizon_bars, bar_minutes)`` using :data:`DEFAULT_EVAL_TARGET_MINUTES` when possible."""
     bar_minutes = resolution_minutes(resolution)
-    horizons = forecast_horizons_for_resolution(resolution)
+    horizons = horizons_for_resolution(resolution)
     for horizon_bars, _ in horizons:
         if horizon_bars * bar_minutes == DEFAULT_EVAL_TARGET_MINUTES:
             return horizon_bars, bar_minutes
@@ -51,7 +67,7 @@ def default_eval_horizon(resolution: str) -> tuple[int, int]:
     return horizons[0][0], bar_minutes
 
 
-def min_bars_for_forecast_eval(
+def min_bars_for_eval(
     horizon_bars: int,
     *,
     train_ratio: float = 0.8,

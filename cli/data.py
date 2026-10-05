@@ -106,7 +106,7 @@ def main(argv: list[str] | None = None) -> None:
 
     plots = sub.add_parser(
         "plots",
-        help="List or open PNG charts from a prior run directory (compare, backtest, ML, live)",
+        help="List or open PNG charts from a prior run directory (compare, backtest, live)",
     )
     plots.add_argument(
         "path",

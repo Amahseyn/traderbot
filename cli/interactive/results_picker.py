@@ -105,7 +105,7 @@ def pick_result_directory(
             return target.path
 
         print("\nNo chart outputs found under results/ or solutions/.", file=sys.stderr)
-        print("Run a compare, backtest, ML, or data live command first.\n", file=sys.stderr)
+        print("Run a compare, backtest, or data live command first.\n", file=sys.stderr)
         custom = input("Enter results directory manually? [y/N]: ").strip().lower()
         if custom in ("y", "yes"):
             return _prompt_custom_path()

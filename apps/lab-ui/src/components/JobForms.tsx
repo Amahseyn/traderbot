@@ -7,13 +7,9 @@ import { JobErrorAlert } from "@/components/JobErrorAlert";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Field, SelectInput, TextInput } from "@/components/ui/Field";
-import { api, type CatalogStrategy, type DatasetRow } from "@/lib/api";
+import { api, type DatasetRow } from "@/lib/api";
 
 type JobTab = "test" | "compare";
-
-function ruleStrategies(rows: CatalogStrategy[]): CatalogStrategy[] {
-  return rows.filter((row) => row.style !== "ml");
-}
 
 type BacktestParamState = {
   cash: string;
@@ -243,7 +239,7 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
     }
   }, [datasetsQuery.data, compareDatasetId, testDatasetId]);
 
-  const catalogStrategies = ruleStrategies(strategiesQuery.data ?? []);
+  const catalogStrategies = strategiesQuery.data ?? [];
 
   useEffect(() => {
     if (!catalogStrategies.some((strategy) => strategy.id === testStrategyId) && catalogStrategies[0]) {

@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Traderbot Lab",
-  description: "Data, lab jobs, and evaluation runs for strategy and ML research",
+  description: "Data, lab jobs, and evaluation runs for strategy research",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

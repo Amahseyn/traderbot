@@ -2,7 +2,7 @@ from traderbot.solutions.layout import prepare_solution, solution_slug
 
 
 def test_solution_slug():
-    assert solution_slug("lightgbm-multisource-all-horizons") == "lightgbm_multisource_all_horizons"
+    assert solution_slug("full-research-strategies") == "full_research_strategies"
 
 
 def test_prepare_solution_tree(tmp_path):

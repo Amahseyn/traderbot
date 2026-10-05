@@ -7,9 +7,9 @@ from typing import Any
 
 from traderbot.data.export import write_csv
 from traderbot.utils.horizons import (
-    DEFAULT_FORECAST_HORIZONS,
-    forecast_horizons_for_resolution,
-    min_bars_for_forecast_eval,
+    DEFAULT_HORIZONS,
+    horizons_for_resolution,
+    min_bars_for_eval,
 )
 from traderbot.utils.resolution import resolution_from_csv_path, resolution_minutes
 
@@ -18,7 +18,7 @@ OHLC_SUBDIR = "ohlc"
 HORIZONS_SUBDIR = "horizons"
 HORIZON_MANIFEST = "horizon_manifest.json"
 
-DEFAULT_HORIZON_LABELS: frozenset[str] = frozenset(label for _, label in DEFAULT_FORECAST_HORIZONS)
+DEFAULT_HORIZON_LABELS: frozenset[str] = frozenset(label for _, label in DEFAULT_HORIZONS)
 
 
 def default_crypto_root() -> Path:
@@ -112,7 +112,7 @@ def horizon_label_from_csv_dir(csv_dir: Path) -> str | None:
 
 def recommended_tail_bars(horizon_bars: int, *, train_ratio = 0.8) -> int:
     """Raw OHLC rows to keep (from the end) for a purge-safe eval holdout."""
-    return min_bars_for_forecast_eval(horizon_bars, train_ratio=train_ratio)
+    return min_bars_for_eval(horizon_bars, train_ratio=train_ratio)
 
 
 def _expected_step_seconds(resolution: str) -> int:
@@ -145,7 +145,7 @@ def build_horizon_datasets(
     tail_bars: int | None = None,
 ) -> dict[str, Any]:
     """
-    Write ``horizons/<label>/<SYMBOL>_<resolution>.csv`` for each default forecast window.
+    Write ``horizons/<label>/<SYMBOL>_<resolution>.csv`` for each default horizon window.
 
     Each file is the **last** ``tail_bars`` candles from OHLC export, trimmed only when
     the series is contiguous and long enough for that horizon.
@@ -170,7 +170,7 @@ def build_horizon_datasets(
 
         bars = load_bars_csv(csv_path)
         resolution = resolution_from_csv_path(csv_path.name)
-        for horizon_bars, label in forecast_horizons_for_resolution(resolution):
+        for horizon_bars, label in horizons_for_resolution(resolution):
             need = recommended_tail_bars(horizon_bars, train_ratio=train_ratio)
             use_tail = tail_bars if tail_bars is not None else need
             use_tail = max(use_tail, need)

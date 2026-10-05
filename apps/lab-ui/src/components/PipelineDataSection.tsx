@@ -233,7 +233,7 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
       {state.dataSourceMode === "existing" && (
         <section className="panel-inset space-y-4">
           <p className="text-xs text-muted">
-            Filter registered OHLC files, then select one or more for strategy compare and forecasts.
+            Filter registered OHLC files, then select one or more for strategy compare.
           </p>
           <div className="grid gap-3 sm:grid-cols-3">
             <Field label="Search" hint="Label, symbol, path…">
