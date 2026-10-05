@@ -4,6 +4,7 @@ import argparse
 import sys
 
 from traderbot.nobitex.client import NobitexClient, NobitexClientError
+from traderbot.terminal.namespace_keys import EMIT_HOLDS
 from traderbot.terminal.trader import TerminalAlgorithmTrader
 from traderbot.terminal.utils import algorithm_from_args, execution_from_args
 from traderbot.traders.strategies.algorithm_trader import BarSource
@@ -28,5 +29,5 @@ def build_terminal_trader(
         execution=execution_from_args(args),
     )
     trader.strategy_id = args.strategy
-    trader.emit_holds = getattr(args, "emit_holds", False)
+    trader.emit_holds = getattr(args, EMIT_HOLDS, False)
     return trader

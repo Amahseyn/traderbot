@@ -3,9 +3,6 @@ name: CI
 on:
   push:
   pull_request:
-  schedule:
-    - cron: "0 6 * * 0"
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -18,16 +15,3 @@ jobs:
         run: pip install -e ".[dev,backtest]"
       - name: Pytest
         run: pytest
-
-  integration:
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install
-        run: pip install -e ".[dev,backtest,chronos,viz]"
-      - name: Integration tests
-        run: pytest -m integration

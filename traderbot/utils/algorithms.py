@@ -15,9 +15,9 @@ __all__ = [
 def price_context_kwargs_from_namespace(args: Any) -> dict[str, Any]:
     """Shared recent-price / intrahour kwargs for mean-reversion-style strategies."""
     return {
-        "context_bars": args.context_bars,
-        "buy_min_recent_return": args.buy_min_recent_return,
-        "sell_max_recent_return": args.sell_max_recent_return,
+        "context_bars": getattr(args, "context_bars", 0),
+        "buy_min_recent_return": getattr(args, "buy_min_recent_return", -0.03),
+        "sell_max_recent_return": getattr(args, "sell_max_recent_return", 0.03),
         "buy_min_fine_last_5m": getattr(args, "buy_min_fine_last_5m", None),
         "sell_max_fine_last_5m": getattr(args, "sell_max_fine_last_5m", None),
     }

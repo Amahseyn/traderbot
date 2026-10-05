@@ -4,7 +4,7 @@ from typing import Any
 
 from traderbot.utils.constants import INTRAHOUR_FEATURE_KEYS
 from traderbot.utils.equity import buy_hold_value, final_equity_from_curve
-from traderbot.utils.series import lookup_value_at_or_before, point_at_or_after
+from utils.series import lookup_value_at_or_before, point_at_or_after
 
 __all__ = [
     "INTRAHOUR_BAR_KEYS",

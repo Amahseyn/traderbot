@@ -27,6 +27,39 @@ def market_symbol(src: str, dst: str) -> str:
     return f"{src}{dst.upper()}"
 
 
+def parse_nobitex_pair_key(pair_key: str) -> tuple[str, str]:
+    """Nobitex ``market/stats`` key (e.g. ``btc-rls``, ``100k_floki-usdt``) → src, dst."""
+    src_part, dst = pair_key.rsplit("-", 1)
+    if dst not in ("rls", "usdt"):
+        raise ValueError(f"unsupported Nobitex pair dst in {pair_key!r}")
+    return src_part.lower(), dst
+
+
+def fetch_nobitex_market_symbols(
+    *,
+    session: requests.Session | None = None,
+) -> list[str]:
+    """All tradable UDF symbols from Nobitex ``GET /market/stats`` (sorted, unique)."""
+    http = session or requests
+    response = http.get(
+        f"{BASE_URL.rstrip('/')}/market/stats",
+        headers={"User-Agent": USER_AGENT},
+        timeout=NOBITEX_HTTP_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if payload.get("status") != "ok":
+        raise ValueError("Nobitex market stats request failed")
+    stats = payload.get("stats")
+    if not isinstance(stats, dict):
+        raise ValueError("Nobitex market stats response missing stats")
+    symbols = {
+        market_symbol(*parse_nobitex_pair_key(pair_key))
+        for pair_key in stats
+    }
+    return sorted(symbols)
+
+
 def fetch_ohlc_page(
     *,
     symbol: str,

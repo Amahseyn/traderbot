@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from traderbot.ml.intervals import resolution_minutes
+from traderbot.utils.resolution import resolution_minutes
 from traderbot.utils.constants import MIN_BAR_COUNT_TO_TRIM_FORMING_CANDLE, SECONDS_PER_MINUTE
 
 

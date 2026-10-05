@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Recent-price context (strategies)
 
-- Variable names: see **Variables** in `traderbot-core.mdc` (`closes`, `context_bars`, `buy_min_recent_return` — not `ret`, `k`, `ctx`).
+- Variable names: see **`traderbot-naming.mdc`** (`closes`, `context_bars`, `buy_min_recent_return` — not `ret`, `k`, `ctx`).
 
 Do not add entries that fire on a single indicator level alone.
 

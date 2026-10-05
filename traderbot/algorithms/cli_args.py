@@ -2,6 +2,47 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from typing import Any
+
+
+def default_strategy_namespace(**overrides: Any) -> argparse.Namespace:
+    """Defaults aligned with ``add_strategy_param_flags`` for Lab jobs and compare sessions."""
+    values: dict[str, Any] = {
+        "fast": 5,
+        "slow": 20,
+        "signal": 9,
+        "period": 14,
+        "oversold": 30.0,
+        "overbought": 70.0,
+        "num_std": 2.0,
+        "context_bars": 0,
+        "buy_min_recent_return": -0.03,
+        "sell_max_recent_return": 0.03,
+        "price_confirm": False,
+        "buy_min_fine_last_5m": None,
+        "sell_max_fine_last_5m": None,
+        "lookback_bars": 20,
+        "atr_period": 14,
+        "atr_multiplier": 1.5,
+        "swing_window_bars": 3,
+        "min_swing_separation_bars": 4,
+        "pattern_tolerance_ratio": 0.02,
+        "pattern_score_threshold": 0.35,
+        "no_auto_fine": False,
+        "fine_csv": None,
+    }
+    values.update(overrides)
+    return argparse.Namespace(**values)
+
+
+def merge_strategy_namespace(args: Any | None) -> argparse.Namespace:
+    """Fill missing strategy params so Lab jobs and partial Namespace objects work for every strategy."""
+    defaults = default_strategy_namespace()
+    if args is None:
+        return defaults
+    merged = vars(defaults)
+    merged.update(vars(args))
+    return argparse.Namespace(**merged)
 
 
 def add_strategy_param_flags(parser: argparse.ArgumentParser) -> None:
@@ -69,27 +110,4 @@ def add_strategy_param_flags(parser: argparse.ArgumentParser) -> None:
         type=float,
         default=0.35,
         help="Minimum pattern score before chart_patterns emits buy/sell",
-    )
-    parser.add_argument(
-        "--forecast-json",
-        type=Path,
-        default=None,
-        help="holdout_forecasts.json from traderbot ml run (required for forecast_signal / ml_gated)",
-    )
-    parser.add_argument(
-        "--forecast-threshold",
-        type=float,
-        default=0.0,
-        help="Min predicted log-return magnitude for ML forecast direction",
-    )
-    parser.add_argument(
-        "--ml-gated-base",
-        default="rsi_threshold",
-        help="Rule strategy combined inside ml_gated",
-    )
-    parser.add_argument(
-        "--gate-mode",
-        choices=("forecast_filters_rule", "rule_filters_forecast"),
-        default="forecast_filters_rule",
-        help="How ml_gated combines rule signals with forecasts",
     )

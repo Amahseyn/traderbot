@@ -1,0 +1,29 @@
+---
+description: Keep Cursor agent context and tool I/O small
+alwaysApply: true
+---
+
+# Reduce token usage (Cursor)
+
+Rules in this file are injected every turn. Keep them short. Do not add `CLAUDE.md`, `.claude/`, or Claude Code rule files — Cursor project rules live only in `.cursor/rules/` and `AGENTS.md`.
+
+## Discovery
+
+- **Grep** / **Glob** first. **Read** only files you will change, with **offset/limit** on sources over ~200 lines.
+- Use Grep `-B`/`-C` for a focused slice. Batch independent searches in one turn.
+- Skip `README.md` wholesale. Use `AGENTS.md`, `docs/*.md`, and grep for CLI or API details.
+- Out of scope unless the user names a path: `data/`, `results/`, `solutions/`, and anything in `.cursorignore` (CSVs, parquet, plots, `node_modules/`, `.next/`, manifests).
+
+## Execution
+
+- Minimal diffs. No drive-by refactors or extra docs.
+- Do not re-read an unchanged file. Do not restate layout or naming already in these rules — apply them.
+- **Tests:** pytest only on tests for the code you touched (e.g. `tests/test_lab_api.py -q`). No full `-m integration` or matrix unless asked.
+- **Lab UI:** edit `apps/lab-ui/src/**` only (`lab-ui.mdc`). Verify with `./run-lab-ui.sh` / `next dev`, not `next build`, unless asked.
+- Shell: do not pipe through `head`, `tail`, or `sed -n`. Large tool output is filed automatically — summarize it.
+
+## Replies
+
+- Length matches the task. A question gets an answer, not an edit.
+- Cite `startLine:endLine:path` slices. Link other spots (`file.py:10-20`) instead of re-quoting.
+- Start a new chat for an unrelated task so prior tool output is not carried forward.

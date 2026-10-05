@@ -1,0 +1,42 @@
+---
+description: Traderbot Lab Next.js UI conventions
+globs:
+  - apps/lab-ui/**
+---
+
+# Lab UI (`apps/lab-ui`)
+
+## Scope
+
+- Next.js App Router only under `src/`. Do not edit `.next/`, `node_modules/`, or build output.
+- **Dev only:** start with `./run-lab-ui.sh` or `./run-lab.sh` (`next dev`). Do not default to `npm run build` for checks; use the dev server unless the user requests a production build.
+- Browser calls the Lab API via `NEXT_PUBLIC_API_BASE` (default `/lab-api`, proxied to FastAPI). Types and fetch helpers live in `src/lib/api.ts`.
+
+## Structure
+
+| Area | Path |
+|------|------|
+| Pages | `src/app/**/page.tsx` |
+| Shared UI | `src/components/ui/*`, `JobMonitor`, `ArtifactGallery`, `Nav` |
+| API client | `src/lib/api.ts`, `src/lib/format.ts` |
+
+## Pages
+
+- **Overview** (`/`) — research loop cards, stats, recent runs.
+- **Data** (`/data`) — Nobitex export job + browse/download CSVs under `data/` (`GET /api/data/csv-files`, `GET /artifact`).
+- **Lab** (`/experiments`) — one page for strategy test and compare (`mode`: `strategies` or `ml`), forecast, ML batch, saved pipelines, and compare charts. `/actions` redirects here.
+- **Custom** (`/custom`) — configure a full pipeline: optional export, multi-dataset, strategy compare (subset / max count), multi-model forecasts (`POST /api/jobs/custom-research`).
+- **Settings** (`/settings`) — Nobitex auth (`/api/auth/*`).
+- **Research loop** — nav plus overview cards (`WorkflowCards`, `lib/workflow.ts`): Data → Lab → Runs. Do not add a second bar of the same links.
+- **Runs** / **Configurations** — read-only catalog views.
+
+## UI conventions
+
+- Use existing tokens from `tailwind.config.ts` (`surface`, `panel`, `border`, `accent`, `muted`) and `table.data` / `badge-*` classes in `globals.css`.
+- Prefer shared `Card`, `Button`, `Field`, `PageHeader`, `JobMonitor` over one-off styling.
+- Charts and downloads use `artifactUrl` / `artifactDownloadUrl`; normalize absolute paths with `normalizeArtifactPath` when reading stored paths.
+- Poll job status with React Query (`refetchInterval` while `queued` or `running`); invalidate `runs`, `stats`, `experiments`, `data-csv` on job completion.
+
+## Backend pairing
+
+When adding UI features that need new data, extend `lab/` (FastAPI) and document endpoints in `docs/lab.md` — do not call the CLI from the browser.

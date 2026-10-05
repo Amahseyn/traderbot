@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-surface text-slate-100 antialiased;
+  background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.12), transparent);
+}
+
+a {
+  @apply text-accent hover:underline;
+}
+
+table.data {
+  @apply w-full text-sm border-collapse;
+}
+
+table.data th,
+table.data td {
+  @apply border border-border px-3 py-2 text-left align-top;
+}
+
+table.data th {
+  @apply bg-panel text-muted font-medium;
+}
+
+.badge {
+  @apply inline-block rounded px-2 py-0.5 text-xs font-medium;
+}
+
+.badge-strategy {
+  @apply bg-emerald-900/60 text-emerald-200;
+}
+
+.badge-model {
+  @apply bg-violet-900/60 text-violet-200;
+}
+
+.stat-card {
+  @apply rounded-xl border border-border bg-panel p-4 transition hover:border-accent/40;
+}
+
+.tab-list {
+  @apply flex flex-wrap gap-1 rounded-lg border border-border bg-surface p-1;
+}
+
+.tab {
+  @apply rounded-md px-3 py-1.5 text-sm text-slate-300 transition;
+}
+
+.tab-active {
+  @apply bg-accent/25 text-white;
+}
+
+.workflow-card {
+  @apply rounded-xl border border-border bg-panel/80 p-4 transition hover:border-accent/50 hover:bg-panel;
+}
+
+.section-title {
+  @apply text-lg font-medium text-white;
+}
+
+.section-lead {
+  @apply text-sm text-muted max-w-2xl leading-relaxed;
+}
+
+.panel-inset {
+  @apply rounded-xl border border-border bg-panel/60 p-4;
+}

@@ -3,45 +3,37 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from traderbot.algorithms.forecast_backtest import append_forecast_strategy_compare_rows
 from traderbot.algorithms.registry import algorithm_for_id, backtest_strategy_ids
-from traderbot.ml.forecasts import build_forecast_by_timestamp
 from traderbot.algorithms.visualize import compare_visualization_paths_to_dict, render_compare_plots
 from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_backtest, save_backtest_result
 from traderbot.backtesting.holdout_window import return_pct_over_equity_tail
 from traderbot.data.export import load_jobs, run_export, write_csv
 from traderbot.data.crypto_store import resolve_crypto_1h_csv_paths, resolve_crypto_data_dir
-from traderbot.ml.intervals import default_eval_horizon, min_bars_for_forecast_eval
-from traderbot.ml.models.lightgbm import LightGBMForecastModel
 from traderbot.results.layout import result_tree_at
 from traderbot.utils.bars import bars_last_n
-from traderbot.utils.constants import DEFAULT_LIGHTGBM_NUM_BOOST_ROUND, DEFAULT_ML_TRAIN_RATIO
-from traderbot.ml.batch import run_batch_on_directory
-from traderbot.ml.pipeline import model_for_id, run_forecast_eval
-from traderbot.ml.results import save_run_result
+from traderbot.markets.registry import DEFAULT_JOBS_PATH
 from traderbot.pipelines.base import PipelineResult
 from traderbot.solutions.layout import SOLUTIONS_ROOT, prepare_solution
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-JOBS_FIVE_SOURCES = REPO_ROOT / "export.jobs.5sources.json"
 DEFAULT_CRYPTO_DATA = REPO_ROOT / "data" / "crypto"
 
 
-def pipeline_multisource_export(
+def pipeline_crypto_jobs_export(
     *,
     data_dir: Path | None = None,
-    jobs_file: Path = JOBS_FIVE_SOURCES,
+    jobs_file: Path = DEFAULT_JOBS_PATH,
     days = 30,
     solutions_root: Path = SOLUTIONS_ROOT,
     solution_root: Path | None = None,
 ) -> PipelineResult:
-    """Download OHLC for five markets and all job intervals → CSV."""
+    """Download OHLC for every job in the export jobs file → CSV."""
     layout = prepare_solution(
-        "multisource-export",
+        "crypto-jobs-export",
         solutions_root=solutions_root,
         solution_root=solution_root,
-        title="Multisource export",
-        description="Nobitex OHLC for five markets (see export.jobs.5sources.json).",
+        title="Crypto jobs export",
+        description=f"Nobitex OHLC from {jobs_file.name}.",
     )
     from traderbot.data.crypto_store import crypto_ohlc_dir
 
@@ -49,7 +41,7 @@ def pipeline_multisource_export(
     ohlc_dir = crypto_ohlc_dir(crypto_root)
     ohlc_dir.mkdir(parents=True, exist_ok=True)
 
-    result = PipelineResult(pipeline_id="multisource-export")
+    result = PipelineResult(pipeline_id="crypto-jobs-export")
     jobs = load_jobs(jobs_file)
     written = run_export(
         jobs,
@@ -76,161 +68,6 @@ def pipeline_multisource_export(
         "csv_count": len(written),
         "manifest": str(layout.reports / "export_manifest.json"),
     }
-    result.write_summary(layout.reports / "pipeline_summary.json")
-    return result
-
-
-def pipeline_lightgbm_multisource(
-    *,
-    data_dir: Path | None = None,
-    results_dir: Path | None = None,
-    all_horizons = False,
-    skip_export = True,
-    jobs_file: Path = JOBS_FIVE_SOURCES,
-    export_days = 30,
-    solutions_root: Path = SOLUTIONS_ROOT,
-) -> PipelineResult:
-    """Export (optional) → LightGBM batch → plots + manifest under ``solutions/``."""
-    pid = "lightgbm-multisource-all-horizons" if all_horizons else "lightgbm-multisource-default"
-    title = "LightGBM multisource (all horizons)" if all_horizons else "LightGBM multisource (1h default)"
-    layout = prepare_solution(
-        pid,
-        solutions_root=solutions_root,
-        solution_root=results_dir,
-        title=title,
-        description="Batch LightGBM eval with standard solution layout.",
-    )
-    result = PipelineResult(pipeline_id=pid)
-    from traderbot.data.crypto_store import crypto_ohlc_dir, resolve_crypto_data_dir
-
-    csv_dir = data_dir or resolve_crypto_data_dir() or crypto_ohlc_dir(DEFAULT_CRYPTO_DATA)
-
-    if not skip_export:
-        exp = pipeline_multisource_export(
-            data_dir=data_dir or DEFAULT_CRYPTO_DATA,
-            jobs_file=jobs_file,
-            days=export_days,
-            solutions_root=solutions_root,
-            solution_root=layout.root,
-        )
-        result.steps.extend(exp.steps)
-
-    if not csv_dir.is_dir() or not list(csv_dir.glob("*.csv")):
-        raise FileNotFoundError(f"no CSV in {csv_dir}; export first or pass data_dir")
-
-    runs = run_batch_on_directory(
-        csv_dir,
-        layout=layout,
-        model_id="lightgbm",
-        all_horizons=all_horizons,
-        num_boost_round=50,
-    )
-    manifest = layout.reports / "batch_manifest.json"
-    result.add_step(
-        "lightgbm_batch",
-        detail=f"{len(runs)} eval runs (all_horizons={all_horizons})",
-        artifacts=[manifest, layout.root],
-    )
-    result.outputs = {
-        "solution_root": str(layout.root),
-        "data_dir": str(csv_dir),
-        "runs_dir": str(layout.runs),
-        "reports_dir": str(layout.reports),
-        "run_count": len(runs),
-        "batch_manifest": str(manifest),
-    }
-    result.write_summary(layout.reports / "pipeline_summary.json")
-    return result
-
-
-def pipeline_lightgbm_single_asset(
-    *,
-    csv_path: Path,
-    results_dir: Path | None = None,
-    all_horizons = True,
-    solutions_root: Path = SOLUTIONS_ROOT,
-) -> PipelineResult:
-    """One OHLC CSV → LightGBM for default horizon(s) with visualizations."""
-    from traderbot.ml.intervals import (
-        default_eval_horizon,
-        forecast_horizons_for_resolution,
-        min_bars_for_forecast_eval,
-        resolution_from_csv_path,
-        resolution_minutes,
-    )
-    from traderbot.ml.models.lightgbm import LightGBMForecastModel
-
-    layout = prepare_solution(
-        "lightgbm-single-asset",
-        solutions_root=solutions_root,
-        solution_root=results_dir,
-        title="LightGBM single asset",
-        description=f"All default horizons for {csv_path.name}.",
-    )
-    result = PipelineResult(pipeline_id="lightgbm-single-asset")
-    bars = load_bars_csv(csv_path)
-    resolution = resolution_from_csv_path(csv_path.name)
-    bar_minutes = resolution_minutes(resolution)
-    if all_horizons:
-        specs = forecast_horizons_for_resolution(resolution)
-    else:
-        hb, _ = default_eval_horizon(resolution)
-        specs = [(hb, "")]
-
-    model = LightGBMForecastModel(num_boost_round=50)
-    run_dirs: list[str] = []
-    for horizon_bars, _ in specs:
-        if len(bars) < min_bars_for_forecast_eval(horizon_bars):
-            continue
-        eval_result = run_forecast_eval(
-            bars,
-            model,
-            horizon_bars=horizon_bars,
-            bar_minutes=bar_minutes,
-        )
-        out = layout.run_dir(csv_path.stem, eval_result.horizon_label)
-        save_run_result(eval_result, out)
-        run_dirs.append(str(out))
-
-    result.add_step("lightgbm_eval", detail=f"{len(run_dirs)} horizon runs", artifacts=run_dirs)
-    result.outputs = {
-        "solution_root": str(layout.root),
-        "csv": str(csv_path),
-        "runs": run_dirs,
-    }
-    result.write_summary(layout.reports / "pipeline_summary.json")
-    return result
-
-
-def pipeline_chronos_single(
-    *,
-    csv_path: Path,
-    results_dir: Path | None = None,
-    horizon_bars = 4,
-    bar_minutes = 60,
-    solutions_root: Path = SOLUTIONS_ROOT,
-) -> PipelineResult:
-    """Single asset → Chronos pretrained eval (requires ``.[chronos]``)."""
-    layout = prepare_solution(
-        "chronos-single",
-        solutions_root=solutions_root,
-        solution_root=results_dir,
-        title="Chronos single asset",
-        description=f"Chronos forecast on {csv_path.name}.",
-    )
-    result = PipelineResult(pipeline_id="chronos-single")
-    bars = load_bars_csv(csv_path)
-    model = model_for_id("chronos")
-    eval_result = run_forecast_eval(
-        bars,
-        model,
-        horizon_bars=horizon_bars,
-        bar_minutes=bar_minutes,
-    )
-    out = layout.run_dir(csv_path.stem, eval_result.horizon_label)
-    save_run_result(eval_result, out)
-    result.add_step("chronos_eval", artifacts=[out / "results.json", out / "visualizations"])
-    result.outputs = {"solution_root": str(layout.root), "run_dir": str(out), "metrics": eval_result.metrics}
     result.write_summary(layout.reports / "pipeline_summary.json")
     return result
 
@@ -280,11 +117,6 @@ def _run_crypto_1h_local_for_csv(
     tail_bars: int | None,
     holdout_tail_bars: int | None,
     initial_cash: float,
-    run_lightgbm: bool,
-    model_id: str = "lightgbm",
-    train_ratio = DEFAULT_ML_TRAIN_RATIO,
-    train_supervised_row_count: int | None = None,
-    num_boost_round = DEFAULT_LIGHTGBM_NUM_BOOST_ROUND,
 ) -> dict:
     if not source_csv.is_file():
         raise FileNotFoundError(f"1h OHLC CSV not found: {source_csv}; export or pass --csv/--symbol")
@@ -340,53 +172,6 @@ def _run_crypto_1h_local_for_csv(
             extra={"strategy_id": strategy_id, "csv": str(slice_path)},
         )
 
-    lightgbm_run_dir: str | None = None
-    lightgbm_out = None
-    lightgbm_step: tuple[str, str] | None = None
-    supervised_row_count: int | None = None
-    train_supervised_rows_trained: int | None = None
-    test_supervised_row_count: int | None = None
-    horizon_bars, bar_minutes = default_eval_horizon("60")
-    min_bars = min_bars_for_forecast_eval(
-        horizon_bars,
-        train_ratio=train_ratio,
-        train_supervised_row_count=train_supervised_row_count,
-    )
-    ml_train_rows = None if holdout_tail_bars is not None else train_supervised_row_count
-    if run_lightgbm and len(bars) >= min_bars:
-        if model_id != "lightgbm":
-            raise ValueError(
-                f"crypto-1h-local supports model_id='lightgbm' only; got {model_id!r}",
-            )
-        model = model_for_id(model_id, num_boost_round=num_boost_round)
-        eval_result = run_forecast_eval(
-            bars,
-            model,
-            horizon_bars=horizon_bars,
-            bar_minutes=bar_minutes,
-            train_ratio=train_ratio,
-            train_supervised_row_count=ml_train_rows,
-            holdout_tail_bars=holdout_tail_bars,
-        )
-        lightgbm_out = layout.run_dir(source_csv.stem, eval_result.horizon_label)
-        save_run_result(eval_result, lightgbm_out)
-        lightgbm_run_dir = str(lightgbm_out)
-        lightgbm_step = ("lightgbm", eval_result.horizon_label)
-        train_supervised_rows_trained = eval_result.extra.get("train_supervised_row_count")
-        test_supervised_row_count = eval_result.extra.get("test_supervised_row_count")
-        supervised_row_count = eval_result.extra.get("supervised_row_count")
-        append_forecast_strategy_compare_rows(
-            bars=bars,
-            forecast_by_timestamp=build_forecast_by_timestamp(eval_result),
-            initial_cash=initial_cash,
-            ranked=ranked,
-            equity_by_strategy=equity_by_strategy,
-            tree=tree,
-            slice_csv=slice_path,
-        )
-    elif run_lightgbm:
-        lightgbm_step = ("lightgbm_skipped", f"need >={min_bars} bars for eval, have {len(bars)}")
-
     if holdout_tail_bars is not None:
         ranked.sort(
             key=lambda row: row.get("holdout_return_pct", row["return_pct"]),
@@ -427,21 +212,10 @@ def _run_crypto_1h_local_for_csv(
         "bars_available": len(all_bars),
         "tail_bars": tail_bars,
         "holdout_tail_bars": holdout_tail_bars,
-        "min_bars_lightgbm": min_bars,
-        "lightgbm_ran": lightgbm_run_dir is not None,
         "compare_manifest": str(manifest_path),
         "best_strategy_id": compare_payload["best_strategy_id"],
-        "model_id": model_id,
-        "train_supervised_row_count": train_supervised_row_count,
-        "train_supervised_rows_trained": train_supervised_rows_trained,
-        "num_boost_round": num_boost_round,
-        "supervised_row_count": supervised_row_count,
-        "test_supervised_row_count": test_supervised_row_count,
-        "lightgbm_run_dir": lightgbm_run_dir,
-        "lightgbm_step": lightgbm_step,
         "slice_artifact": slice_path,
         "compare_artifact": manifest_path,
-        "lightgbm_artifact": lightgbm_out if lightgbm_run_dir else None,
     }
 
 
@@ -455,13 +229,9 @@ def pipeline_crypto_1h_local(
     results_dir: Path | None = None,
     solutions_root: Path = SOLUTIONS_ROOT,
     initial_cash = 10_000.0,
-    run_lightgbm = True,
-    model_id = "lightgbm",
-    train_ratio = DEFAULT_ML_TRAIN_RATIO,
-    train_supervised_row_count: int | None = None,
-    num_boost_round = DEFAULT_LIGHTGBM_NUM_BOOST_ROUND,
+    horizon: str = "1h",
 ) -> PipelineResult:
-    """On-disk 1h OHLC → compare strategies + LightGBM (full CSV; optional tail_bars slice or holdout_tail_bars eval)."""
+    """On-disk 1h OHLC → compare rule-based strategies (optional tail_bars slice or holdout_tail_bars)."""
     layout = prepare_solution(
         "crypto-1h-local",
         solutions_root=solutions_root,
@@ -484,11 +254,6 @@ def pipeline_crypto_1h_local(
             tail_bars=tail_bars,
             holdout_tail_bars=holdout_tail_bars,
             initial_cash=initial_cash,
-            run_lightgbm=run_lightgbm,
-            model_id=model_id,
-            train_ratio=train_ratio,
-            train_supervised_row_count=train_supervised_row_count,
-            num_boost_round=num_boost_round,
         )
         result.add_step(
             "slice",
@@ -500,11 +265,7 @@ def pipeline_crypto_1h_local(
             detail=f"{asset_result['symbol']}: best {asset_result['best_strategy_id']}",
             artifacts=[asset_result["compare_artifact"]],
         )
-        if asset_result["lightgbm_step"] is not None:
-            step_name, step_detail = asset_result["lightgbm_step"]
-            artifacts = [asset_result["lightgbm_artifact"]] if asset_result["lightgbm_artifact"] else []
-            result.add_step(step_name, detail=f"{asset_result['symbol']}: {step_detail}", artifacts=artifacts)
-        asset_outputs.append({k: v for k, v in asset_result.items() if not k.endswith("_artifact") and k != "lightgbm_step"})
+        asset_outputs.append({k: v for k, v in asset_result.items() if not k.endswith("_artifact")})
 
     result.outputs = {
         "solution_root": str(layout.root),
@@ -520,44 +281,49 @@ def pipeline_crypto_1h_local(
 
 
 
-def pipeline_full_research(
+def pipeline_export_then_hourly(
     *,
+    pipeline_id: str,
+    title: str,
+    description: str,
     data_dir: Path | None = None,
     results_dir: Path | None = None,
-    export_days = 90,
+    export_days = 30,
+    horizon: str = "1h",
+    all_assets: bool = True,
+    csv_path: Path | None = None,
     solutions_root: Path = SOLUTIONS_ROOT,
 ) -> PipelineResult:
-    """Full stack: 5-source export → LightGBM all default horizons → summary."""
+    """Export crypto 1h jobs file, then compare strategies on each hourly file."""
     layout = prepare_solution(
-        "full-research-lightgbm",
+        pipeline_id,
         solutions_root=solutions_root,
         solution_root=results_dir,
-        title="Full research (LightGBM)",
-        description="Export five markets then evaluate all default horizons.",
+        title=title,
+        description=description,
     )
-    result = PipelineResult(pipeline_id="full-research-lightgbm")
+    result = PipelineResult(pipeline_id=pipeline_id)
     csv_dir = data_dir or layout.data
-    exp = pipeline_multisource_export(
+    exported = pipeline_crypto_jobs_export(
         data_dir=csv_dir,
         days=export_days,
         solutions_root=solutions_root,
         solution_root=layout.root,
     )
-    result.steps.extend(exp.steps)
-    ml = pipeline_lightgbm_multisource(
-        data_dir=csv_dir,
-        all_horizons=True,
-        skip_export=True,
-        solutions_root=solutions_root,
+    result.steps.extend(exported.steps)
+    desk = pipeline_crypto_1h_local(
+        csv_path=None if all_assets else csv_path,
+        all_assets=all_assets,
+        horizon=horizon,
         results_dir=layout.root,
+        solutions_root=solutions_root,
     )
-    result.steps.extend(ml.steps)
+    result.steps.extend(desk.steps)
     result.outputs = {
         "solution_root": str(layout.root),
         "data_dir": str(csv_dir),
-        "runs_dir": str(layout.runs),
-        "run_count": ml.outputs.get("run_count"),
-        "batch_manifest": ml.outputs.get("batch_manifest"),
+        "asset_count": desk.outputs.get("asset_count"),
     }
     result.write_summary(layout.reports / "pipeline_summary.json")
     return result
+

@@ -6,13 +6,12 @@ from pathlib import Path
 from typing import Any
 
 from traderbot.data.export import write_csv
-from traderbot.ml.intervals import (
+from traderbot.utils.horizons import (
     DEFAULT_FORECAST_HORIZONS,
     forecast_horizons_for_resolution,
     min_bars_for_forecast_eval,
-    resolution_from_csv_path,
-    resolution_minutes,
 )
+from traderbot.utils.resolution import resolution_from_csv_path, resolution_minutes
 
 CRYPTO_DATA_ROOT = Path("data/crypto")
 OHLC_SUBDIR = "ohlc"

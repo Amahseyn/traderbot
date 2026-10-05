@@ -9,14 +9,12 @@ from traderbot.algorithms.strategies.bollinger import BollingerMeanReversionAlgo
 from traderbot.algorithms.strategies.breakout_atr import BreakoutAtrAlgorithm
 from traderbot.algorithms.strategies.chart_patterns import ChartPatternsAlgorithm
 from traderbot.algorithms.strategies.ema_cross import EmaCrossAlgorithm
-from traderbot.algorithms.strategies.forecast_signal import ForecastSignalAlgorithm
 from traderbot.algorithms.strategies.macd import MacdCrossAlgorithm
-from traderbot.algorithms.strategies.ml_gated import MlGatedAlgorithm
 from traderbot.algorithms.strategies.rsi import RsiThresholdAlgorithm
 from traderbot.algorithms.strategies.sma_cross import SmaCrossAlgorithm
 from traderbot.algorithms.utils import price_context_kwargs_from_namespace
 
-FORECAST_STRATEGY_IDS = frozenset({"forecast_signal", "ml_gated"})
+STRATEGY_MODE_RULES = "strategies"
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,20 +76,6 @@ STRATEGY_CATALOG: tuple[StrategyCatalogEntry, ...] = (
         style="breakout",
         implemented=True,
     ),
-    StrategyCatalogEntry(
-        id="forecast_signal",
-        name="ML forecast signal",
-        summary="Long/short from holdout forecast log-returns (requires holdout_forecasts.json).",
-        style="ml",
-        implemented=True,
-    ),
-    StrategyCatalogEntry(
-        id="ml_gated",
-        name="ML-gated rule strategy",
-        summary="Combine a rule strategy with holdout forecasts (forecast filters rule or the reverse).",
-        style="ml",
-        implemented=True,
-    ),
 )
 
 _IMPLEMENTED: dict[str, type[Algorithm]] = {
@@ -102,17 +86,7 @@ _IMPLEMENTED: dict[str, type[Algorithm]] = {
     "bollinger_mean_reversion": BollingerMeanReversionAlgorithm,
     "chart_patterns": ChartPatternsAlgorithm,
     "breakout_atr": BreakoutAtrAlgorithm,
-    "forecast_signal": ForecastSignalAlgorithm,
-    "ml_gated": MlGatedAlgorithm,
 }
-
-
-def _inner_kwargs_for_base(base_strategy_id: str, args: Any) -> dict[str, Any]:
-    builder = _KWARGS_FROM_ARGS.get(base_strategy_id)
-    if builder is None:
-        return {}
-    return builder(args)
-
 
 _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
     "sma_cross": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
@@ -146,13 +120,6 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "atr_period": a.atr_period,
         "atr_multiplier": a.atr_multiplier,
     },
-    "forecast_signal": lambda a: {"forecast_threshold": a.forecast_threshold},
-    "ml_gated": lambda a: {
-        "base_strategy_id": a.ml_gated_base,
-        "gate_mode": a.gate_mode,
-        "forecast_threshold": a.forecast_threshold,
-        **_inner_kwargs_for_base(a.ml_gated_base, a),
-    },
 }
 
 
@@ -166,33 +133,25 @@ def implemented_strategy_ids() -> list[str]:
     return sorted(_IMPLEMENTED)
 
 
-def backtest_strategy_ids(*, include_forecast_strategies: bool) -> list[str]:
-    ids = implemented_strategy_ids()
-    if include_forecast_strategies:
-        return ids
-    return [strategy_id for strategy_id in ids if strategy_id not in FORECAST_STRATEGY_IDS]
+def backtest_strategy_ids(*, include_forecast_strategies: bool = False) -> list[str]:
+    return implemented_strategy_ids()
+
+
+def normalize_strategy_mode(mode: str | None) -> str:
+    if mode is None or str(mode).strip() == "":
+        return STRATEGY_MODE_RULES
+    value = str(mode).strip().lower()
+    if value != STRATEGY_MODE_RULES:
+        raise ValueError("mode must be 'strategies'")
+    return value
+
+
+def strategy_ids_for_mode(mode: str | None) -> list[str]:
+    normalize_strategy_mode(mode)
+    return backtest_strategy_ids()
 
 
 def algorithm_for_id(strategy_id: str, **kwargs: Any) -> Algorithm:
-    if strategy_id == "ml_gated":
-        forecast_by_timestamp = kwargs.pop("forecast_by_timestamp", {})
-        base_strategy_id = kwargs.pop("base_strategy_id", "rsi_threshold")
-        gate_mode = kwargs.pop("gate_mode", "forecast_filters_rule")
-        forecast_threshold = float(kwargs.pop("forecast_threshold", 0.0))
-        inner = algorithm_for_id(base_strategy_id, **kwargs)
-        return MlGatedAlgorithm(
-            inner=inner,
-            forecast_by_timestamp=forecast_by_timestamp,
-            gate_mode=gate_mode,
-            forecast_threshold=forecast_threshold,
-        )
-    if strategy_id == "forecast_signal":
-        forecast_by_timestamp = kwargs.pop("forecast_by_timestamp", {})
-        forecast_threshold = float(kwargs.pop("forecast_threshold", 0.0))
-        return ForecastSignalAlgorithm(
-            forecast_by_timestamp=forecast_by_timestamp,
-            forecast_threshold=forecast_threshold,
-        )
     cls = _IMPLEMENTED.get(strategy_id)
     if cls is None:
         known = ", ".join(sorted(_IMPLEMENTED))
@@ -200,8 +159,8 @@ def algorithm_for_id(strategy_id: str, **kwargs: Any) -> Algorithm:
     return cls(**kwargs)
 
 
-def strategy_kwargs_from_namespace(strategy_id: str, args: Any) -> dict[str, Any]:
+def strategy_kwargs_from_namespace(strategy_id: str, namespace: Any) -> dict[str, Any]:
     builder = _KWARGS_FROM_ARGS.get(strategy_id)
     if builder is None:
         return {}
-    return builder(args)
+    return builder(namespace)

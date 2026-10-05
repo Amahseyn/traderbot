@@ -13,6 +13,12 @@ import requests
 from traderbot.markets.market_data import fetch_ohlc_page, ohlc_rows
 from traderbot.markets.registry import MarketSpec, list_supported_markets
 from traderbot.markets.utils import trim_forming_candle
+from utils.plots import (
+    build_subplot_grid_shape,
+    configure_matplotlib,
+    hide_unused_subplot_axes,
+    visualizations_dir,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,16 +99,16 @@ def snapshots_to_manifest(
         "resolution": resolution,
         "markets": [
             {
-                "symbol": s.market.symbol,
-                "label": s.market.label,
-                "bars": len(s.bars),
-                "last_close": s.last_close,
-                "last_timestamp": s.last_timestamp,
+                "symbol": snapshot.market.symbol,
+                "label": snapshot.market.label,
+                "bars": len(snapshot.bars),
+                "last_close": snapshot.last_close,
+                "last_timestamp": snapshot.last_timestamp,
                 "last_datetime_utc": datetime.fromtimestamp(
-                    s.last_timestamp, tz=timezone.utc
+                    snapshot.last_timestamp, tz=timezone.utc
                 ).isoformat(),
             }
-            for s in snapshots
+            for snapshot in snapshots
         ],
     }
 
@@ -115,54 +121,57 @@ def render_live_dashboard(
     show = False,
 ) -> LiveVisualizationPaths:
     try:
-        import matplotlib
+        configure_matplotlib(interactive=show)
     except ImportError as e:
         raise ImportError(
             "live market charts require matplotlib (pip install -e '.[viz]')"
         ) from e
-
-    if not show:
-        matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import math
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    viz_dir = out_dir / "visualizations"
-    viz_dir.mkdir(parents=True, exist_ok=True)
-    dashboard = viz_dir / f"live_markets_{resolution}.png"
+    plots_dir = visualizations_dir(out_dir)
+    dashboard = plots_dir / f"live_markets_{resolution}.png"
     manifest_path = out_dir / "live_markets_manifest.json"
 
-    n = len(snapshots)
-    if n == 0:
+    snapshot_count = len(snapshots)
+    if snapshot_count == 0:
         manifest_path.write_text(json.dumps({"markets": []}, indent=2), encoding="utf-8")
         return LiveVisualizationPaths(dashboard=dashboard, manifest=manifest_path)
 
-    cols = min(3, max(1, math.ceil(math.sqrt(n))))
-    rows = math.ceil(n / cols)
-    fig, axes = plt.subplots(rows, cols, figsize=(4.2 * cols, 3.2 * rows), squeeze=False)
+    row_count, column_count = build_subplot_grid_shape(snapshot_count)
+    fig, axes = plt.subplots(
+        row_count,
+        column_count,
+        figsize=(4.2 * column_count, 3.2 * row_count),
+        squeeze=False,
+    )
     fetched = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     fig.suptitle(f"Nobitex live close — resolution {resolution} (as of {fetched})", fontsize=12)
 
-    for idx, snap in enumerate(snapshots):
-        ax = axes[idx // cols][idx % cols]
-        closes = [float(b["close"]) for b in snap.bars]
+    for snapshot_index, snapshot in enumerate(snapshots):
+        ax = axes[snapshot_index // column_count][snapshot_index % column_count]
+        closes = [float(bar["close"]) for bar in snapshot.bars]
         ax.plot(closes, color="#0072B2", linewidth=1.2)
         ax.scatter([len(closes) - 1], [closes[-1]], color="#D55E00", s=28, zorder=3)
-        ax.set_title(f"{snap.market.label} ({snap.market.symbol})")
+        ax.set_title(f"{snapshot.market.label} ({snapshot.market.symbol})")
         ax.set_xlabel("bar index (oldest → newest)")
         ax.set_ylabel("close")
         ax.grid(True, alpha=0.25)
         ax.text(
             0.02,
             0.98,
-            f"last: {snap.last_close:,.4g}",
+            f"last: {snapshot.last_close:,.4g}",
             transform=ax.transAxes,
             va="top",
             fontsize=9,
         )
 
-    for idx in range(n, rows * cols):
-        axes[idx // cols][idx % cols].set_visible(False)
+    hide_unused_subplot_axes(
+        axes,
+        used_count=snapshot_count,
+        row_count=row_count,
+        column_count=column_count,
+    )
 
     fig.tight_layout(rect=(0, 0, 1, 0.96))
     fig.savefig(dashboard, dpi=120)

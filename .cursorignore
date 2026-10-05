@@ -1,8 +1,13 @@
 # Generated / local artifacts
 .venv/
 venv/
+node_modules/
+**/.next/
+apps/lab-ui/node_modules/
+apps/lab-ui/.next/
 .env
 .env.*
+**/*.db
 *.egg-info/
 .pytest_cache/
 __pycache__/

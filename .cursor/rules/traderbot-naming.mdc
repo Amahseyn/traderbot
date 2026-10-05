@@ -1,0 +1,49 @@
+---
+description: Python naming, types, and magic numbers (traderbot)
+globs: traderbot/**/*.py,lab/**/*.py,cli/**/*.py,auth/**/*.py,tests/**/*.py
+alwaysApply: false
+---
+
+# Naming and style (Python)
+
+## Functions and methods
+
+- `snake_case` only; each public name is **verb + object** so the call site reads like English.
+- **Load from disk** → `load_*` (e.g. `load_bars_csv`, `load_one_minute_bars`).
+- **Fetch over HTTP** → `fetch_*` (e.g. `fetch_one_minute_bars`, `fetch_latest_closed_bar`, `fetch_ohlc_page`).
+- **Pure transforms** → `build_*`, `attach_*`, `enrich_*`, `normalize_*`.
+- **Orchestration** → `run_*` (CLI handlers, pipelines, backtests).
+- **Resolve paths / metadata** → noun phrase (`one_minute_csv_for_coarse`, `market_symbol`).
+- **Time → API query** → `*_history_to_timestamp` (Nobitex `to` parameter); never expose `udf` in public names.
+- **Filter bar lists for causality** → `*_bars_known_at` with a full time parameter (see Variables).
+- Leading `_` only for helpers private to one module; do not import `_`-prefixed symbols elsewhere.
+- One canonical function per behavior — extend it instead of adding a synonym (`fine_bars_for_coarse`, `as_of_*`, etc. are not allowed).
+
+## Variables
+
+Use the same rules for parameters, loop variables, and locals.
+
+- `snake_case`, full words — no `tmp`, `val`, `res`, `ts`, `t`, `df` (except a real `pandas.DataFrame` named `dataframe` or `features_frame`).
+- **Plural** sequences: `bars`, `closes`, `one_minute_bars`, `jobs`. **Singular:** `bar`, `job`, `payload`.
+- **Counts:** `bar_count`, `max_bars`, `horizon_bars` — unit in the name (`*_bars`, `*_minutes`, `*_seconds`).
+- **Booleans:** read as a question — `auto_load`, `render_plots`, `skip_export` (not `flag`, `ok`, `done`).
+- **Time:** POSIX ints → `*_unix_seconds`. Bar length → `bar_minutes`, `coarse_minutes`. Do not use `as_of` / `timestamp` as decision-time variable names; `timestamp` is the bar dict key only.
+- **Paths:** `*_path` for `Path`; `*_csv` when always a CSV path.
+- **Market:** `symbol`, `resolution`; bar dict keys stay `open`, `high`, `low`, `close`, `volume`, `timestamp`.
+- **Loops:** `for bar in bars:` — not `b`, `row`, `x`. Index: `bar_index`, not bare `i`/`j` outside tiny numeric loops.
+
+## Constants, types, collections
+
+- Module constants: `SCREAMING_SNAKE`; shared durations in `traderbot/utils/constants.py` — import, do not copy.
+- Omit redundant scalar type annotations on literal constants and obvious parameter defaults.
+- Never construct with `list[int](…)` / `tuple[str, …](…)` — use `list(…)`, `[]`, `tuple(…)` when needed.
+- Registries at import: `tuple[Entry, …]`; runtime lists from helpers: `list[…]`.
+
+## Magic numbers
+
+- Domain-specific literals (bar windows, timeouts, page sizes, default cash) → named constant or parameter.
+- Allowed bare: `0`, `1`, `-1` for obvious control flow; small assert-only test integers.
+
+## Domain vocabulary
+
+- **1m loaders/fetchers** → `one_minute_*`. **Intrahour columns** → `fine_return_*` (CSV/feature keys). **Coarse CSV** → `{symbol}_{resolution}.csv`; **1m sibling** → `{symbol}_1.csv`.

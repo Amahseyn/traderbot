@@ -66,6 +66,20 @@ def save_backtest_result(
     )
     if write_plot and not visualize and result.equity_curve:
         _write_legacy_equity_plot(result, out_dir / "equity_curve.png")
+    summary_payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    from traderbot.recording import try_record
+
+    try_record(
+        "strategy_backtest",
+        algorithm=algorithm,
+        backtest_result=result,
+        out_dir=out_dir,
+        bars=bars,
+        summary=summary_payload,
+        extra=summary_extra,
+        compare_session_id=summary_extra.get("compare_session_id"),
+        experiment_id=summary_extra.get("experiment_id"),
+    )
     return summary_path
 
 

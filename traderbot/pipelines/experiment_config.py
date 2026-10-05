@@ -9,13 +9,10 @@ from typing import Any
 
 from traderbot.pipelines.registry import get_pipeline, run_pipeline
 from traderbot.solutions.layout import solution_slug
-from traderbot.utils.constants import DEFAULT_LIGHTGBM_NUM_BOOST_ROUND
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_EXPERIMENT_CONFIG_DIR = REPO_ROOT / "config"
 
 EXPERIMENT_SCHEMA_VERSION = 1
-DEFAULT_EXPERIMENT_MODEL_ID = "lightgbm"
 EXPERIMENT_STATUSES = frozenset({"pending", "running", "completed", "failed", "skipped"})
 
 _PATH_PARAM_KEYS = frozenset(
@@ -88,12 +85,11 @@ def resolve_one_hour_window_params(params: dict[str, Any]) -> dict[str, Any]:
 
 
 def apply_experiment_param_defaults(params: dict[str, Any]) -> dict[str, Any]:
-    """Default ML solution for experiments is LightGBM unless explicitly overridden."""
     merged = resolve_one_hour_window_params(params)
-    merged.setdefault("model_id", DEFAULT_EXPERIMENT_MODEL_ID)
-    if "run_lightgbm" not in merged:
-        merged["run_lightgbm"] = merged["model_id"] == DEFAULT_EXPERIMENT_MODEL_ID
-    merged.setdefault("num_boost_round", DEFAULT_LIGHTGBM_NUM_BOOST_ROUND)
+    merged.pop("model_id", None)
+    merged.pop("run_lightgbm", None)
+    merged.pop("num_boost_round", None)
+    merged.pop("train_supervised_row_count", None)
     return merged
 
 
@@ -254,6 +250,8 @@ def run_experiment_config(
     force: bool = False,
     dry_run: bool = False,
     step_id: str | None = None,
+    param_overrides: dict[str, Any] | None = None,
+    step_param_overrides: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Load config, run pipeline (once or per ``test_steps``), update status on disk.
@@ -262,6 +260,17 @@ def run_experiment_config(
     """
     config_path = path.resolve()
     config = load_experiment_config(config_path)
+    if param_overrides:
+        config.params.update(param_overrides)
+    if step_param_overrides:
+        for step in config.test_steps:
+            extra = step_param_overrides.get(str(step.get("step_id")))
+            if isinstance(extra, dict):
+                params = step.get("params") or {}
+                if not isinstance(params, dict):
+                    raise ValueError("test_steps[].params must be an object")
+                params.update(extra)
+                step["params"] = params
 
     if experiment_is_completed(config) and not force:
         return {
@@ -388,6 +397,19 @@ def run_experiment_config(
     if not config.test_steps:
         config.status = "completed"
     save_experiment_config(config_path, config)
+
+    from traderbot.recording import try_record
+
+    try_record(
+        "experiment_snapshot",
+        experiment_id=config.experiment_id,
+        pipeline_id=config.pipeline_id,
+        title=config.title,
+        status=config.status,
+        config_path=str(config_path),
+        solution_root=config.result_solution_root,
+        payload=asdict(config),
+    )
 
     return {
         "skipped": False,

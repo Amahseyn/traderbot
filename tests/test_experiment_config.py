@@ -23,10 +23,6 @@ def test_load_repo_smoke_experiment():
     assert config.pipeline_id == "crypto-1h-local"
     assert config.status == "pending"
     assert config.params["symbol"] == "BTCIRT"
-    assert config.params["model_id"] == "lightgbm"
-    assert config.params["run_lightgbm"] is True
-    assert config.params["train_supervised_row_count"] == 8
-    assert config.params["num_boost_round"] == 50
     assert config.test_steps[0]["params"]["window_hours"] == 24
     assert merge_experiment_params(config, config.test_steps[0])["holdout_tail_bars"] == 24
 
@@ -36,9 +32,6 @@ def test_merge_experiment_params_step_overrides_base():
     merged = merge_experiment_params(config, config.test_steps[1])
     assert merged["all_assets"] is True
     assert merged["holdout_tail_bars"] == 60
-    assert merged["model_id"] == "lightgbm"
-    assert merged["run_lightgbm"] is True
-
 
 def test_build_pipeline_kwargs_maps_paths(tmp_path):
     config = load_experiment_config(SMOKE_CONFIG)
@@ -51,8 +44,6 @@ def test_build_pipeline_kwargs_maps_paths(tmp_path):
     )
     assert kwargs["symbol"] == "BTCIRT"
     assert kwargs["holdout_tail_bars"] == 24
-    assert kwargs["train_supervised_row_count"] == 8
-    assert kwargs["num_boost_round"] == 50
     assert kwargs["results_dir"] == tmp_path / "custom_solution"
 
 
@@ -71,16 +62,16 @@ def test_run_experiment_multi_step_dry_run():
     assert step_ids == ["hours-24", "hours-60", "full-ohlc"]
     assert out["test_steps"][2]["params"]["window_hours"] is None
     assert out["test_steps"][2]["params"]["holdout_tail_bars"] is None
-    assert out["test_steps"][2]["params"]["model_id"] == "lightgbm"
-    assert out["test_steps"][2]["params"]["run_lightgbm"] is True
-
 
 def test_run_experiment_smoke_updates_status(tmp_path):
     pytest.importorskip("matplotlib")
     from traderbot.data.crypto_store import resolve_crypto_data_dir
 
-    if resolve_crypto_data_dir() is None:
+    data_dir = resolve_crypto_data_dir()
+    if data_dir is None:
         pytest.skip("no crypto OHLC")
+    if not (data_dir / "BTCIRT_60.csv").is_file():
+        pytest.skip("missing BTCIRT_60.csv; run crypto export")
 
     config_path = tmp_path / "smoke.json"
     shutil.copy(SMOKE_CONFIG, config_path)

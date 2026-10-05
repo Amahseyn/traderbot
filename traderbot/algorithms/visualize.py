@@ -8,6 +8,7 @@ from typing import Any
 
 from traderbot.algorithms.base import Algorithm
 from traderbot.backtesting.engine import BacktestResult
+from utils.plots import configure_matplotlib, visualizations_dir
 
 
 # Distinct, colorblind-friendly palette (Okabe–Ito inspired)
@@ -62,12 +63,6 @@ class CompareVisualizationPaths:
     asset_price: Path
 
 
-def visualizations_dir(out_dir: Path) -> Path:
-    path = out_dir if out_dir.name == "visualizations" else out_dir / "visualizations"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
 def buy_hold_equity_curve(
     bars: Sequence[dict[str, Any]],
     initial_cash: float,
@@ -99,7 +94,7 @@ def _drawdown_series(equity_curve: Sequence[tuple[int, float]]) -> list[tuple[in
 def _setup_style() -> None:
     import matplotlib as mpl
 
-    mpl.use("Agg")
+    configure_matplotlib(interactive=False)
     mpl.rcParams.update(
         {
             "figure.facecolor": "white",

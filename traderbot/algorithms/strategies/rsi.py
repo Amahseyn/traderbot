@@ -2,7 +2,7 @@ from traderbot.algorithms.base import Algorithm, Bar, SignalAction
 from traderbot.algorithms.price_context import apply_mean_reversion_context
 from traderbot.algorithms.signals import signal_from_thresholds
 from traderbot.algorithms.validators import validate_price_context, validate_rsi_bands
-from traderbot.ml.features import rsi
+from traderbot.utils.indicators import rsi
 
 
 class RsiThresholdAlgorithm(Algorithm):

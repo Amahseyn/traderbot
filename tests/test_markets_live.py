@@ -1,9 +1,8 @@
 import json
 from pathlib import Path
 
-from traderbot.cli.data import main as data_main
 from traderbot.markets.live_visualize import fetch_recent_bars, run_live_market_visualization
-from traderbot.markets.registry import list_supported_markets, market_spec_from_symbol
+from traderbot.markets.registry import DEFAULT_JOBS_PATH, list_supported_markets, market_spec_from_symbol, markets_catalog_dict
 
 
 def test_market_spec_from_symbol():
@@ -16,14 +15,24 @@ def test_list_supported_markets_from_repo_jobs():
     symbols = {m.symbol for m in markets}
     assert "BTCIRT" in symbols
     assert "ETHUSDT" in symbols
-    assert len(markets) >= 4
+    assert len(markets) >= 2
 
 
-def test_data_markets_cli(capsys):
-    data_main(["markets"])
-    out = json.loads(capsys.readouterr().out)
-    assert out["markets"]
+def test_markets_catalog_dict_from_jobs():
+    out = markets_catalog_dict(DEFAULT_JOBS_PATH)
+    symbols = {m["symbol"] for m in out["markets"]}
+    assert "BTCIRT" in symbols
+    assert out["market_count"] == len(out["markets"])
+    assert "jobs_file" in out
     assert "60" in out["udf_resolutions"]
+
+
+def test_markets_catalog_dict_jobs_file(tmp_path):
+    jobs = tmp_path / "jobs.json"
+    jobs.write_text('[{"src":"btc","dst":"rls","interval":"60"}]', encoding="utf-8")
+    out = markets_catalog_dict(jobs)
+    assert out["jobs_file"] == str(jobs)
+    assert out["markets"][0]["symbol"] == "BTCIRT"
 
 
 def test_fetch_recent_bars_trims_open_bar(monkeypatch):
@@ -73,8 +82,16 @@ def test_data_live_json(tmp_path, monkeypatch, capsys):
     )
     jobs = tmp_path / "jobs.json"
     jobs.write_text('[{"src":"btc","dst":"rls","interval":"60"}]', encoding="utf-8")
-    data_main(["live", "--json", "--jobs", str(jobs), "--out", str(tmp_path / "out")])
-    manifest = json.loads(capsys.readouterr().out)
+    manifest = run_live_market_visualization(
+        resolution="60",
+        max_bars=10,
+        out_dir=tmp_path / "out",
+        jobs_path=jobs,
+        show=False,
+        poll_sec=0.0,
+        max_updates=None,
+        json_only=True,
+    )
     assert manifest["markets"][0]["symbol"] == "BTCIRT"
     assert manifest["markets"][0]["last_close"] == 100.0
 

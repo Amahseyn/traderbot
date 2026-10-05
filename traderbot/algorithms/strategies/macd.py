@@ -2,7 +2,7 @@ from traderbot.algorithms.base import Algorithm, Bar, SignalAction
 from traderbot.algorithms.price_context import apply_mean_reversion_context
 from traderbot.algorithms.signals import signal_from_cross
 from traderbot.algorithms.validators import validate_macd, validate_price_context
-from traderbot.ml.features import macd
+from traderbot.utils.indicators import macd
 
 
 class MacdCrossAlgorithm(Algorithm):

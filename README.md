@@ -93,10 +93,10 @@ Research CLI catalog (export, charts, ML, pipelines — not live trading):
 ```bash
 traderbot interface catalog          # full JSON: command_tree, pickables, strategies, models
 traderbot interface list             # pickable ids (use --kind workflow --tag data)
-traderbot interface describe workflow/download-multisource
+traderbot interface describe workflow/download-crypto-1h
 traderbot interface pick             # numbered menu (TTY); add --run to execute
 traderbot interface run strategy/compare-btc60
-traderbot interface run workflow/download-multisource --dry-run
+traderbot interface run workflow/download-crypto-1h --dry-run
 ```
 
 Terminal module (`traderbot terminal`; implementation under `traderbot/terminal/`):
@@ -127,8 +127,8 @@ traderbot export --jobs export.jobs.json --out data
 Five crypto markets, all candle intervals (writes `data/crypto/ohlc/` plus complete tail slices per forecast horizon under `data/crypto/horizons/`):
 
 ```bash
-traderbot export --jobs export.jobs.5sources.json --out data/crypto
-# List supported markets (from export.jobs.5sources.json) and live UDF dashboard:
+traderbot export --jobs export.jobs.example.json --out data/crypto
+# List supported markets (from export jobs JSON) and live UDF dashboard:
 traderbot data markets
 traderbot data live --interval 60 --bars 96   # default out: results/data/live/
 traderbot data live --interval 60 --poll-sec 60   # refresh PNG every minute
@@ -158,13 +158,12 @@ traderbot pipeline list
 
 | ID | What it does |
 |----|----------------|
-| `multisource-export` | 5 markets → `data/crypto/` (`ohlc/` + `horizons/`) |
+| `crypto-jobs-export` | Crypto 1h jobs file → `data/crypto/` (`ohlc/` + `horizons/`) |
 | `lightgbm-multisource-default` | LightGBM batch, **1h** horizon per CSV |
 | `lightgbm-multisource-all-horizons` | LightGBM batch, **all default horizons** + PNGs |
-| `lightgbm-single-asset` | One CSV, all horizons → `results/single_asset/` |
-| `chronos-single` | One CSV, Chronos eval (needs `.[chronos]`) |
 | `sma-backtest` | SMA cross backtest JSON |
-| `full-research-lightgbm` | Export (90d) + all-horizon LightGBM |
+| `full-research-strategies` | Export (90d) + strategy compare on hourly files |
+| `crypto-1h-local` | Strategy compare on existing `*_60.csv` files |
 
 ```bash
 # Export + all horizons + visualizations (same as manual export + ml batch --all-horizons)
@@ -173,7 +172,6 @@ traderbot pipeline run full-research-lightgbm --export-days 90
 # Use existing CSVs only
 traderbot pipeline run lightgbm-multisource-all-horizons --data-dir data/crypto/ohlc --skip-export
 
-traderbot pipeline run lightgbm-single-asset --csv data/crypto/ohlc/BTCIRT_60.csv
 traderbot pipeline run sma-backtest --csv data/BTCIRT_D.csv --fast 5 --slow 20
 ```
 
@@ -214,54 +212,16 @@ Intervals: `1`, `5`, `15`, `30`, `60`, `180`, `240`, `360`, `720`, `D`, `2D`, `3
 pytest          # unit tests (excludes integration marker)
 ```
 
-### ML — crypto time series (LightGBM, Chronos, …)
+### Lab (result catalog + UI)
 
-Optional stacks:
-
-```bash
-pip install -e ".[dev]"          # LightGBM + plots + tests (no Chronos)
-pip install -e ".[chronos]"      # Amazon Chronos (PyTorch + pretrained weights)
-```
-
-**Targets:** forward log-return on `close`. Default forecast windows are **1m, 5m, 1h, 2h, 4h, 6h, 12h, 1d** (`DEFAULT_FORECAST_HORIZONS` in `traderbot/ml/intervals.py`); CLI/batch default eval uses **1h** when the candle size allows.
-
-**Holdout (no future leakage):** features at time `t` use only bars up to `t`; train/test is a strict time split with a **horizon embargo** so training labels never depend on prices in the holdout window. Chronos predictions use only `close[:t+1]` at each holdout timestamp. See `tests/test_holdout_and_models.py`.
-
-**Features:** OHLCV, RSI, MACD, ATR, optional `funding_rate` / `open_interest` / `volume_delta` / `market_breadth` when present on bars.
-
-| Model | In repo | Notes |
-|-------|---------|--------|
-| LightGBM | yes | Tabular baseline; feature importance in results |
-| Chronos | yes | Pretrained zero-shot on close |
-| XGBoost | catalog | Same feature pipeline as LightGBM |
-| TFT, PatchTST, TimesFM | catalog | `traderbot ml catalog` |
+Browse backtests and ML runs in a local Next.js UI backed by SQLite (`data/traderbot.db`).
 
 ```bash
-traderbot ml catalog
-traderbot ml catalog --implemented-only
-traderbot ml run data/BTCIRT_60.csv --model lightgbm --horizon-bars 4 --bar-minutes 60
-traderbot ml run data/BTCIRT_60.csv --model chronos --horizon-bars 24 --bar-minutes 60
+pip install -e ".[ui,dev]"
+python -m lab sync --root results    # optional backfill
+./run-lab.sh                         # API + Next UI (recommended)
 ```
 
-**Results** (per run under `--out`):
+API only: `./run-lab-api.sh` (http://127.0.0.1:8765). UI only (API must already be up): `./run-lab-ui.sh`.
 
-- `results.json` — metrics (`mae`, `rmse`, `directional_accuracy`)
-- **Visualization** — `actual_vs_predicted.png`, `residuals.png`, and for LightGBM `feature_importance.png`
-
-```python
-from traderbot.ml import run_forecast_eval
-from traderbot.ml.models import LightGBMForecastModel
-from traderbot.ml.results import save_run_result
-from traderbot.backtest import load_bars_csv
-
-bars = load_bars_csv("data/BTCIRT_60.csv")
-result = run_forecast_eval(bars, LightGBMForecastModel(), horizon_bars=4, bar_minutes=60)
-save_run_result(result, "results/lgbm_4h")
-```
-
-Chronos integration test (downloads tiny pretrained model):
-
-```bash
-pip install -e ".[chronos,viz]"
-pytest -m integration
-```
+Architecture and env vars: [docs/lab.md](docs/lab.md).

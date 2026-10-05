@@ -27,6 +27,36 @@ def bars_last_n(bars: list[dict[str, Any]], bar_count: int) -> list[dict[str, An
     return list(bars[-bar_count:])
 
 
+def filter_bars_by_unix_range(
+    bars: list[dict[str, Any]],
+    *,
+    start_unix_seconds: int | None = None,
+    end_unix_seconds: int | None = None,
+    bar_minutes: int,
+) -> list[dict[str, Any]]:
+    """
+    Subset OHLC rows by bar open time and close time (no partial bar past ``end``).
+
+    ``timestamp`` is bar open (export CSV shape). A bar is included when its open is
+    at or after ``start_unix_seconds`` (if set) and its close is at or before
+    ``end_unix_seconds`` (if set).
+    """
+    if start_unix_seconds is None and end_unix_seconds is None:
+        return list(bars)
+    if bar_minutes < 1:
+        raise ValueError("bar_minutes must be >= 1")
+    bar_seconds = bar_minutes * SECONDS_PER_MINUTE
+    filtered: list[dict[str, Any]] = []
+    for bar in bars:
+        open_unix_seconds = int(bar["timestamp"])
+        if start_unix_seconds is not None and open_unix_seconds < start_unix_seconds:
+            continue
+        if end_unix_seconds is not None and open_unix_seconds + bar_seconds > end_unix_seconds:
+            continue
+        filtered.append(bar)
+    return filtered
+
+
 def load_bars_csv(path: Path) -> list[dict[str, Any]]:
     """Load candles written by :func:`traderbot.data.export.write_csv`."""
     with path.open(newline="", encoding="utf-8") as f:

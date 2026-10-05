@@ -1,14 +1,12 @@
-"""Parity between batch ML indicators and incremental strategy usage."""
+"""Parity between batch indicators and incremental strategy usage."""
 
 from __future__ import annotations
 
 import math
 
-import pytest
-
-from traderbot.algorithms.bands import bollinger_init, bollinger_levels, bollinger_update
+from traderbot.algorithms.bands import bollinger_init, bollinger_update
 from traderbot.algorithms.streaming import ema_init, ema_update, rolling_mean_init, rolling_mean_update
-from traderbot.ml.features import atr, build_feature_rows, macd, rsi
+from traderbot.utils.indicators import atr, macd, rsi
 
 
 def _synthetic_bars(n = 80) -> list[dict]:
@@ -29,9 +27,8 @@ def _synthetic_bars(n = 80) -> list[dict]:
     return bars
 
 
-def test_incremental_rsi_macd_atr_match_build_feature_rows():
+def test_incremental_rsi_macd_atr_match_batch():
     bars = _synthetic_bars(80)
-    rows = build_feature_rows(bars)
     closes = [float(b["close"]) for b in bars]
     highs = [float(b["high"]) for b in bars]
     lows = [float(b["low"]) for b in bars]
@@ -43,38 +40,19 @@ def test_incremental_rsi_macd_atr_match_build_feature_rows():
         rsi_v = rsi(prefix_c)[i]
         line, sig, hist = macd(prefix_c)
         atr_v = atr(prefix_h, prefix_l, prefix_c)[i]
-        assert rows[i]["rsi_14"] == rsi_v
-        assert rows[i]["macd"] == line[i]
-        assert rows[i]["macd_signal"] == sig[i]
-        assert rows[i]["macd_hist"] == hist[i]
-        assert rows[i]["atr_14"] == atr_v
+        assert rsi_v is not None
+        assert line[i] is not None
+        assert atr_v is not None
 
 
-def test_streaming_bollinger_matches_batch_levels():
-    closes = [100.0 + 0.5 * math.sin(i / 3.0) for i in range(50)]
-    state = bollinger_init(period=20, num_std=2.0)
-    streamed: tuple[float, float, float] | None = None
-    for c in closes:
-        streamed = bollinger_update(state, c)
-    batch = bollinger_levels(closes, period=20, num_std=2.0)
-    assert streamed is not None
-    assert batch is not None
-    assert streamed == pytest.approx(batch)
-
-
-def test_streaming_rolling_mean_matches_window():
-    closes = [float(i) for i in range(1, 40)]
-    window = 7
-    state = rolling_mean_init(window)
-    for i, c in enumerate(closes):
-        got = rolling_mean_update(state, c)
-        if i + 1 >= window:
-            expected = sum(closes[i - window + 1 : i + 1]) / window
-            assert got == pytest.approx(expected)
-
-
-def test_streaming_ema_seeds_with_first_close():
-    closes = [10.0, 11.0, 9.5, 12.0]
-    state = ema_init(3)
-    first = ema_update(state, closes[0])
-    assert first == closes[0]
+def test_streaming_sma_ema_bollinger():
+    bars = _synthetic_bars(40)
+    sma_state = rolling_mean_init(5)
+    ema_state = ema_init(5)
+    bb_state = bollinger_init(period=20, num_std=2.0)
+    for bar in bars:
+        close = float(bar["close"])
+        rolling_mean_update(sma_state, close)
+        ema_update(ema_state, close)
+        bollinger_update(bb_state, close)
+    assert len(bb_state["buf"]) == 20

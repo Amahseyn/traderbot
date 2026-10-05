@@ -1,11 +1,48 @@
 from traderbot.data.export import load_jobs, write_csv
-from traderbot.markets.market_data import fetch_latest_closed_bar, fetch_one_minute_bars, incremental_bar_source, market_symbol, ohlc_rows
+from traderbot.markets.market_data import (
+    fetch_latest_closed_bar,
+    fetch_nobitex_market_symbols,
+    fetch_one_minute_bars,
+    incremental_bar_source,
+    market_symbol,
+    ohlc_rows,
+    parse_nobitex_pair_key,
+)
 from traderbot.utils.bars import one_minute_history_to_timestamp
 
 
 def test_market_symbol():
     assert market_symbol("btc", "rls") == "BTCIRT"
     assert market_symbol("eth", "usdt") == "ETHUSDT"
+
+
+def test_parse_nobitex_pair_key():
+    assert parse_nobitex_pair_key("btc-rls") == ("btc", "rls")
+    assert parse_nobitex_pair_key("100k_floki-usdt") == ("100k_floki", "usdt")
+
+
+def test_fetch_nobitex_market_symbols(monkeypatch):
+    def fake_get(url, **kwargs):
+        assert url.endswith("/market/stats")
+
+        class Response:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {
+                    "status": "ok",
+                    "stats": {
+                        "btc-rls": {},
+                        "eth-usdt": {},
+                        "btc-usdt": {},
+                    },
+                }
+
+        return Response()
+
+    monkeypatch.setattr("traderbot.markets.market_data.requests.get", fake_get)
+    assert fetch_nobitex_market_symbols() == ["BTCIRT", "BTCUSDT", "ETHUSDT"]
 
 
 def test_ohlc_rows():

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 
 from traderbot.traders.base import Trader
+
+STOP_CHECK_SECONDS = 0.25
 
 
 class Bot:
@@ -17,11 +19,35 @@ class Bot:
         for trader in self.traders:
             trader.step()
 
-    def run(self, *, max_steps: int | None = None) -> None:
+    def run(
+        self,
+        *,
+        max_steps: int | None = None,
+        should_stop: Callable[[], bool] | None = None,
+    ) -> None:
         steps = 0
         while max_steps is None or steps < max_steps:
+            if should_stop is not None and should_stop():
+                break
             self.run_once()
             steps += 1
             if max_steps is not None and steps >= max_steps:
                 break
-            time.sleep(self.interval_sec)
+            if should_stop is not None and should_stop():
+                break
+            if self._sleep_until_stop(self.interval_sec, should_stop):
+                break
+
+    def _sleep_until_stop(
+        self,
+        seconds: float,
+        should_stop: Callable[[], bool] | None,
+    ) -> bool:
+        deadline = time.monotonic() + seconds
+        while True:
+            if should_stop is not None and should_stop():
+                return True
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            time.sleep(min(STOP_CHECK_SECONDS, remaining))

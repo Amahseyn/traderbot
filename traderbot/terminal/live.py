@@ -22,8 +22,9 @@ def run_live(args: argparse.Namespace) -> None:
             file=sys.stderr,
         )
 
+    should_stop = getattr(args, "should_stop", None)
     bot = Bot([trader], interval_sec=args.poll_sec)
     try:
-        bot.run(max_steps=args.max_steps)
+        bot.run(max_steps=args.max_steps, should_stop=should_stop)
     except KeyboardInterrupt:
         print("stopped", file=sys.stderr)

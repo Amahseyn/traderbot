@@ -1,11 +1,14 @@
+import argparse
 import json
 
-from traderbot.cli.terminal import main as terminal_main
+from traderbot.terminal.catalog import catalog_dict
+from traderbot.terminal.live import run_live
+from traderbot.terminal.once import run_once
+from traderbot.terminal.replay import run_replay
 
 
-def test_terminal_catalog(capsys):
-    terminal_main(["catalog", "--implemented-only"])
-    out = json.loads(capsys.readouterr().out)
+def test_terminal_catalog():
+    out = catalog_dict(implemented_only=True)
     assert any(c["id"] == "run" for c in out["commands"])
     assert out["strategies"]
     assert all(s["implemented"] for s in out["strategies"])
@@ -33,9 +36,11 @@ def test_terminal_run_max_steps(keys, monkeypatch):
         def __init__(self, traders, interval_sec=60.0):
             self.traders = traders
 
-        def run(self, max_steps=None):
+        def run(self, max_steps=None, should_stop=None):
             steps = max_steps or 1
             for _ in range(steps):
+                if should_stop is not None and should_stop():
+                    break
                 for trader in self.traders:
                     trader.step()
 
@@ -44,17 +49,29 @@ def test_terminal_run_max_steps(keys, monkeypatch):
     monkeypatch.setattr("traderbot.terminal.live.incremental_bar_source", lambda **_k: source)
     monkeypatch.setattr("traderbot.terminal.live.Bot", FakeBot)
 
-    terminal_main(
-        [
-            "run",
-            "--strategy",
-            "sma_cross",
-            "--max-steps",
-            "2",
-            "--poll-sec",
-            "0.01",
-        ]
+    args = argparse.Namespace(
+        src="btc",
+        dst="rls",
+        interval="60",
+        strategy="sma_cross",
+        fast=5,
+        slow=20,
+        signal=9,
+        period=14,
+        oversold=30.0,
+        overbought=70.0,
+        num_std=2.0,
+        price_confirm=False,
+        no_auto_fine=False,
+        fine_csv=None,
+        poll_sec=0.01,
+        max_steps=2,
+        live=False,
+        no_buy=False,
+        no_sell=False,
+        emit_holds=False,
     )
+    run_live(args)
 
 
 def test_terminal_once(monkeypatch, capsys):
@@ -69,7 +86,27 @@ def test_terminal_once(monkeypatch, capsys):
         "volume": 1.0,
     }
     monkeypatch.setattr("traderbot.terminal.once.fetch_latest_closed_bar", lambda **_k: bar)
-    terminal_main(["once", "--strategy", "sma_cross"])
+    args = argparse.Namespace(
+        src="btc",
+        dst="rls",
+        interval="60",
+        strategy="sma_cross",
+        fast=5,
+        slow=20,
+        signal=9,
+        period=14,
+        oversold=30.0,
+        overbought=70.0,
+        num_std=2.0,
+        price_confirm=False,
+        no_auto_fine=False,
+        fine_csv=None,
+        live=False,
+        no_buy=False,
+        no_sell=False,
+        emit_holds=False,
+    )
+    run_once(args)
     row = json.loads(capsys.readouterr().out)
     assert row["event"] == "once"
     assert row["strategy_id"] == "sma_cross"
@@ -84,7 +121,27 @@ def test_terminal_replay(tmp_path, capsys):
         "BTCIRT,60,2,1970-01-01T00:00:02+00:00,2,2,2,2,1\n",
         encoding="utf-8",
     )
-    terminal_main(["replay", str(csv), "--strategy", "sma_cross", "--emit-holds"])
+    args = argparse.Namespace(
+        csv=csv,
+        max_bars=None,
+        pace_sec=0.0,
+        strategy="sma_cross",
+        fast=5,
+        slow=20,
+        signal=9,
+        period=14,
+        oversold=30.0,
+        overbought=70.0,
+        num_std=2.0,
+        price_confirm=False,
+        no_auto_fine=False,
+        fine_csv=None,
+        live=False,
+        no_buy=False,
+        no_sell=False,
+        emit_holds=True,
+    )
+    run_replay(args)
     lines = [json.loads(line) for line in capsys.readouterr().out.splitlines() if line.strip()]
     assert len(lines) == 2
     assert lines[0]["action"] == "hold"

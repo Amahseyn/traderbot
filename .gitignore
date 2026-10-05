@@ -9,3 +9,8 @@ __pycache__/
 /data/
 /results/
 /solutions/
+
+# Lab UI (Node)
+apps/lab-ui/node_modules/
+apps/lab-ui/.next/
+apps/lab-ui/.env.local

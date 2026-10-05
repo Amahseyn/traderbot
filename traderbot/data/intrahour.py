@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 from typing import Any
 
-from traderbot.ml.intervals import resolution_from_csv_path, resolution_minutes
+from traderbot.utils.resolution import resolution_from_csv_path, resolution_minutes
 from traderbot.utils.bars import load_bars_csv, one_minute_bars_known_at
 from traderbot.utils.constants import (
     INTRAHOUR_FEATURE_KEYS,
