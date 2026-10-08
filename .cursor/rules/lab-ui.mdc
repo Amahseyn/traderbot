@@ -26,6 +26,7 @@ globs:
 - **Data** (`/data`) — Nobitex export job + browse/download CSVs under `data/` (`GET /api/data/csv-files`, `GET /artifact`).
 - **Lab** (`/experiments`) — one page for strategy test and compare, saved pipelines, and compare charts. `/actions` redirects here.
 - **Custom** (`/custom`) — configure a full pipeline: optional export, multi-dataset, strategy compare (subset / max count), multi-model forecasts (`POST /api/jobs/custom-research`).
+- **Live** (`/live`) — single check or continuous Nobitex polling (`POST /api/jobs/terminal-once`, `terminal-live`); paper by default, optional live orders.
 - **Settings** (`/settings`) — Nobitex auth (`/api/auth/*`).
 - **Research loop** — nav plus overview cards (`WorkflowCards`, `lib/workflow.ts`): Data → Lab → Runs. Do not add a second bar of the same links.
 - **Runs** / **Configurations** — read-only catalog views.

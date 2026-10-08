@@ -145,12 +145,27 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
     queryKey: ["data-markets-catalog", state.marketScope],
     queryFn: () => api.dataMarketsCatalog(state.marketScope),
     staleTime: 60_000,
+    enabled: state.dataSourceMode === "download",
+  });
+
+  const searchNeedle = state.marketSearch.trim();
+  const marketsSearchQuery = useQuery({
+    queryKey: ["data-markets-search", state.marketScope, searchNeedle],
+    queryFn: () =>
+      api.dataMarkets({
+        scope: state.marketScope,
+        q: searchNeedle || undefined,
+        limit: 500,
+      }),
+    enabled: state.dataSourceMode === "download" && searchNeedle.length > 0,
+    staleTime: 30_000,
   });
 
   const syncMarketsMutation = useMutation({
-    mutationFn: () => api.syncMarkets(state.marketScope),
+    mutationFn: (scope?: MarketScope) => api.syncMarkets(scope ?? state.marketScope),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["data-markets-catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["data-markets-search"] });
     },
   });
 
@@ -227,12 +242,18 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
     [allDatasets, state.catalogSearch, state.catalogSymbol, state.catalogResolution],
   );
 
-  const searchNeedle = state.marketSearch.trim().toLowerCase();
+  const searchNeedleLower = searchNeedle.toLowerCase();
   const allMarkets = catalogQuery.data?.markets ?? [];
   const filteredMarkets = useMemo(
-    () => allMarkets.filter((market) => marketMatchesSearch(market, searchNeedle)),
-    [allMarkets, searchNeedle],
+    () => allMarkets.filter((market) => marketMatchesSearch(market, searchNeedleLower)),
+    [allMarkets, searchNeedleLower],
   );
+  const displayMarkets = useMemo(() => {
+    if (searchNeedle.length > 0) {
+      return marketsSearchQuery.data?.markets ?? [];
+    }
+    return filteredMarkets;
+  }, [searchNeedle, marketsSearchQuery.data?.markets, filteredMarkets]);
   const resolutions = catalogQuery.data?.udf_resolutions ?? ["1", "15", "60", "D"];
   const totalInCatalog = catalogQuery.data?.total_in_catalog ?? 0;
   const catalogEmpty = !catalogQuery.isLoading && totalInCatalog === 0;
@@ -425,12 +446,11 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
                     <option value="default_jobs">Crypto 1h jobs file</option>
                   </SelectInput>
                 </Field>
-                <Field label="Search markets">
+                <Field label="Search markets" hint="Filters the catalog; works after Sync (or when the API has seeded markets).">
                   <TextInput
                     placeholder="btc, eth/usdt…"
                     value={state.marketSearch}
                     onChange={(event) => onChange({ marketSearch: event.target.value })}
-                    disabled={catalogEmpty}
                     autoComplete="off"
                   />
                 </Field>
@@ -442,18 +462,64 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
                 >
                   {syncMarketsMutation.isPending ? "Syncing…" : "Sync catalog"}
                 </Button>
+                {state.marketScope === "nobitex_all" && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={syncMarketsMutation.isPending}
+                    onClick={() => {
+                      onChange({ marketScope: "default_jobs", marketSearch: "" });
+                      syncMarketsMutation.mutate("default_jobs");
+                    }}
+                  >
+                    Load offline catalog
+                  </Button>
+                )}
               </div>
 
               {catalogQuery.isLoading && <p className="text-sm text-muted">Loading market catalog…</p>}
-              {catalogEmpty && (
-                <p className="text-sm text-muted">Sync the catalog first, then pick a market for export.</p>
+              {catalogQuery.isError && (
+                <p className="text-sm text-red-400">
+                  {catalogQuery.error instanceof Error
+                    ? catalogQuery.error.message
+                    : "Could not load market catalog (is the Lab API running?)."}
+                </p>
+              )}
+              {syncMarketsMutation.isError && (
+                <p className="text-sm text-red-400">
+                  {syncMarketsMutation.error instanceof Error
+                    ? syncMarketsMutation.error.message
+                    : "Market sync failed."}
+                  {state.marketScope === "nobitex_all" && (
+                    <span className="mt-1 block text-amber-200/90">
+                      Nobitex may be blocked from your network (SSL/VPN). Use{" "}
+                      <strong>Load offline catalog</strong> or switch scope to{" "}
+                      <strong>Crypto 1h jobs file</strong>, then Sync.
+                    </span>
+                  )}
+                </p>
+              )}
+              {catalogEmpty && !catalogQuery.isLoading && (
+                <p className="text-sm text-amber-200/90">
+                  Market catalog is empty. Click <strong>Sync catalog</strong> (needs network to Nobitex), or switch
+                  scope to <strong>Crypto 1h jobs file</strong> for offline pairs.
+                </p>
+              )}
+              {searchNeedle.length > 0 && marketsSearchQuery.isFetching && (
+                <p className="text-sm text-muted">Searching…</p>
               )}
 
-              {totalInCatalog > 0 && (
+              {(totalInCatalog > 0 || displayMarkets.length > 0 || searchNeedle.length > 0) && (
                 <>
                   <p className="text-xs text-muted">
-                    {filteredMarkets.length.toLocaleString()} shown
-                    {searchNeedle ? ` of ${totalInCatalog.toLocaleString()}` : ""}
+                    {displayMarkets.length.toLocaleString()} shown
+                    {searchNeedle
+                      ? marketsSearchQuery.data?.matched_count != null
+                        ? ` (matched ${marketsSearchQuery.data.matched_count.toLocaleString()})`
+                        : ""
+                      : totalInCatalog > 0
+                        ? ` of ${totalInCatalog.toLocaleString()}`
+                        : ""}
                     {catalogQuery.data?.updated_at_utc
                       ? ` · synced ${formatUtcTimestamp(catalogQuery.data.updated_at_utc)}`
                       : ""}
@@ -472,7 +538,7 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
                           variant="secondary"
                           onClick={() =>
                             onChange({
-                              exportMarketSymbols: filteredMarkets.slice(0, 24).map((market) => market.symbol),
+                              exportMarketSymbols: displayMarkets.slice(0, 24).map((market) => market.symbol),
                             })
                           }
                         >
@@ -573,7 +639,14 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredMarkets.slice(0, 80).map((market) => {
+                          {displayMarkets.length === 0 && searchNeedle.length > 0 && !marketsSearchQuery.isFetching && (
+                            <tr>
+                              <td colSpan={3} className="px-3 py-4 text-sm text-muted">
+                                No markets match &ldquo;{searchNeedle}&rdquo;. Try Sync catalog or another scope.
+                              </td>
+                            </tr>
+                          )}
+                          {displayMarkets.slice(0, 80).map((market) => {
                             const checked = state.exportMarketSymbols.includes(market.symbol);
                             return (
                               <tr key={market.symbol} className={checked ? "bg-accent/10" : undefined}>

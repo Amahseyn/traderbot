@@ -4,6 +4,7 @@ from traderbot.bots.base import Bot
 from traderbot.nobitex.client import NobitexClient
 from traderbot.data.export import write_csv
 from traderbot.traders.execution import ExecutionPolicy
+from traderbot.traders.position import order_action_for_long_only
 from traderbot.traders.strategies.algorithm_trader import AlgorithmTrader
 
 
@@ -55,6 +56,13 @@ def test_csv_roundtrip(tmp_path):
     assert len(loaded) == 3
     assert loaded[0]["close"] == 1.0
     assert isinstance(normalize_bar(loaded[1])["close"], float)
+
+
+def test_long_only_gates_repeat_buys():
+    assert order_action_for_long_only(False, "buy") == "buy"
+    assert order_action_for_long_only(True, "buy") is None
+    assert order_action_for_long_only(True, "sell") == "sell"
+    assert order_action_for_long_only(False, "sell") is None
 
 
 def test_algorithm_trader_calls_on_signal(keys):

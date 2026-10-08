@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { JobErrorAlert } from "@/components/JobErrorAlert";
 import { JobForms } from "@/components/JobForms";
 import { JobMonitor } from "@/components/JobMonitor";
+import { OptimizedStrategyParamsBlock } from "@/components/OptimizedStrategyParamsBlock";
 import {
   PipelineDataSection,
   pipelineDataSourceReady,
@@ -23,7 +24,7 @@ import {
 } from "@/lib/format";
 
 const INITIAL_DATA_STATE: PipelineDataSectionState = {
-  dataSourceMode: "existing",
+  dataSourceMode: "download",
   exportDays: "30",
   exportDaysByInterval: {},
   exportHistoryMode: "days",
@@ -87,6 +88,8 @@ export default function CustomPipelinePage() {
   const [limitRunWindow, setLimitRunWindow] = useState(false);
   const [runStartLocal, setRunStartLocal] = useState("");
   const [runEndLocal, setRunEndLocal] = useState("");
+  const [useOptimizedStrategyParams, setUseOptimizedStrategyParams] = useState(true);
+  const [strategyManualParams, setStrategyManualParams] = useState<Record<string, unknown>>({});
 
   const datasetsQuery = useQuery({ queryKey: ["datasets"], queryFn: () => api.datasets(300) });
   const strategiesQuery = useQuery({
@@ -115,6 +118,15 @@ export default function CustomPipelinePage() {
       return next;
     });
   }
+
+  const previewStrategyId = useMemo(() => {
+    for (const row of ruleStrategies) {
+      if (enabledStrategyIds.has(row.id)) {
+        return row.id;
+      }
+    }
+    return ruleStrategies[0]?.id ?? "sma_cross";
+  }, [ruleStrategies, enabledStrategyIds]);
 
   const firstDataset = datasetsQuery.data?.find((row) => dataState.datasetIds.includes(row.id));
   const selectedDatasets = useMemo(
@@ -159,7 +171,11 @@ export default function CustomPipelinePage() {
         fee: Number(feePct) / 100,
         slippage: Number(slippagePct) / 100,
         execution,
+        use_optimized_strategy_params: useOptimizedStrategyParams,
       };
+      if (!useOptimizedStrategyParams) {
+        Object.assign(body, strategyManualParams);
+      }
       if (dataState.exportHistoryMode === "steps") {
         if (dataState.exportSteps.trim() !== "") {
           body.export_steps = Number(dataState.exportSteps);
@@ -293,6 +309,22 @@ export default function CustomPipelinePage() {
                     />
                   )}
                 </Field>
+                <div className="panel-inset space-y-2">
+                  <p className="text-xs text-muted">
+                    Preview for <span className="text-slate-300">{previewStrategyId}</span>. Compare applies
+                    optimized parameters per strategy and per dataset file when enabled.
+                  </p>
+                  <OptimizedStrategyParamsBlock
+                    strategyId={previewStrategyId}
+                    symbol={firstDataset?.symbol ?? null}
+                    resolution={firstDataset?.resolution ?? null}
+                    datasetId={firstDataset?.id ?? null}
+                    useOptimized={useOptimizedStrategyParams}
+                    onUseOptimizedChange={setUseOptimizedStrategyParams}
+                    manualValues={strategyManualParams}
+                    onManualValuesChange={setStrategyManualParams}
+                  />
+                </div>
               </>
             )}
           </div>

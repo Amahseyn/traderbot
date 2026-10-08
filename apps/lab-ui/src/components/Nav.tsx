@@ -10,6 +10,7 @@ type NavLink = { href: string; label: string };
 const LOOP_LINKS: NavLink[] = [
   { href: "/data", label: "Data" },
   { href: "/custom", label: "Custom" },
+  { href: "/live", label: "Live" },
   { href: "/runs", label: "Runs" },
 ];
 

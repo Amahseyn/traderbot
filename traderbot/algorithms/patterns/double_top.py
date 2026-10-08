@@ -18,16 +18,18 @@ def double_top_score(
     min_swing_separation_bars: int = DEFAULT_MIN_SWING_SEPARATION_BARS,
     high_tolerance_ratio: float = DEFAULT_LOW_TOLERANCE_RATIO,
     neckline_break_buffer_ratio: float = DEFAULT_NECKLINE_BREAK_BUFFER_RATIO,
+    swing_high_indices: list[int] | None = None,
 ) -> float:
     bar_count = len(closes)
     if bar_count != len(highs) or bar_count != len(lows) or bar_count < 2 * swing_window_bars + 1:
         return 0.0
 
-    swing_high_indices: list[int] = []
-    for end_index in range(2 * swing_window_bars, bar_count):
-        pivot = is_confirmed_swing_high(highs[: end_index + 1], swing_window_bars)
-        if pivot is not None and (not swing_high_indices or pivot > swing_high_indices[-1]):
-            swing_high_indices.append(pivot)
+    if swing_high_indices is None:
+        swing_high_indices = []
+        for end_index in range(2 * swing_window_bars, bar_count):
+            pivot = is_confirmed_swing_high(highs[: end_index + 1], swing_window_bars)
+            if pivot is not None and (not swing_high_indices or pivot > swing_high_indices[-1]):
+                swing_high_indices.append(pivot)
 
     if len(swing_high_indices) < 2:
         return 0.0

@@ -9,6 +9,7 @@ from traderbot.algorithms.registry import (
     algorithm_for_id,
     strategy_kwargs_from_namespace,
 )
+from traderbot.algorithms.strategy_defaults import namespace_for_strategy_backtest
 from traderbot.backtesting import (
     backtest_summary_dict,
     load_bars_csv,
@@ -18,6 +19,11 @@ from traderbot.backtesting import (
 )
 from traderbot.data.intrahour import enrich_bars_for_csv
 from traderbot.results.layout import default_strategy_batch_out, result_tree_at
+from traderbot.utils.trading_costs import (
+    DEFAULT_BACKTEST_EXECUTION,
+    DEFAULT_SLIPPAGE_RATE,
+    DEFAULT_TRADE_FEE_RATE,
+)
 
 
 @dataclass
@@ -26,9 +32,9 @@ class StrategyBatchOptions:
     strategy_id: str
     out_dir: Path | None = None
     cash: float = 10_000.0
-    fee: float = 0.0
-    slippage: float = 0.0
-    execution: str = "close"
+    fee: float = DEFAULT_TRADE_FEE_RATE
+    slippage: float = DEFAULT_SLIPPAGE_RATE
+    execution: str = DEFAULT_BACKTEST_EXECUTION
     min_bars: int = 30
     visualize: bool = False
     vectorbt: bool = False
@@ -51,7 +57,12 @@ def run_strategy_batch(options: StrategyBatchOptions) -> dict[str, Any]:
         bars = enrich_bars_for_csv(load_bars_csv(csv_path), csv_path, namespace)
         if len(bars) < options.min_bars:
             continue
-        kwargs = strategy_kwargs_from_namespace(options.strategy_id, namespace)
+        per_csv_namespace = namespace_for_strategy_backtest(
+            options.strategy_id,
+            namespace,
+            csv_path=csv_path,
+        )
+        kwargs = strategy_kwargs_from_namespace(options.strategy_id, per_csv_namespace)
         algo = algorithm_for_id(options.strategy_id, **kwargs)
         result = run_backtest(
             algo,
@@ -67,6 +78,7 @@ def run_strategy_batch(options: StrategyBatchOptions) -> dict[str, Any]:
                 bars,
                 initial_cash=options.cash,
                 fee_rate=options.fee,
+                slippage_rate=options.slippage,
             )
             or {}
             if options.vectorbt

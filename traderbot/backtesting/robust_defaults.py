@@ -11,6 +11,11 @@ from traderbot.algorithms.registry import backtest_strategy_ids
 from traderbot.backtesting import load_bars_csv
 from traderbot.backtesting.sweep import SweepOptions, run_strategy_sweep
 from traderbot.utils.resolution import resolution_from_csv_path
+from traderbot.utils.trading_costs import (
+    DEFAULT_BACKTEST_EXECUTION,
+    DEFAULT_SLIPPAGE_RATE,
+    DEFAULT_TRADE_FEE_RATE,
+)
 
 MIN_TUNE_BARS = 100
 DEFAULT_HOLDOUT_FRACTION = 0.2
@@ -33,9 +38,9 @@ class TuneRobustOptions:
     strategy_id: str
     param_grid: dict[str, list[Any]] = field(default_factory=dict)
     cash: float = 10_000.0
-    fee: float = 0.0
-    slippage: float = 0.0
-    execution: str = "close"
+    fee: float = DEFAULT_TRADE_FEE_RATE
+    slippage: float = DEFAULT_SLIPPAGE_RATE
+    execution: str = DEFAULT_BACKTEST_EXECUTION
     holdout_tail_bars: int | None = None
     holdout_fraction: float = DEFAULT_HOLDOUT_FRACTION
     min_trades: int = DEFAULT_MIN_TRADES

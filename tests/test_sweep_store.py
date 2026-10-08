@@ -116,6 +116,47 @@ def test_sweep_api_endpoints(tmp_path: Path):
     assert client.get("/api/stats").json()["sweep_count"] == 1
 
 
+def test_markets_ohlc_endpoint(tmp_path: Path, monkeypatch):
+    import pytest
+
+    pytest.importorskip("fastapi")
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    from lab.app import create_app
+
+    database_path = tmp_path / "lab.db"
+    _init_db(database_path)
+
+    bars = [
+        {
+            "symbol": "ARBUSDT",
+            "resolution": "1",
+            "timestamp": 100,
+            "open": 1.0,
+            "high": 1.1,
+            "low": 0.9,
+            "close": 1.05,
+            "volume": 10.0,
+        },
+    ]
+
+    monkeypatch.setattr(
+        "traderbot.markets.market_data.fetch_recent_closed_bars",
+        lambda **_kwargs: bars,
+    )
+
+    client = TestClient(create_app(database_path=database_path))
+    response = client.get(
+        "/api/markets/ohlc",
+        params={"src": "arb", "dst": "usdt", "resolution": "1", "max_bars": 50},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["symbol"] == "ARBUSDT"
+    assert payload["bars"] == bars
+
+
 def test_strategy_params_endpoint(tmp_path: Path):
     import pytest
 

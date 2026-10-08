@@ -223,20 +223,20 @@
   "horizon:5m": {
     "sma_cross": {
       "robust_params": {
-        "fast": 20,
-        "slow": 50
+        "fast": 5,
+        "slow": 20
       },
       "best_params": {
         "fast": 5,
-        "slow": 100
+        "slow": 20
       },
       "basis": {
         "assets": [
-          "data/WIFIRT_5.csv"
+          "/Users/m/Code/traderbot/data/crypto/horizons/5m/ETHIRT_5.csv"
         ],
         "asset_count": 1,
         "rank_by": "holdout_return_pct",
-        "mean_metric": 0.18914956011730766,
+        "mean_metric": 0.25503260561383634,
         "eligible_assets": 1,
         "param_grid": {
           "fast": [
@@ -263,11 +263,11 @@
       },
       "basis": {
         "assets": [
-          "data/WIFIRT_5.csv"
+          "/Users/m/Code/traderbot/data/crypto/horizons/5m/ETHIRT_5.csv"
         ],
         "asset_count": 1,
         "rank_by": "holdout_return_pct",
-        "mean_metric": 1.529298132646506,
+        "mean_metric": 0.3149583215197316,
         "eligible_assets": 1,
         "param_grid": {
           "period": [
@@ -279,6 +279,1876 @@
             1.5,
             2.0,
             2.5
+          ]
+        }
+      }
+    },
+    "breakout_atr": {
+      "robust_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "best_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/5m/ETHIRT_5.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "lookback_bars": [
+            10,
+            20,
+            40
+          ],
+          "atr_multiplier": [
+            1.0,
+            1.5,
+            2.0
+          ]
+        }
+      }
+    },
+    "ema_cross": {
+      "robust_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/5m/ETHIRT_5.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 0.058069558116846665,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "macd_cross": {
+      "robust_params": {
+        "fast": 8,
+        "slow": 26
+      },
+      "best_params": {
+        "fast": 8,
+        "slow": 26
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/5m/ETHIRT_5.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 0.25503260561383634,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            8,
+            12
+          ],
+          "slow": [
+            21,
+            26
+          ]
+        }
+      }
+    },
+    "rsi_threshold": {
+      "robust_params": {
+        "period": 7,
+        "oversold": 20
+      },
+      "best_params": {
+        "period": 7,
+        "oversold": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/5m/ETHIRT_5.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            7,
+            14,
+            21
+          ],
+          "oversold": [
+            20,
+            30.0
+          ]
+        }
+      }
+    }
+  },
+  "horizon:12h": {
+    "bollinger_mean_reversion": {
+      "robust_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "best_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/12h/ETHUSDT_720.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 4.239580771486406,
+        "eligible_assets": 1,
+        "param_grid": {
+          "period": [
+            14,
+            20,
+            30
+          ],
+          "num_std": [
+            1.5,
+            2.0,
+            2.5
+          ]
+        }
+      }
+    },
+    "breakout_atr": {
+      "robust_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "best_params": {
+        "lookback_bars": 20,
+        "atr_multiplier": 1.5
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/12h/ETHUSDT_720.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "lookback_bars": [
+            10,
+            20,
+            40
+          ],
+          "atr_multiplier": [
+            1.0,
+            1.5,
+            2.0
+          ]
+        }
+      }
+    },
+    "ema_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 5,
+        "slow": 100
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/12h/ETHUSDT_720.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "macd_cross": {
+      "robust_params": {
+        "fast": 12,
+        "slow": 21
+      },
+      "best_params": {
+        "fast": 12,
+        "slow": 21
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/12h/ETHUSDT_720.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -2.2019973291528716,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            8,
+            12
+          ],
+          "slow": [
+            21,
+            26
+          ]
+        }
+      }
+    },
+    "rsi_threshold": {
+      "robust_params": {
+        "period": 7,
+        "oversold": 30.0
+      },
+      "best_params": {
+        "period": 7,
+        "oversold": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/12h/ETHUSDT_720.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            7,
+            14,
+            21
+          ],
+          "oversold": [
+            20,
+            30.0
+          ]
+        }
+      }
+    },
+    "sma_cross": {
+      "robust_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/12h/ETHUSDT_720.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -3.551733781706423,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    }
+  },
+  "horizon:1d": {
+    "bollinger_mean_reversion": {
+      "robust_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "best_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1d/BTCIRT_D.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1d/LTCIRT_D.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            14,
+            20,
+            30
+          ],
+          "num_std": [
+            1.5,
+            2.0,
+            2.5
+          ]
+        }
+      }
+    },
+    "breakout_atr": {
+      "robust_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "best_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.5
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1d/BTCIRT_D.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1d/LTCIRT_D.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "lookback_bars": [
+            10,
+            20,
+            40
+          ],
+          "atr_multiplier": [
+            1.0,
+            1.5,
+            2.0
+          ]
+        }
+      }
+    },
+    "ema_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1d/BTCIRT_D.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1d/LTCIRT_D.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "macd_cross": {
+      "robust_params": {
+        "fast": 12,
+        "slow": 26
+      },
+      "best_params": {
+        "fast": 12,
+        "slow": 26
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1d/BTCIRT_D.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1d/LTCIRT_D.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 12.590415831748135,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            8,
+            12
+          ],
+          "slow": [
+            21,
+            26
+          ]
+        }
+      }
+    },
+    "rsi_threshold": {
+      "robust_params": {
+        "period": 7,
+        "oversold": 30.0
+      },
+      "best_params": {
+        "period": 7,
+        "oversold": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1d/BTCIRT_D.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1d/LTCIRT_D.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            7,
+            14,
+            21
+          ],
+          "oversold": [
+            20,
+            30.0
+          ]
+        }
+      }
+    },
+    "sma_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 5,
+        "slow": 50
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1d/BTCIRT_D.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1d/LTCIRT_D.csv"
+        ],
+        "asset_count": 2,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    }
+  },
+  "horizon:1h": {
+    "bollinger_mean_reversion": {
+      "robust_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "best_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/BTCIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/ETHIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/ETHUSDT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/LTCIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/XRPIRT_60.csv"
+        ],
+        "asset_count": 5,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            14,
+            20,
+            30
+          ],
+          "num_std": [
+            1.5,
+            2.0,
+            2.5
+          ]
+        }
+      }
+    },
+    "breakout_atr": {
+      "robust_params": {
+        "lookback_bars": 20,
+        "atr_multiplier": 1.0
+      },
+      "best_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/BTCIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/ETHIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/ETHUSDT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/LTCIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/XRPIRT_60.csv"
+        ],
+        "asset_count": 5,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "lookback_bars": [
+            10,
+            20,
+            40
+          ],
+          "atr_multiplier": [
+            1.0,
+            1.5,
+            2.0
+          ]
+        }
+      }
+    },
+    "ema_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/BTCIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/ETHIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/ETHUSDT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/LTCIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/XRPIRT_60.csv"
+        ],
+        "asset_count": 5,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 0.2774924433196757,
+        "eligible_assets": 5,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "macd_cross": {
+      "robust_params": {
+        "fast": 8,
+        "slow": 26
+      },
+      "best_params": {
+        "fast": 8,
+        "slow": 21
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/BTCIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/ETHIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/ETHUSDT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/LTCIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/XRPIRT_60.csv"
+        ],
+        "asset_count": 5,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 0.33067717448631295,
+        "eligible_assets": 4,
+        "param_grid": {
+          "fast": [
+            8,
+            12
+          ],
+          "slow": [
+            21,
+            26
+          ]
+        }
+      }
+    },
+    "rsi_threshold": {
+      "robust_params": {
+        "period": 7,
+        "oversold": 30.0
+      },
+      "best_params": {
+        "period": 7,
+        "oversold": 30.0
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/BTCIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/ETHIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/ETHUSDT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/LTCIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/XRPIRT_60.csv"
+        ],
+        "asset_count": 5,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            7,
+            14,
+            21
+          ],
+          "oversold": [
+            20,
+            30.0
+          ]
+        }
+      }
+    },
+    "sma_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/BTCIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/ETHIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/ETHUSDT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/LTCIRT_60.csv",
+          "/Users/m/Code/traderbot/data/crypto/horizons/1h/XRPIRT_60.csv"
+        ],
+        "asset_count": 5,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 0.27263313557839286,
+        "eligible_assets": 5,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    }
+  },
+  "horizon:1m": {
+    "bollinger_mean_reversion": {
+      "robust_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "best_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1m/BTCIRT_1.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            14,
+            20,
+            30
+          ],
+          "num_std": [
+            1.5,
+            2.0,
+            2.5
+          ]
+        }
+      }
+    },
+    "breakout_atr": {
+      "robust_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "best_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1m/BTCIRT_1.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "lookback_bars": [
+            10,
+            20,
+            40
+          ],
+          "atr_multiplier": [
+            1.0,
+            1.5,
+            2.0
+          ]
+        }
+      }
+    },
+    "ema_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1m/BTCIRT_1.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -0.08519469122516554,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "macd_cross": {
+      "robust_params": {
+        "fast": 8,
+        "slow": 26
+      },
+      "best_params": {
+        "fast": 8,
+        "slow": 26
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1m/BTCIRT_1.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -0.08523921421109693,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            8,
+            12
+          ],
+          "slow": [
+            21,
+            26
+          ]
+        }
+      }
+    },
+    "rsi_threshold": {
+      "robust_params": {
+        "period": 7,
+        "oversold": 20
+      },
+      "best_params": {
+        "period": 14,
+        "oversold": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1m/BTCIRT_1.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            7,
+            14,
+            21
+          ],
+          "oversold": [
+            20,
+            30.0
+          ]
+        }
+      }
+    },
+    "sma_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 50
+      },
+      "best_params": {
+        "fast": 5,
+        "slow": 50
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/1m/BTCIRT_1.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -0.08519469122516554,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    }
+  },
+  "horizon:2h": {
+    "bollinger_mean_reversion": {
+      "robust_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "best_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "basis": {
+        "assets": [
+          "data/crypto/horizons/2h/BTCIRT_1.csv",
+          "data/crypto/horizons/2h/BTCIRT_15.csv",
+          "data/crypto/horizons/2h/BTCIRT_60.csv",
+          "data/crypto/horizons/2h/ETHIRT_30.csv",
+          "data/crypto/horizons/2h/ETHIRT_5.csv",
+          "data/crypto/horizons/2h/ETHIRT_60.csv",
+          "data/crypto/horizons/2h/ETHUSDT_60.csv",
+          "data/crypto/horizons/2h/LTCIRT_60.csv",
+          "data/crypto/horizons/2h/XRPIRT_30.csv",
+          "data/crypto/horizons/2h/XRPIRT_60.csv"
+        ],
+        "asset_count": 10,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 1.2200022046295778,
+        "eligible_assets": 2,
+        "param_grid": {
+          "period": [
+            14,
+            20,
+            30
+          ],
+          "num_std": [
+            1.5,
+            2.0,
+            2.5
+          ]
+        }
+      }
+    },
+    "breakout_atr": {
+      "robust_params": {
+        "lookback_bars": 20,
+        "atr_multiplier": 1.0
+      },
+      "best_params": {
+        "lookback_bars": 20,
+        "atr_multiplier": 1.0
+      },
+      "basis": {
+        "assets": [
+          "data/crypto/horizons/2h/BTCIRT_1.csv",
+          "data/crypto/horizons/2h/BTCIRT_15.csv",
+          "data/crypto/horizons/2h/BTCIRT_60.csv",
+          "data/crypto/horizons/2h/ETHIRT_30.csv",
+          "data/crypto/horizons/2h/ETHIRT_5.csv",
+          "data/crypto/horizons/2h/ETHIRT_60.csv",
+          "data/crypto/horizons/2h/ETHUSDT_60.csv",
+          "data/crypto/horizons/2h/LTCIRT_60.csv",
+          "data/crypto/horizons/2h/XRPIRT_30.csv",
+          "data/crypto/horizons/2h/XRPIRT_60.csv"
+        ],
+        "asset_count": 10,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 0.41215933344580513,
+        "eligible_assets": 1,
+        "param_grid": {
+          "lookback_bars": [
+            10,
+            20,
+            40
+          ],
+          "atr_multiplier": [
+            1.0,
+            1.5,
+            2.0
+          ]
+        }
+      }
+    },
+    "ema_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "data/crypto/horizons/2h/BTCIRT_1.csv",
+          "data/crypto/horizons/2h/BTCIRT_15.csv",
+          "data/crypto/horizons/2h/BTCIRT_60.csv",
+          "data/crypto/horizons/2h/ETHIRT_30.csv",
+          "data/crypto/horizons/2h/ETHIRT_5.csv",
+          "data/crypto/horizons/2h/ETHIRT_60.csv",
+          "data/crypto/horizons/2h/ETHUSDT_60.csv",
+          "data/crypto/horizons/2h/LTCIRT_60.csv",
+          "data/crypto/horizons/2h/XRPIRT_30.csv",
+          "data/crypto/horizons/2h/XRPIRT_60.csv"
+        ],
+        "asset_count": 10,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -0.19877081788694703,
+        "eligible_assets": 9,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "macd_cross": {
+      "robust_params": {
+        "fast": 8,
+        "slow": 26
+      },
+      "best_params": {
+        "fast": 8,
+        "slow": 21
+      },
+      "basis": {
+        "assets": [
+          "data/crypto/horizons/2h/BTCIRT_1.csv",
+          "data/crypto/horizons/2h/BTCIRT_15.csv",
+          "data/crypto/horizons/2h/BTCIRT_60.csv",
+          "data/crypto/horizons/2h/ETHIRT_30.csv",
+          "data/crypto/horizons/2h/ETHIRT_5.csv",
+          "data/crypto/horizons/2h/ETHIRT_60.csv",
+          "data/crypto/horizons/2h/ETHUSDT_60.csv",
+          "data/crypto/horizons/2h/LTCIRT_60.csv",
+          "data/crypto/horizons/2h/XRPIRT_30.csv",
+          "data/crypto/horizons/2h/XRPIRT_60.csv"
+        ],
+        "asset_count": 10,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 0.06105725698850471,
+        "eligible_assets": 9,
+        "param_grid": {
+          "fast": [
+            8,
+            12
+          ],
+          "slow": [
+            21,
+            26
+          ]
+        }
+      }
+    },
+    "rsi_threshold": {
+      "robust_params": {
+        "period": 7,
+        "oversold": 30.0
+      },
+      "best_params": {
+        "period": 7,
+        "oversold": 20
+      },
+      "basis": {
+        "assets": [
+          "data/crypto/horizons/2h/BTCIRT_1.csv",
+          "data/crypto/horizons/2h/BTCIRT_15.csv",
+          "data/crypto/horizons/2h/BTCIRT_60.csv",
+          "data/crypto/horizons/2h/ETHIRT_30.csv",
+          "data/crypto/horizons/2h/ETHIRT_5.csv",
+          "data/crypto/horizons/2h/ETHIRT_60.csv",
+          "data/crypto/horizons/2h/ETHUSDT_60.csv",
+          "data/crypto/horizons/2h/LTCIRT_60.csv",
+          "data/crypto/horizons/2h/XRPIRT_30.csv",
+          "data/crypto/horizons/2h/XRPIRT_60.csv"
+        ],
+        "asset_count": 10,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 0.27740491722594296,
+        "eligible_assets": 1,
+        "param_grid": {
+          "period": [
+            7,
+            14,
+            21
+          ],
+          "oversold": [
+            20,
+            30.0
+          ]
+        }
+      }
+    },
+    "sma_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "data/crypto/horizons/2h/BTCIRT_1.csv",
+          "data/crypto/horizons/2h/BTCIRT_15.csv",
+          "data/crypto/horizons/2h/BTCIRT_60.csv",
+          "data/crypto/horizons/2h/ETHIRT_30.csv",
+          "data/crypto/horizons/2h/ETHIRT_5.csv",
+          "data/crypto/horizons/2h/ETHIRT_60.csv",
+          "data/crypto/horizons/2h/ETHUSDT_60.csv",
+          "data/crypto/horizons/2h/LTCIRT_60.csv",
+          "data/crypto/horizons/2h/XRPIRT_30.csv",
+          "data/crypto/horizons/2h/XRPIRT_60.csv"
+        ],
+        "asset_count": 10,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -0.0782990726755707,
+        "eligible_assets": 9,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    }
+  },
+  "horizon:3d": {
+    "bollinger_mean_reversion": {
+      "robust_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "best_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/3d/XRPIRT_3D.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 51.217155191882505,
+        "eligible_assets": 1,
+        "param_grid": {
+          "period": [
+            14,
+            20,
+            30
+          ],
+          "num_std": [
+            1.5,
+            2.0,
+            2.5
+          ]
+        }
+      }
+    },
+    "breakout_atr": {
+      "robust_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "best_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 2.0
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/3d/XRPIRT_3D.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "lookback_bars": [
+            10,
+            20,
+            40
+          ],
+          "atr_multiplier": [
+            1.0,
+            1.5,
+            2.0
+          ]
+        }
+      }
+    },
+    "ema_cross": {
+      "robust_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/3d/XRPIRT_3D.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 36.14833183987329,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "macd_cross": {
+      "robust_params": {
+        "fast": 12,
+        "slow": 26
+      },
+      "best_params": {
+        "fast": 12,
+        "slow": 26
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/3d/XRPIRT_3D.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 78.09371266032672,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            8,
+            12
+          ],
+          "slow": [
+            21,
+            26
+          ]
+        }
+      }
+    },
+    "rsi_threshold": {
+      "robust_params": {
+        "period": 7,
+        "oversold": 30.0
+      },
+      "best_params": {
+        "period": 7,
+        "oversold": 30.0
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/3d/XRPIRT_3D.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 52.446960030074095,
+        "eligible_assets": 1,
+        "param_grid": {
+          "period": [
+            7,
+            14,
+            21
+          ],
+          "oversold": [
+            20,
+            30.0
+          ]
+        }
+      }
+    },
+    "sma_cross": {
+      "robust_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/3d/XRPIRT_3D.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 90.4785274881194,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    }
+  },
+  "horizon:4h": {
+    "bollinger_mean_reversion": {
+      "robust_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "best_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/4h/ETHIRT_240.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            14,
+            20,
+            30
+          ],
+          "num_std": [
+            1.5,
+            2.0,
+            2.5
+          ]
+        }
+      }
+    },
+    "breakout_atr": {
+      "robust_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "best_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/4h/ETHIRT_240.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "lookback_bars": [
+            10,
+            20,
+            40
+          ],
+          "atr_multiplier": [
+            1.0,
+            1.5,
+            2.0
+          ]
+        }
+      }
+    },
+    "ema_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/4h/ETHIRT_240.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "macd_cross": {
+      "robust_params": {
+        "fast": 8,
+        "slow": 21
+      },
+      "best_params": {
+        "fast": 8,
+        "slow": 21
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/4h/ETHIRT_240.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -0.20035771655776413,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            8,
+            12
+          ],
+          "slow": [
+            21,
+            26
+          ]
+        }
+      }
+    },
+    "rsi_threshold": {
+      "robust_params": {
+        "period": 7,
+        "oversold": 30.0
+      },
+      "best_params": {
+        "period": 7,
+        "oversold": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/4h/ETHIRT_240.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            7,
+            14,
+            21
+          ],
+          "oversold": [
+            20,
+            30.0
+          ]
+        }
+      }
+    },
+    "sma_cross": {
+      "robust_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/4h/ETHIRT_240.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    }
+  },
+  "horizon:6h": {
+    "bollinger_mean_reversion": {
+      "robust_params": {
+        "period": 14,
+        "num_std": 2.0
+      },
+      "best_params": {
+        "period": 14,
+        "num_std": 2.0
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/6h/ETHUSDT_360.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 3.571428571428581,
+        "eligible_assets": 1,
+        "param_grid": {
+          "period": [
+            14,
+            20,
+            30
+          ],
+          "num_std": [
+            1.5,
+            2.0,
+            2.5
+          ]
+        }
+      }
+    },
+    "breakout_atr": {
+      "robust_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "best_params": {
+        "lookback_bars": 20,
+        "atr_multiplier": 1.0
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/6h/ETHUSDT_360.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "lookback_bars": [
+            10,
+            20,
+            40
+          ],
+          "atr_multiplier": [
+            1.0,
+            1.5,
+            2.0
+          ]
+        }
+      }
+    },
+    "ema_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/6h/ETHUSDT_360.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -3.432297480613611,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "macd_cross": {
+      "robust_params": {
+        "fast": 8,
+        "slow": 21
+      },
+      "best_params": {
+        "fast": 8,
+        "slow": 21
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/6h/ETHUSDT_360.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -2.8463267934850656,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            8,
+            12
+          ],
+          "slow": [
+            21,
+            26
+          ]
+        }
+      }
+    },
+    "rsi_threshold": {
+      "robust_params": {
+        "period": 7,
+        "oversold": 30.0
+      },
+      "best_params": {
+        "period": 7,
+        "oversold": 30.0
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/6h/ETHUSDT_360.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            7,
+            14,
+            21
+          ],
+          "oversold": [
+            20,
+            30.0
+          ]
+        }
+      }
+    },
+    "sma_cross": {
+      "robust_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 10,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/6h/ETHUSDT_360.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -0.49330179301873,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    }
+  },
+  "horizon:2d": {
+    "bollinger_mean_reversion": {
+      "robust_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "best_params": {
+        "period": 14,
+        "num_std": 1.5
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/2d/ETHIRT_2D.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            14,
+            20,
+            30
+          ],
+          "num_std": [
+            1.5,
+            2.0,
+            2.5
+          ]
+        }
+      }
+    },
+    "breakout_atr": {
+      "robust_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "best_params": {
+        "lookback_bars": 10,
+        "atr_multiplier": 1.0
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/2d/ETHIRT_2D.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "lookback_bars": [
+            10,
+            20,
+            40
+          ],
+          "atr_multiplier": [
+            1.0,
+            1.5,
+            2.0
+          ]
+        }
+      }
+    },
+    "ema_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 50
+      },
+      "best_params": {
+        "fast": 5,
+        "slow": 50
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/2d/ETHIRT_2D.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
+          ]
+        }
+      }
+    },
+    "macd_cross": {
+      "robust_params": {
+        "fast": 8,
+        "slow": 21
+      },
+      "best_params": {
+        "fast": 8,
+        "slow": 21
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/2d/ETHIRT_2D.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": 20.583925525474367,
+        "eligible_assets": 1,
+        "param_grid": {
+          "fast": [
+            8,
+            12
+          ],
+          "slow": [
+            21,
+            26
+          ]
+        }
+      }
+    },
+    "rsi_threshold": {
+      "robust_params": {
+        "period": 7,
+        "oversold": 20
+      },
+      "best_params": {
+        "period": 7,
+        "oversold": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/2d/ETHIRT_2D.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "period": [
+            7,
+            14,
+            21
+          ],
+          "oversold": [
+            20,
+            30.0
+          ]
+        }
+      }
+    },
+    "sma_cross": {
+      "robust_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "best_params": {
+        "fast": 5,
+        "slow": 20
+      },
+      "basis": {
+        "assets": [
+          "/Users/m/Code/traderbot/data/crypto/horizons/2d/ETHIRT_2D.csv"
+        ],
+        "asset_count": 1,
+        "rank_by": "holdout_return_pct",
+        "mean_metric": -Infinity,
+        "eligible_assets": 0,
+        "param_grid": {
+          "fast": [
+            5,
+            10,
+            20
+          ],
+          "slow": [
+            20,
+            50,
+            100
           ]
         }
       }

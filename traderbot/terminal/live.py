@@ -4,21 +4,16 @@ import argparse
 import sys
 
 from traderbot.bots.base import Bot
-from traderbot.markets.market_data import incremental_bar_source, market_symbol
 from traderbot.terminal.namespace_keys import LIVE
 from traderbot.terminal.session import build_terminal_trader
 
 
 def run_live(args: argparse.Namespace) -> None:
-    symbol = market_symbol(args.src, args.dst)
-    trader = build_terminal_trader(
-        args,
-        bar_source=incremental_bar_source(symbol=symbol, resolution=args.interval),
-    )
+    trader = build_terminal_trader(args, bar_source=None)
 
     if getattr(args, LIVE, False):
         print(
-            "live mode: default on_signal is a no-op; subclass AlgorithmTrader for real orders",
+            "live mode: market orders via Nobitex API; use --no-buy/--no-sell to gate sides",
             file=sys.stderr,
         )
 

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from traderbot.algorithms.cli_args import default_strategy_namespace
 from traderbot.algorithms.strategy_defaults import (
     apply_robust_defaults,
+    apply_strategy_baseline_defaults,
     best_params_for,
+    namespace_for_strategy_backtest,
     robust_params_for,
 )
 from traderbot.backtesting.robust_defaults import (
@@ -96,3 +99,40 @@ def test_compare_ranks_strategies_and_defaults_roundtrip(tmp_path: Path):
     applied = apply_robust_defaults(namespace, "sma_cross", resolution="60", path=defaults_path)
     assert applied and namespace.fast == loaded_robust["fast"]
     assert apply_robust_defaults(default_strategy_namespace(), "breakout_atr", resolution="60", path=defaults_path) == []
+
+
+def test_strategy_baseline_defaults_fix_shared_cli_knobs():
+    namespace = default_strategy_namespace()
+    apply_strategy_baseline_defaults(namespace, "macd_cross")
+    assert namespace.fast == 12 and namespace.slow == 26
+    bollinger = default_strategy_namespace()
+    apply_strategy_baseline_defaults(bollinger, "bollinger_mean_reversion")
+    assert bollinger.period == 20
+
+
+def test_namespace_for_strategy_backtest_uses_horizon_bucket(tmp_path: Path):
+    defaults_path = tmp_path / "strategy_defaults.json"
+    defaults_path.write_text(
+        json.dumps(
+            {
+                "horizon:1m": {
+                    "sma_cross": {"robust_params": {"fast": 3, "slow": 30}},
+                },
+                "horizon:1h": {
+                    "sma_cross": {"robust_params": {"fast": 7, "slow": 70}},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    csv_1m = tmp_path / "horizons" / "1m" / "BTCIRT_1.csv"
+    csv_1h = tmp_path / "horizons" / "1h" / "BTCIRT_60.csv"
+    csv_1m.parent.mkdir(parents=True)
+    csv_1h.parent.mkdir(parents=True)
+    csv_1m.touch()
+    csv_1h.touch()
+
+    ns_1m = namespace_for_strategy_backtest("sma_cross", csv_path=csv_1m, defaults_file=defaults_path)
+    ns_1h = namespace_for_strategy_backtest("sma_cross", csv_path=csv_1h, defaults_file=defaults_path)
+    assert ns_1m.fast == 3 and ns_1m.slow == 30
+    assert ns_1h.fast == 7 and ns_1h.slow == 70

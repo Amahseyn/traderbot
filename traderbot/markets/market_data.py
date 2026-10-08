@@ -6,6 +6,7 @@ from typing import Any
 import requests
 
 from traderbot.nobitex.client import BASE_URL, USER_AGENT
+from traderbot.markets.http_client import http_get_with_retries
 from traderbot.markets.utils import history_to_timestamp, trim_forming_candle
 from traderbot.utils.bars import one_minute_bars_known_at, one_minute_history_to_timestamp
 from traderbot.utils.constants import (
@@ -40,13 +41,12 @@ def fetch_nobitex_market_symbols(
     session: requests.Session | None = None,
 ) -> list[str]:
     """All tradable UDF symbols from Nobitex ``GET /market/stats`` (sorted, unique)."""
-    http = session or requests
-    response = http.get(
+    response = http_get_with_retries(
         f"{BASE_URL.rstrip('/')}/market/stats",
         headers={"User-Agent": USER_AGENT},
         timeout=NOBITEX_HTTP_TIMEOUT_SECONDS,
+        session=session,
     )
-    response.raise_for_status()
     payload = response.json()
     if payload.get("status") != "ok":
         raise ValueError("Nobitex market stats request failed")
@@ -79,14 +79,13 @@ def fetch_ohlc_page(
     }
     if history_from_unix_seconds is not None:
         params["from"] = history_from_unix_seconds
-    http = session or requests
-    response = http.get(
+    response = http_get_with_retries(
         f"{BASE_URL.rstrip('/')}/market/udf/history",
         params=params,
         headers={"User-Agent": USER_AGENT},
         timeout=NOBITEX_HTTP_TIMEOUT_SECONDS,
+        session=session,
     )
-    response.raise_for_status()
     return response.json()
 
 
@@ -197,24 +196,48 @@ def fetch_one_minute_bars(
     return closed_bars[-max_bars:]
 
 
+def fetch_recent_closed_bars(
+    *,
+    symbol: str,
+    resolution: str,
+    max_bars: int = MAX_CANDLES,
+    session: requests.Session | None = None,
+) -> list[dict[str, Any]]:
+    """Closed OHLC history (oldest first), up to ``max_bars``."""
+    if max_bars < 1:
+        return []
+    history_to_unix_seconds = history_to_timestamp(resolution, None)
+    payload = fetch_ohlc_page(
+        symbol=symbol,
+        resolution=resolution,
+        history_to_unix_seconds=history_to_unix_seconds,
+        page=1,
+        session=session,
+    )
+    rows = ohlc_rows(payload, symbol=symbol, resolution=resolution)
+    closed_bars = trim_forming_candle(rows)
+    return closed_bars[-max_bars:]
+
+
 def incremental_bar_source(
     *,
     symbol: str,
     resolution: str,
     session: requests.Session | None = None,
+    last_bar_open_unix_seconds: int | None = None,
 ) -> Callable[[], dict[str, Any] | None]:
     """Callable that yields each closed bar once (for live ``AlgorithmTrader`` loops)."""
-    last_bar_open_unix_seconds: int | None = None
+    seen_last = last_bar_open_unix_seconds
 
     def source() -> dict[str, Any] | None:
-        nonlocal last_bar_open_unix_seconds
+        nonlocal seen_last
         bar = fetch_latest_closed_bar(symbol=symbol, resolution=resolution, session=session)
         if bar is None:
             return None
         bar_open_unix_seconds = int(bar["timestamp"])
-        if last_bar_open_unix_seconds is not None and bar_open_unix_seconds <= last_bar_open_unix_seconds:
+        if seen_last is not None and bar_open_unix_seconds <= seen_last:
             return None
-        last_bar_open_unix_seconds = bar_open_unix_seconds
+        seen_last = bar_open_unix_seconds
         return bar
 
     return source

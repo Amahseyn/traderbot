@@ -8,8 +8,14 @@ from typing import Any
 from traderbot.algorithms.cli_args import default_strategy_namespace, merge_strategy_namespace
 from traderbot.algorithms.registry import algorithm_for_id, strategy_kwargs_from_namespace
 from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_backtest
+from traderbot.backtesting.engine import normalize_bar
 from traderbot.backtesting.holdout_window import return_pct_over_equity_tail
 from traderbot.data.intrahour import enrich_bars_for_csv
+from traderbot.utils.trading_costs import (
+    DEFAULT_BACKTEST_EXECUTION,
+    DEFAULT_SLIPPAGE_RATE,
+    DEFAULT_TRADE_FEE_RATE,
+)
 
 MAX_SWEEP_PARAMS = 2
 DEFAULT_MAX_COMBOS = 64
@@ -52,9 +58,9 @@ class SweepOptions:
     strategy_id: str
     param_grid: dict[str, list[Any]]
     cash: float = 10_000.0
-    fee: float = 0.0
-    slippage: float = 0.0
-    execution: str = "close"
+    fee: float = DEFAULT_TRADE_FEE_RATE
+    slippage: float = DEFAULT_SLIPPAGE_RATE
+    execution: str = DEFAULT_BACKTEST_EXECUTION
     holdout_tail_bars: int | None = None
     min_trades: int = 0
     max_combos: int = DEFAULT_MAX_COMBOS
@@ -85,6 +91,16 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
     if not bars:
         raise ValueError(f"No bars in CSV: {csv_path}")
 
+    holdout_bars = options.holdout_tail_bars
+    train_bars = bars
+    if holdout_bars is not None:
+        if len(bars) <= holdout_bars:
+            raise ValueError(
+                f"holdout_tail_bars={holdout_bars} requires more than {holdout_bars} bars (got {len(bars)})"
+            )
+        train_bars = bars[:-holdout_bars]
+        holdout_slice = bars[-holdout_bars:]
+
     names = list(options.param_grid.keys())
     rows: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
@@ -97,7 +113,7 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
             algo = algorithm_for_id(options.strategy_id, **strategy_kwargs_from_namespace(options.strategy_id, namespace))
             result = run_backtest(
                 algo,
-                bars,
+                train_bars,
                 initial_cash=options.cash,
                 fee_rate=options.fee,
                 slippage_rate=options.slippage,
@@ -107,8 +123,23 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
             skipped.append({"params": params, "error": str(exc)})
             continue
         holdout_return = None
-        if options.holdout_tail_bars is not None:
-            holdout_return = return_pct_over_equity_tail(list(result.equity_curve), options.holdout_tail_bars)
+        if holdout_bars is not None:
+            warmup_algo = algorithm_for_id(
+                options.strategy_id,
+                **strategy_kwargs_from_namespace(options.strategy_id, namespace),
+            )
+            for warmup_bar in train_bars:
+                warmup_algo.on_bar(normalize_bar(warmup_bar))
+            holdout_result = run_backtest(
+                warmup_algo,
+                holdout_slice,
+                initial_cash=options.cash,
+                fee_rate=options.fee,
+                slippage_rate=options.slippage,
+                execution=options.execution,
+                reset_algorithm=False,
+            )
+            holdout_return = holdout_result.return_pct
         row = backtest_summary_dict(
             algo,
             result,
@@ -122,11 +153,16 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
         reason = skipped[0]["error"] if skipped else "no combinations"
         raise ValueError(f"sweep found no valid combos: {reason}")
 
-    rank_by = "holdout_return_pct" if options.holdout_tail_bars is not None else "return_pct"
+    rank_by = "return_pct"
 
-    def _rank_key(row: dict[str, Any]) -> tuple[int, float]:
-        metric = row.get(rank_by)
-        return (1 if row["eligible"] else 0, float(metric) if metric is not None else float("-inf"))
+    def _rank_key(row: dict[str, Any]) -> tuple[int, float, float]:
+        train_metric = row.get("return_pct")
+        holdout_metric = row.get("holdout_return_pct")
+        return (
+            1 if row["eligible"] else 0,
+            float(train_metric) if train_metric is not None else float("-inf"),
+            float(holdout_metric) if holdout_metric is not None else float("-inf"),
+        )
 
     rows.sort(key=_rank_key, reverse=True)
     best = rows[0] if rows else None

@@ -29,6 +29,7 @@ from traderbot.results.layout import (
     result_tree_at,
 )
 from traderbot.algorithms.cli_args import add_strategy_param_flags
+from traderbot.utils.trading_costs import DEFAULT_TRADE_FEE_RATE
 
 def _add_vectorbt_flag(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
@@ -50,6 +51,7 @@ def _vectorbt_extra(
         bars,
         initial_cash=args.cash,
         fee_rate=args.fee,
+        slippage_rate=getattr(args, "slippage", 0.0),
     )
     if extra is None:
         print(
@@ -71,17 +73,37 @@ def _add_param_flags(parser: argparse.ArgumentParser) -> None:
 
 
 def _add_fill_flags(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--slippage", type=float, default=0.0, help="Slippage rate per fill (fraction, e.g. 0.0005)")
+    from traderbot.utils.trading_costs import (
+        DEFAULT_BACKTEST_EXECUTION,
+        DEFAULT_SLIPPAGE_RATE,
+        DEFAULT_TRADE_FEE_RATE,
+    )
+
+    parser.add_argument(
+        "--slippage",
+        type=float,
+        default=DEFAULT_SLIPPAGE_RATE,
+        help="Slippage rate per fill (fraction, e.g. 0.0005)",
+    )
     parser.add_argument(
         "--execution",
         choices=["close", "next_open"],
-        default="close",
+        default=DEFAULT_BACKTEST_EXECUTION,
         help="Fill timing: signal-bar close or next-bar open",
     )
 
 
-def _algorithm_kwargs(strategy_id: str, args: argparse.Namespace) -> dict[str, Any]:
-    return strategy_kwargs_from_namespace(strategy_id, args)
+def _algorithm_kwargs(
+    strategy_id: str,
+    args: argparse.Namespace,
+    *,
+    csv_path: Path | None = None,
+) -> dict[str, Any]:
+    from traderbot.algorithms.strategy_defaults import namespace_for_strategy_backtest
+
+    path = csv_path if csv_path is not None else getattr(args, "csv", None)
+    namespace = namespace_for_strategy_backtest(strategy_id, args, csv_path=path)
+    return strategy_kwargs_from_namespace(strategy_id, namespace)
 
 
 def _print_run_trade_logs(algo, result, *, file=sys.stderr) -> None:
@@ -117,8 +139,10 @@ def _run_backtest(
     bars: list[dict],
     strategy_id: str,
     args: argparse.Namespace,
+    *,
+    csv_path: Path | None = None,
 ):
-    algo = algorithm_for_id(strategy_id, **_algorithm_kwargs(strategy_id, args))
+    algo = algorithm_for_id(strategy_id, **_algorithm_kwargs(strategy_id, args, csv_path=csv_path))
     result = run_backtest(
         algo,
         bars,
@@ -142,7 +166,7 @@ def main(argv: list[str] | None = None) -> None:
     backtest.add_argument("csv", type=Path)
     backtest.add_argument("--strategy", choices=implemented_strategy_ids(), default="sma_cross")
     backtest.add_argument("--cash", type=float, default=10_000.0)
-    backtest.add_argument("--fee", type=float, default=0.0)
+    backtest.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(backtest)
     backtest.add_argument("--out", type=Path, default=None, help="Write summary JSON + charts")
     add_visualization_flags(backtest)
@@ -153,7 +177,7 @@ def main(argv: list[str] | None = None) -> None:
     batch.add_argument("csv_dir", type=Path)
     batch.add_argument("--strategy", choices=implemented_strategy_ids(), default="sma_cross")
     batch.add_argument("--cash", type=float, default=10_000.0)
-    batch.add_argument("--fee", type=float, default=0.0)
+    batch.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(batch)
     batch.add_argument(
         "--out",
@@ -172,7 +196,7 @@ def main(argv: list[str] | None = None) -> None:
     )
     compare.add_argument("csv", type=Path)
     compare.add_argument("--cash", type=float, default=10_000.0)
-    compare.add_argument("--fee", type=float, default=0.0)
+    compare.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(compare)
     compare.add_argument(
         "--out",
@@ -191,7 +215,7 @@ def main(argv: list[str] | None = None) -> None:
     sweep.add_argument("csv", type=Path)
     sweep.add_argument("--strategy", choices=implemented_strategy_ids(), default="sma_cross")
     sweep.add_argument("--cash", type=float, default=10_000.0)
-    sweep.add_argument("--fee", type=float, default=0.0)
+    sweep.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(sweep)
     sweep.add_argument(
         "--param",
@@ -218,7 +242,7 @@ def main(argv: list[str] | None = None) -> None:
         help=f"Strategy id or 'all' ({', '.join(implemented_strategy_ids())})",
     )
     tune.add_argument("--cash", type=float, default=10_000.0)
-    tune.add_argument("--fee", type=float, default=0.0)
+    tune.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(tune)
     tune.add_argument(
         "--param",
@@ -254,7 +278,7 @@ def main(argv: list[str] | None = None) -> None:
         if not bars:
             print("No bars in CSV", file=sys.stderr)
             sys.exit(1)
-        algo, result = _run_backtest(bars, args.strategy, args)
+        algo, result = _run_backtest(bars, args.strategy, args, csv_path=args.csv)
         summary = backtest_summary_dict(
             algo,
             result,
@@ -288,7 +312,7 @@ def main(argv: list[str] | None = None) -> None:
             bars = _load_strategy_bars(csv_path, args)
             if len(bars) < args.min_bars:
                 continue
-            algo, result = _run_backtest(bars, args.strategy, args)
+            algo, result = _run_backtest(bars, args.strategy, args, csv_path=csv_path)
             vbt_extra = _vectorbt_extra(algo, bars, args)
             run_dir = tree.run_dir_flat(csv_path.stem)
             viz = wants_visualization(args, has_out=True)
@@ -338,7 +362,7 @@ def main(argv: list[str] | None = None) -> None:
         tree = result_tree_at(compare_root, run_id=args.csv.stem) if compare_root is not None else None
         viz = compare_root is not None and wants_visualization(args, has_out=True)
         for strategy_id in backtest_strategy_ids():
-            algo, result = _run_backtest(bars, strategy_id, args)
+            algo, result = _run_backtest(bars, strategy_id, args, csv_path=args.csv)
             equity_by_strategy[strategy_id] = list(result.equity_curve)
             row = backtest_summary_dict(
                 algo,
@@ -461,6 +485,16 @@ def main(argv: list[str] | None = None) -> None:
         if not csv_paths:
             print("pass at least one --csv or --csv-dir", file=sys.stderr)
             sys.exit(2)
+        if args.horizon_label:
+            from traderbot.backtesting.horizon_tune import filter_csv_paths_for_horizon_tuning
+
+            csv_paths = filter_csv_paths_for_horizon_tuning(csv_paths, args.horizon_label)
+            if not csv_paths:
+                print(
+                    f"no CSVs whose bar horizon matches --horizon-label {args.horizon_label!r}",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
         custom_grid: dict[str, Any] = {}
         for spec in args.params or []:
             try:

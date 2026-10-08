@@ -36,6 +36,10 @@ def _terminal_namespace(body: dict[str, Any], *, csv_path: str | None = None) ->
         csv=Path(csv_path) if csv_path else Path(body.get("csv") or "."),
         max_bars=body.get("max_bars"),
         pace_sec=float(body.get("pace_sec") or 0.0),
+        use_optimized_defaults=bool(body.get("use_optimized_defaults", True)),
+        paper_initial_cash=body.get("paper_initial_cash"),
+        paper_fee_rate=body.get("paper_fee_rate"),
+        until_stopped=bool(body.get("until_stopped")),
     )
 
 
@@ -86,10 +90,15 @@ def run_terminal_live_task(body: dict[str, Any]) -> None:
     from lab.job_control import JobStoppedError, job_cancel_requested
 
     load_env_file()
+    until_stopped = bool(body.get("until_stopped"))
     max_steps = body.get("max_steps")
-    if max_steps is None:
+    if until_stopped:
+        max_steps = None
+    elif max_steps is None:
         max_steps = 5
-    body = {**body, "max_steps": int(max_steps)}
+    else:
+        max_steps = int(max_steps)
+    body = {**body, "max_steps": max_steps, "until_stopped": until_stopped}
     job_id = body.get("job_id")
     args = _terminal_namespace(body)
     if isinstance(job_id, str) and job_id:

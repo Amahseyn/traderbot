@@ -89,6 +89,7 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 | `/experiments` | Lab — strategy test and compare, optimizer sweeps, pipelines, compare charts. Sections: Run, Pipelines (`#pipelines`), Compare results (`#compares`), Sweeps (`#sweeps`) |
 | `/actions` | Redirects to `/experiments` |
 | `/custom` | Custom end-to-end pipeline (export, multi-dataset, compare) |
+| `/live` | Terminal paper/live: once, UDF poll loop, CSV replay (job log + stop) |
 | `/settings` | Nobitex login, API keys, profile |
 
 ## API (UI-facing)
@@ -107,7 +108,7 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 | POST | `/api/jobs/{id}/stop` | Stop a queued or running in-process job |
 | GET | `/api/auth/status`, `/api/auth/profile`, `/api/auth/api-keys` | Nobitex credentials (`.env` on API host) |
 | POST | `/api/auth/login`, `/api/auth/api-keys` | Session login / create API key (writes `.env` when requested) |
-| GET | `/api/catalog/strategies`, `/api/catalog/strategy-params?strategy_id=`, `/api/catalog/terminal` | Strategy and terminal catalogs |
+| GET | `/api/catalog/strategies`, `/api/catalog/strategy-params?strategy_id=`, `/api/catalog/optimized-strategy-params?strategy_id=&symbol=&resolution=&dataset_id=`, `/api/catalog/terminal` | Strategy and terminal catalogs |
 | POST | `/api/jobs/export`, `/api/jobs/strategy-test`, `/api/jobs/strategy-compare`, `/api/jobs/strategy-sweep`, `/api/jobs/pipeline-run`, `/api/jobs/pipeline-run-config`, `/api/jobs/custom-research`, `/api/jobs/terminal-once`, `/api/jobs/terminal-replay`, `/api/jobs/terminal-live` | In-process background jobs |
 
 `GET /api/pipelines` includes `full`, `steps`, and `inputs` for the Lab Pipelines tab. Full pipelines are the end-to-end jobs. The Pipelines tab keeps Active (run forms) separate from a library where you turn pipelines on or rename the label in this browser. `POST /api/jobs/pipeline-run` takes `pipeline_id` plus those inputs (`dataset_id`, `days`, `all_assets`, `horizon`, `fast`, `slow`). Saved configs use `pipeline-run-config`, which accepts the same `params` and per-step `step_params` the form shows.

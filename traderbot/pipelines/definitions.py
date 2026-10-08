@@ -144,7 +144,20 @@ def _run_crypto_1h_local_for_csv(
     tree = result_tree_at(compare_root, run_id=slice_path.stem)
     for strategy_id in backtest_strategy_ids():
         algo = algorithm_for_id(strategy_id)
-        backtest_result = run_backtest(algo, bars, initial_cash=initial_cash, fee_rate=0.0)
+        from traderbot.utils.trading_costs import (
+            DEFAULT_BACKTEST_EXECUTION,
+            DEFAULT_SLIPPAGE_RATE,
+            DEFAULT_TRADE_FEE_RATE,
+        )
+
+        backtest_result = run_backtest(
+            algo,
+            bars,
+            initial_cash=initial_cash,
+            fee_rate=DEFAULT_TRADE_FEE_RATE,
+            slippage_rate=DEFAULT_SLIPPAGE_RATE,
+            execution=DEFAULT_BACKTEST_EXECUTION,
+        )
         equity_by_strategy[strategy_id] = list(backtest_result.equity_curve)
         extra_row: dict = {"strategy_id": strategy_id}
         if holdout_tail_bars is not None:

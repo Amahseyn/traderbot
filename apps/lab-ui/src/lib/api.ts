@@ -131,10 +131,25 @@ export type CatalogStrategy = {
   implemented: boolean;
 };
 
+export type TerminalCatalog = {
+  commands: Array<{ id: string; summary: string }>;
+  strategies: CatalogStrategy[];
+  execution_modes: string[];
+  udf_resolutions: string[];
+};
+
 export type StrategyParamField = {
   name: string;
   kind: "int" | "float" | "bool" | "optional_float" | "string";
   default: unknown;
+};
+
+export type OptimizedStrategyParams = {
+  strategy_id: string;
+  symbol: string | null;
+  resolution: string | null;
+  values: Record<string, unknown>;
+  sources: Record<string, string>;
 };
 
 export type AuthStatus = {
@@ -163,6 +178,25 @@ export type DatasetRow = {
   source: string;
   repo_path?: string;
   last_seen_at_utc: string;
+};
+
+export type OhlcBar = {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume?: number;
+  symbol?: string;
+  resolution?: string;
+};
+
+export type MarketsOhlcResponse = {
+  symbol: string;
+  src: string;
+  dst: string;
+  resolution: string;
+  bars: OhlcBar[];
 };
 
 export type MarketSpec = {
@@ -289,7 +323,16 @@ export const api = {
           "Sync endpoint not found — restart ./run-lab-api.sh to run the current Lab API.",
         );
       }
-      const detail = await response.text();
+      const raw = await response.text();
+      let detail = raw;
+      try {
+        const parsed = JSON.parse(raw) as { detail?: string };
+        if (typeof parsed.detail === "string") {
+          detail = parsed.detail;
+        }
+      } catch {
+        /* plain text */
+      }
       throw new Error(detail || `${response.status} ${response.statusText}`);
     }
     return response.json() as Promise<{
@@ -320,10 +363,46 @@ export const api = {
     fetchJson<CatalogStrategy[]>(
       `/api/catalog/strategies?implemented_only=${implementedOnly ? "true" : "false"}`,
     ),
+  catalogTerminal: (implementedOnly = true) =>
+    fetchJson<TerminalCatalog>(
+      `/api/catalog/terminal?implemented_only=${implementedOnly ? "true" : "false"}`,
+    ),
   strategyParams: (strategyId: string) =>
     fetchJson<{ strategy_id: string; params: StrategyParamField[] }>(
       `/api/catalog/strategy-params?strategy_id=${encodeURIComponent(strategyId)}`,
     ),
+  optimizedStrategyParams: (options: {
+    strategyId: string;
+    symbol?: string;
+    resolution?: string;
+    datasetId?: string;
+  }) => {
+    const params = new URLSearchParams({ strategy_id: options.strategyId });
+    if (options.symbol) {
+      params.set("symbol", options.symbol);
+    }
+    if (options.resolution) {
+      params.set("resolution", options.resolution);
+    }
+    if (options.datasetId) {
+      params.set("dataset_id", options.datasetId);
+    }
+    return fetchJson<OptimizedStrategyParams>(`/api/catalog/optimized-strategy-params?${params.toString()}`);
+  },
+  marketsOhlc: (options: {
+    src: string;
+    dst: string;
+    resolution: string;
+    maxBars?: number;
+  }) => {
+    const params = new URLSearchParams({
+      src: options.src,
+      dst: options.dst,
+      resolution: options.resolution,
+      max_bars: String(options.maxBars ?? 300),
+    });
+    return fetchJson<MarketsOhlcResponse>(`/api/markets/ohlc?${params.toString()}`);
+  },
   stopJob: async (jobId: string) => {
     const response = await fetch(`${API_BASE}/api/jobs/${encodeURIComponent(jobId)}/stop`, {
       method: "POST",

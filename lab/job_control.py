@@ -3,6 +3,7 @@ from __future__ import annotations
 import threading
 
 _active_cancel_events: dict[str, threading.Event] = {}
+_active_job_workers: set[str] = set()
 
 
 class JobStoppedError(Exception):
@@ -13,6 +14,18 @@ def register_job_cancel(job_id: str) -> threading.Event:
     cancel_event = threading.Event()
     _active_cancel_events[job_id] = cancel_event
     return cancel_event
+
+
+def register_job_worker(job_id: str) -> None:
+    _active_job_workers.add(job_id)
+
+
+def unregister_job_worker(job_id: str) -> None:
+    _active_job_workers.discard(job_id)
+
+
+def job_worker_active(job_id: str) -> bool:
+    return job_id in _active_job_workers
 
 
 def unregister_job_cancel(job_id: str) -> None:

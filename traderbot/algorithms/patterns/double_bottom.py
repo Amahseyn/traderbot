@@ -25,6 +25,7 @@ def double_bottom_score(
     min_swing_separation_bars: int = DEFAULT_MIN_SWING_SEPARATION_BARS,
     low_tolerance_ratio: float = DEFAULT_LOW_TOLERANCE_RATIO,
     neckline_break_buffer_ratio: float = DEFAULT_NECKLINE_BREAK_BUFFER_RATIO,
+    swing_low_indices: list[int] | None = None,
 ) -> float:
     """
     Soft score in [0, 1] for a completed double-bottom neckline break at the latest bar.
@@ -34,11 +35,12 @@ def double_bottom_score(
     if bar_count != len(lows) or bar_count != len(highs) or bar_count < 2 * swing_window_bars + 1:
         return 0.0
 
-    swing_low_indices: list[int] = []
-    for end_index in range(2 * swing_window_bars, bar_count):
-        pivot = is_confirmed_swing_low(lows[: end_index + 1], swing_window_bars)
-        if pivot is not None and (not swing_low_indices or pivot > swing_low_indices[-1]):
-            swing_low_indices.append(pivot)
+    if swing_low_indices is None:
+        swing_low_indices = []
+        for end_index in range(2 * swing_window_bars, bar_count):
+            pivot = is_confirmed_swing_low(lows[: end_index + 1], swing_window_bars)
+            if pivot is not None and (not swing_low_indices or pivot > swing_low_indices[-1]):
+                swing_low_indices.append(pivot)
 
     if len(swing_low_indices) < 2:
         return 0.0

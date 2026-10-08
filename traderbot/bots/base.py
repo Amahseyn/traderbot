@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable, Iterable
 
 from traderbot.traders.base import Trader
+
+logger = logging.getLogger(__name__)
 
 STOP_CHECK_SECONDS = 0.25
 
@@ -17,7 +20,10 @@ class Bot:
 
     def run_once(self) -> None:
         for trader in self.traders:
-            trader.step()
+            try:
+                trader.step()
+            except Exception:
+                logger.exception("trader step failed for %s", getattr(trader, "name", trader))
 
     def run(
         self,

@@ -27,7 +27,10 @@ def rsi(closes: list[float], period = 14) -> list[float | None]:
             losses -= delta
     avg_gain = gains / period
     avg_loss = losses / period
-    out[period] = 100.0 if avg_loss == 0 else 100.0 - (100.0 / (1.0 + avg_gain / avg_loss))
+    if avg_loss == 0:
+        out[period] = 50.0 if avg_gain == 0 else 100.0
+    else:
+        out[period] = 100.0 - (100.0 / (1.0 + avg_gain / avg_loss))
     for bar_index in range(period + 1, len(closes)):
         delta = closes[bar_index] - closes[bar_index - 1]
         gain = delta if delta > 0 else 0.0
@@ -35,7 +38,7 @@ def rsi(closes: list[float], period = 14) -> list[float | None]:
         avg_gain = (avg_gain * (period - 1) + gain) / period
         avg_loss = (avg_loss * (period - 1) + loss) / period
         if avg_loss == 0:
-            out[bar_index] = 100.0
+            out[bar_index] = 50.0 if avg_gain == 0 else 100.0
         else:
             out[bar_index] = 100.0 - (100.0 / (1.0 + avg_gain / avg_loss))
     return out
@@ -56,15 +59,19 @@ def macd(
         if bar_index < slow - 1:
             continue
         line[bar_index] = ema_fast[bar_index] - ema_slow[bar_index]
-    valid_line = [value if value is not None else 0.0 for value in line]
-    signal_series = _ema(valid_line, signal)
-    histogram: list[float | None] = [None] * len(closes)
+    first_line_index = slow - 1
     signal_out: list[float | None] = [None] * len(closes)
-    for bar_index in range(len(closes)):
-        if line[bar_index] is None:
-            continue
-        histogram[bar_index] = line[bar_index] - signal_series[bar_index]
-        signal_out[bar_index] = signal_series[bar_index]
+    histogram: list[float | None] = [None] * len(closes)
+    if first_line_index < len(closes):
+        macd_segment = [line[bar_index] for bar_index in range(first_line_index, len(closes))]
+        signal_segment = _ema([float(value) for value in macd_segment], signal)
+        for offset, bar_index in enumerate(range(first_line_index, len(closes))):
+            macd_value = line[bar_index]
+            if macd_value is None:
+                continue
+            signal_value = signal_segment[offset]
+            signal_out[bar_index] = signal_value
+            histogram[bar_index] = macd_value - signal_value
     return line, signal_out, histogram
 
 

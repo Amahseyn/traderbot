@@ -4,8 +4,18 @@ from __future__ import annotations
 
 import math
 
+import pytest
+
 from traderbot.algorithms.bands import bollinger_init, bollinger_update
-from traderbot.algorithms.streaming import ema_init, ema_update, rolling_mean_init, rolling_mean_update
+from traderbot.algorithms.streaming import (
+    atr_init,
+    atr_reset,
+    atr_update,
+    ema_init,
+    ema_update,
+    rolling_mean_init,
+    rolling_mean_update,
+)
 from traderbot.utils.indicators import atr, macd, rsi
 
 
@@ -43,6 +53,26 @@ def test_incremental_rsi_macd_atr_match_batch():
         assert rsi_v is not None
         assert line[i] is not None
         assert atr_v is not None
+
+
+def test_streaming_atr_matches_batch_tail():
+    bars = _synthetic_bars(80)
+    highs = [float(b["high"]) for b in bars]
+    lows = [float(b["low"]) for b in bars]
+    closes = [float(b["close"]) for b in bars]
+    state = atr_init(14)
+    last_streaming = None
+    for bar in bars:
+        last_streaming = atr_update(
+            state,
+            high=float(bar["high"]),
+            low=float(bar["low"]),
+            close=float(bar["close"]),
+        )
+    batch_tail = atr(highs, lows, closes, period=14)[-1]
+    assert last_streaming is not None
+    assert batch_tail is not None
+    assert last_streaming == pytest.approx(batch_tail)
 
 
 def test_streaming_sma_ema_bollinger():

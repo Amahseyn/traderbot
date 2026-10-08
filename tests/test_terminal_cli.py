@@ -46,7 +46,8 @@ def test_terminal_run_max_steps(keys, monkeypatch):
 
     monkeypatch.setenv("NOBITEX_API_PUBLIC_KEY", pub)
     monkeypatch.setenv("NOBITEX_API_PRIVATE_KEY", priv)
-    monkeypatch.setattr("traderbot.terminal.live.incremental_bar_source", lambda **_k: source)
+    monkeypatch.setattr("traderbot.terminal.session.fetch_recent_closed_bars", lambda **_k: [])
+    monkeypatch.setattr("traderbot.markets.market_data.fetch_latest_closed_bar", lambda **_k: bar)
     monkeypatch.setattr("traderbot.terminal.live.Bot", FakeBot)
 
     args = argparse.Namespace(
@@ -86,6 +87,7 @@ def test_terminal_once(monkeypatch, capsys):
         "volume": 1.0,
     }
     monkeypatch.setattr("traderbot.terminal.once.fetch_latest_closed_bar", lambda **_k: bar)
+    monkeypatch.setattr("traderbot.terminal.once.fetch_recent_closed_bars", lambda **_k: [])
     args = argparse.Namespace(
         src="btc",
         dst="rls",
@@ -111,6 +113,110 @@ def test_terminal_once(monkeypatch, capsys):
     assert row["event"] == "once"
     assert row["strategy_id"] == "sma_cross"
     assert row["timestamp"] == 99
+
+
+def test_terminal_trader_live_delegates_orders(keys, monkeypatch):
+    from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+    from traderbot.terminal.trader import TerminalAlgorithmTrader
+    from traderbot.traders.execution import ExecutionPolicy
+
+    class _BuyAlgo(Algorithm):
+        def on_bar(self, bar: Bar) -> SignalAction:
+            return "buy"
+
+    pub, priv = keys
+    client = __import__("traderbot.nobitex.client", fromlist=["NobitexClient"]).NobitexClient(
+        pub,
+        priv,
+        request_fn=lambda *_a, **_k: None,
+    )
+    bar = {
+        "timestamp": 1,
+        "open": 1.0,
+        "high": 1.0,
+        "low": 1.0,
+        "close": 100.0,
+        "volume": 1.0,
+        "symbol": "BTCIRT",
+    }
+    calls: list[str] = []
+
+    def fake_add_market_order(_client, *, symbol, side, amount, price):
+        calls.append(side)
+        return {"status": "ok"}
+
+    monkeypatch.setattr(
+        "traderbot.traders.strategies.algorithm_trader.add_market_order",
+        fake_add_market_order,
+    )
+    monkeypatch.setattr(
+        "traderbot.traders.strategies.algorithm_trader.list_wallets",
+        lambda _client: {"rls": 1000.0},
+    )
+
+    trader = TerminalAlgorithmTrader(
+        client,
+        _BuyAlgo(),
+        bar_source=lambda: bar,
+        execution=ExecutionPolicy.live(),
+        market_symbol="BTCIRT",
+    )
+    trader.step()
+    assert calls == ["buy"]
+
+
+def test_terminal_trader_tick_on_no_new_bar(capsys):
+    from traderbot.terminal.trader import TerminalAlgorithmTrader
+    from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+
+    class _HoldAlgo(Algorithm):
+        def on_bar(self, bar: Bar) -> SignalAction:
+            return "hold"
+
+    trader = TerminalAlgorithmTrader(
+        None,
+        _HoldAlgo(),
+        bar_source=lambda: None,
+        market_symbol="ARBUSDT",
+    )
+    trader.strategy_id = "sma_cross"
+    trader.step()
+    row = json.loads(capsys.readouterr().out)
+    assert row["event"] == "tick"
+    assert row["status"] == "no_new_bar"
+    assert row["poll"] == 1
+
+
+def test_terminal_trader_tick_on_hold_without_emit(capsys):
+    from traderbot.terminal.trader import TerminalAlgorithmTrader
+    from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+
+    class _HoldAlgo(Algorithm):
+        def on_bar(self, bar: Bar) -> SignalAction:
+            return "hold"
+
+    bar = {
+        "timestamp": 42,
+        "open": 1.0,
+        "high": 1.0,
+        "low": 1.0,
+        "close": 1.0,
+        "volume": 1.0,
+        "symbol": "ARBUSDT",
+    }
+    trader = TerminalAlgorithmTrader(
+        None,
+        _HoldAlgo(),
+        bar_source=lambda: bar,
+        market_symbol="ARBUSDT",
+    )
+    trader.strategy_id = "bollinger_mean_reversion"
+    trader.step()
+    row = json.loads(capsys.readouterr().out)
+    assert row["event"] == "tick"
+    assert row["status"] == "evaluated"
+    assert row["signal"] == "hold"
+    assert row["order"] is None
 
 
 def test_terminal_replay(tmp_path, capsys):

@@ -73,6 +73,7 @@ def run_backtest(
     fee_rate = 0.0,
     slippage_rate = 0.0,
     execution = "close",
+    reset_algorithm: bool = True,
 ) -> BacktestResult:
     """
     Long-only backtest: full cash on buy, full exit on sell, mark-to-market each bar.
@@ -92,7 +93,8 @@ def run_backtest(
     if not bars:
         raise ValueError("run_backtest requires at least one bar")
 
-    algorithm.reset()
+    if reset_algorithm:
+        algorithm.reset()
     cash = initial_cash
     position = 0.0
     total_fees = 0.0

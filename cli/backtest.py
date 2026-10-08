@@ -3,13 +3,21 @@ import json
 import sys
 from pathlib import Path
 
+from traderbot.algorithms.cli_args import add_strategy_param_flags
 from traderbot.algorithms.registry import (
     algorithm_for_id,
     implemented_strategy_ids,
     strategy_kwargs_from_namespace,
 )
+from traderbot.algorithms.strategy_defaults import namespace_for_strategy_backtest
 from traderbot.algorithms.visualize import add_visualization_flags, wants_visualization
 from traderbot.backtesting import load_bars_csv, run_backtest, save_backtest_result
+from traderbot.data.intrahour import enrich_bars_for_csv
+from traderbot.utils.trading_costs import (
+    DEFAULT_BACKTEST_EXECUTION,
+    DEFAULT_SLIPPAGE_RATE,
+    DEFAULT_TRADE_FEE_RATE,
+)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -18,31 +26,50 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument("csv", type=Path, help="CSV path, e.g. data/BTCIRT_D.csv")
     parser.add_argument("--cash", type=float, default=10_000.0, help="Starting cash")
-    parser.add_argument("--fee", type=float, default=0.0, help="Fee rate per trade (0–1)")
+    parser.add_argument(
+        "--fee",
+        type=float,
+        default=DEFAULT_TRADE_FEE_RATE,
+        help="Fee rate per trade (0–1)",
+    )
     parser.add_argument(
         "--strategy",
         choices=implemented_strategy_ids(),
         default="sma_cross",
         help="Rule-based strategy (see: traderbot strategy catalog)",
     )
-    parser.add_argument("--fast", type=int, default=5, help="SMA/EMA/MACD fast window")
-    parser.add_argument("--slow", type=int, default=20, help="SMA/EMA/MACD slow window")
-    parser.add_argument("--signal", type=int, default=9, help="MACD signal period")
-    parser.add_argument("--period", type=int, default=14, help="RSI or Bollinger lookback")
-    parser.add_argument("--oversold", type=float, default=30.0)
-    parser.add_argument("--overbought", type=float, default=70.0)
-    parser.add_argument("--num-std", type=float, default=2.0)
+    parser.add_argument(
+        "--slippage",
+        type=float,
+        default=DEFAULT_SLIPPAGE_RATE,
+        help="Slippage rate per fill (fraction)",
+    )
+    parser.add_argument(
+        "--execution",
+        choices=["close", "next_open"],
+        default=DEFAULT_BACKTEST_EXECUTION,
+        help="Fill timing: signal-bar close or next-bar open",
+    )
+    add_strategy_param_flags(parser)
     parser.add_argument("--out", type=Path, default=None, help="Optional output directory for JSON + charts")
     add_visualization_flags(parser)
     args = parser.parse_args(argv)
 
-    bars = load_bars_csv(args.csv)
+    bars = enrich_bars_for_csv(load_bars_csv(args.csv), args.csv, args)
     if not bars:
         print("No bars in CSV", file=sys.stderr)
         sys.exit(1)
 
-    algo = algorithm_for_id(args.strategy, **strategy_kwargs_from_namespace(args.strategy, args))
-    result = run_backtest(algo, bars, initial_cash=args.cash, fee_rate=args.fee)
+    namespace = namespace_for_strategy_backtest(args.strategy, args, csv_path=args.csv)
+    algo = algorithm_for_id(args.strategy, **strategy_kwargs_from_namespace(args.strategy, namespace))
+    result = run_backtest(
+        algo,
+        bars,
+        initial_cash=args.cash,
+        fee_rate=args.fee,
+        slippage_rate=args.slippage,
+        execution=args.execution,
+    )
     summary = {
         "strategy_id": args.strategy,
         "algorithm": algo.name,

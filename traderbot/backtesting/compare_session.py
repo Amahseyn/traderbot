@@ -14,6 +14,7 @@ from traderbot.algorithms.registry import (
     strategy_ids_for_mode,
     strategy_kwargs_from_namespace,
 )
+from traderbot.algorithms.optimized_params import resolve_optimized_namespace
 from traderbot.algorithms.visualize import (
     compare_visualization_paths_to_dict,
     render_compare_plots,
@@ -27,6 +28,11 @@ from traderbot.results.layout import (
     default_strategy_batch_out,
     default_strategy_compare_out,
     result_tree_at,
+)
+from traderbot.utils.trading_costs import (
+    DEFAULT_BACKTEST_EXECUTION,
+    DEFAULT_SLIPPAGE_RATE,
+    DEFAULT_TRADE_FEE_RATE,
 )
 
 
@@ -44,9 +50,9 @@ class StrategyCompareOptions:
     out_dir: Path | None = None
     visualize: bool = True
     cash: float = 10_000.0
-    fee: float = 0.0
-    slippage: float = 0.0
-    execution: str = "close"
+    fee: float = DEFAULT_TRADE_FEE_RATE
+    slippage: float = DEFAULT_SLIPPAGE_RATE
+    execution: str = DEFAULT_BACKTEST_EXECUTION
     vectorbt: bool = False
     strategy_namespace: Any | None = None
     mode: str = "strategies"
@@ -54,6 +60,7 @@ class StrategyCompareOptions:
     max_strategies: int | None = None
     run_start_unix_seconds: int | None = None
     run_end_unix_seconds: int | None = None
+    use_optimized_strategy_params: bool = True
 
 
 def _log(log: LogFn | None, message: str) -> None:
@@ -73,16 +80,26 @@ def _vectorbt_extra(algo, bars: list[dict], options: StrategyCompareOptions) -> 
         bars,
         initial_cash=options.cash,
         fee_rate=options.fee,
+        slippage_rate=options.slippage,
     )
     return extra or {}
 
 
 def _algorithm_kwargs(strategy_id: str, options: StrategyCompareOptions) -> dict[str, Any]:
-    namespace = options.strategy_namespace
-    if namespace is None:
-        from traderbot.algorithms.cli_args import default_strategy_namespace
+    if options.use_optimized_strategy_params:
+        namespace = resolve_optimized_namespace(
+            strategy_id,
+            options.strategy_namespace,
+            csv_path=options.csv_path,
+        )
+    else:
+        from traderbot.algorithms.strategy_defaults import namespace_for_strategy_backtest
 
-        namespace = default_strategy_namespace()
+        namespace = namespace_for_strategy_backtest(
+            strategy_id,
+            options.strategy_namespace,
+            csv_path=options.csv_path,
+        )
     return strategy_kwargs_from_namespace(strategy_id, namespace)
 
 
@@ -216,9 +233,9 @@ class StrategyTestOptions:
     out_dir: Path | None = None
     visualize: bool = True
     cash: float = 10_000.0
-    fee: float = 0.0
-    slippage: float = 0.0
-    execution: str = "close"
+    fee: float = DEFAULT_TRADE_FEE_RATE
+    slippage: float = DEFAULT_SLIPPAGE_RATE
+    execution: str = DEFAULT_BACKTEST_EXECUTION
     vectorbt: bool = False
     strategy_namespace: Any | None = None
     mode: str = "strategies"

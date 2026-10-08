@@ -164,6 +164,7 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
                     max_strategies=max_strategies,
                     run_start_unix_seconds=body.get("run_start_unix_seconds"),
                     run_end_unix_seconds=body.get("run_end_unix_seconds"),
+                    use_optimized_strategy_params=bool(body.get("use_optimized_strategy_params", True)),
                 ),
                 log=log,
             )

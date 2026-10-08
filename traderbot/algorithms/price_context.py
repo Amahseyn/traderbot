@@ -55,11 +55,11 @@ def apply_intrahour_context(
     """Optional gate using 1m-derived ``fine_return_last_5m`` on enriched coarse bars."""
     if action == "buy" and buy_min_fine_last_5m is not None:
         ret = bar.get("fine_return_last_5m")
-        if ret is None or float(ret) < buy_min_fine_last_5m:
+        if ret is not None and float(ret) < buy_min_fine_last_5m:
             return "hold"
     if action == "sell" and sell_max_fine_last_5m is not None:
         ret = bar.get("fine_return_last_5m")
-        if ret is None or float(ret) > sell_max_fine_last_5m:
+        if ret is not None and float(ret) > sell_max_fine_last_5m:
             return "hold"
     return action
 

@@ -15,6 +15,13 @@ class _EmaState(TypedDict):
     value: float | None
 
 
+class _AtrState(TypedDict):
+    period: int
+    true_ranges: list[float]
+    atr_value: float | None
+    prev_close: float | None
+
+
 def rolling_mean_init(window: int) -> _RollingMeanState:
     if window < 1:
         raise ValueError("window must be >= 1")
@@ -54,3 +61,33 @@ def ema_update(state: _EmaState, value: float) -> float:
     else:
         state["value"] = state["alpha"] * value + (1.0 - state["alpha"]) * prev
     return state["value"]
+
+
+def atr_init(period: int) -> _AtrState:
+    if period < 1:
+        raise ValueError("period must be >= 1")
+    return {"period": period, "true_ranges": [], "atr_value": None, "prev_close": None}
+
+
+def atr_reset(state: _AtrState) -> None:
+    state["true_ranges"].clear()
+    state["atr_value"] = None
+    state["prev_close"] = None
+
+
+def atr_update(state: _AtrState, *, high: float, low: float, close: float) -> float | None:
+    prev_close = state["prev_close"]
+    if prev_close is None:
+        true_range = high - low
+    else:
+        true_range = max(high - low, abs(high - prev_close), abs(low - prev_close))
+    state["prev_close"] = close
+    state["true_ranges"].append(true_range)
+    period = state["period"]
+    if len(state["true_ranges"]) < period:
+        return None
+    if state["atr_value"] is None:
+        state["atr_value"] = sum(state["true_ranges"][:period]) / period
+    else:
+        state["atr_value"] = (state["atr_value"] * (period - 1) + true_range) / period
+    return state["atr_value"]

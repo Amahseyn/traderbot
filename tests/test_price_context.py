@@ -26,6 +26,14 @@ def test_apply_mean_reversion_context_blocks_falling_knife_buy():
     )
 
 
+def test_apply_intrahour_context_skips_filter_when_fine_return_missing():
+    from traderbot.algorithms.price_context import apply_intrahour_context
+
+    bar = {"close": 1.0}
+    assert apply_intrahour_context("buy", bar, buy_min_fine_last_5m=-0.01) == "buy"
+    assert apply_intrahour_context("sell", bar, sell_max_fine_last_5m=0.01) == "sell"
+
+
 def test_apply_intrahour_context_blocks_buy_on_weak_fine_tail():
     from traderbot.algorithms.price_context import apply_intrahour_context
 

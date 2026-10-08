@@ -4,6 +4,7 @@ from typing import Any
 
 from traderbot.algorithms.base import Algorithm
 from traderbot.backtesting.engine import normalize_bar
+from traderbot.traders.position import order_action_for_long_only
 
 _STAT_MAP: tuple[tuple[str, str], ...] = (
     ("Total Return [%]", "total_return_pct"),
@@ -59,11 +60,17 @@ def entry_exit_series(algorithm: Algorithm, bars: list[dict[str, Any]]):
     entries: list[bool] = []
     exits: list[bool] = []
     closes: list[float] = []
+    in_position = False
     for raw in bars:
         bar = normalize_bar(raw)
         signal = algorithm.on_bar(bar)
-        entries.append(signal == "buy")
-        exits.append(signal == "sell")
+        order_action = order_action_for_long_only(in_position, signal)
+        entries.append(order_action == "buy")
+        exits.append(order_action == "sell")
+        if order_action == "buy":
+            in_position = True
+        elif order_action == "sell":
+            in_position = False
         closes.append(float(bar["close"]))
     index = pd.Index([int(normalize_bar(b)["timestamp"]) for b in bars], name="timestamp")
     return (
@@ -79,6 +86,7 @@ def vectorbt_portfolio(
     *,
     initial_cash: float,
     fee_rate: float,
+    slippage_rate: float = 0.0,
 ):
     import vectorbt as vbt
 
@@ -87,6 +95,7 @@ def vectorbt_portfolio(
     kwargs: dict[str, Any] = {
         "init_cash": initial_cash,
         "fees": fee_rate,
+        "slippage": slippage_rate,
         "size": 1.0,
         "size_type": "percent",
     }
@@ -101,18 +110,20 @@ def vectorbt_metrics_dict(
     *,
     initial_cash: float,
     fee_rate: float,
+    slippage_rate: float = 0.0,
 ) -> dict[str, Any]:
     """
     Risk and trade analytics via vectorbt (optional dependency).
 
-    Strategy signals still come from :class:`~traderbot.algorithms.base.Algorithm`;
-    this does not replace :func:`traderbot.backtesting.run_backtest` for equity simulation.
+    Uses the same long-only entry/exit gating as :func:`traderbot.backtesting.run_backtest`
+    (fees + slippage; fill timing still differs from ``next_open``).
     """
     pf = vectorbt_portfolio(
         algorithm,
         bars,
         initial_cash=initial_cash,
         fee_rate=fee_rate,
+        slippage_rate=slippage_rate,
     )
     stats = pf.stats()
     out: dict[str, Any] = {}
@@ -129,6 +140,7 @@ def vectorbt_extra_for_backtest(
     *,
     initial_cash: float,
     fee_rate: float,
+    slippage_rate: float = 0.0,
 ) -> dict[str, Any] | None:
     try:
         metrics = vectorbt_metrics_dict(
@@ -136,6 +148,7 @@ def vectorbt_extra_for_backtest(
             bars,
             initial_cash=initial_cash,
             fee_rate=fee_rate,
+            slippage_rate=slippage_rate,
         )
     except ImportError:
         return None

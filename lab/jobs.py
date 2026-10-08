@@ -16,9 +16,12 @@ from lab.store.constants import (
 )
 from lab.job_control import (
     JobStoppedError,
+    job_worker_active,
     register_job_cancel,
+    register_job_worker,
     request_job_cancel,
     unregister_job_cancel,
+    unregister_job_worker,
 )
 from lab.job_resolvers import (
     JobPayloadError,
@@ -103,17 +106,9 @@ def list_jobs(connection, limit: int = 50) -> list[dict[str, Any]]:
         "SELECT * FROM jobs ORDER BY created_at_utc DESC LIMIT ?",
         (capped,),
     ).fetchall()
+    jobs = [_job_row_dict(row) for row in rows]
     return [
-        {
-            "id": row["id"],
-            "job_type": row["job_type"],
-            "status": row["status"],
-            "payload": json.loads(row["payload_json"]),
-            "log_text": row["log_text"],
-            "created_at_utc": row["created_at_utc"],
-            "finished_at_utc": row["finished_at_utc"],
-        }
-        for row in rows
+        _reconcile_stale_running_job(connection, job["id"], job) for job in jobs
     ]
 
 
@@ -143,10 +138,7 @@ def reconcile_orphan_lab_jobs(connection) -> int:
     return int(cursor.rowcount)
 
 
-def _fetch_job(connection, job_id: str) -> dict[str, Any] | None:
-    row = connection.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
-    if row is None:
-        return None
+def _job_row_dict(row) -> dict[str, Any]:
     return {
         "id": row["id"],
         "job_type": row["job_type"],
@@ -158,6 +150,27 @@ def _fetch_job(connection, job_id: str) -> dict[str, Any] | None:
     }
 
 
+def _reconcile_stale_running_job(connection, job_id: str, row: dict[str, Any]) -> dict[str, Any]:
+    if row["status"] != JOB_STATUS_RUNNING:
+        return row
+    if job_worker_active(job_id):
+        return row
+    log_text = (row.get("log_text") or "") + ORPHAN_JOB_LOG
+    _update_job(connection, job_id, status=JOB_STATUS_FAILED, log_text=log_text, finished=True)
+    refreshed = connection.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+    if refreshed is None:
+        return row
+    return _job_row_dict(refreshed)
+
+
+def _fetch_job(connection, job_id: str) -> dict[str, Any] | None:
+    row = connection.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+    if row is None:
+        return None
+    job = _job_row_dict(row)
+    return _reconcile_stale_running_job(connection, job_id, job)
+
+
 def _run_inprocess_job(
     connection_factory: Callable,
     job_id: str,
@@ -167,6 +180,7 @@ def _run_inprocess_job(
     on_success=None,
 ) -> None:
     cancel_event = register_job_cancel(job_id)
+    register_job_worker(job_id)
     connection = connection_factory()
     writer = CancellableJobLogWriter(connection_factory, job_id, cancel_event)
     try:
@@ -206,6 +220,7 @@ def _run_inprocess_job(
         _update_job(connection, job_id, status=JOB_STATUS_FAILED, log_text=log_text, finished=True)
     finally:
         unregister_job_cancel(job_id)
+        unregister_job_worker(job_id)
         try:
             connection.close()
         except Exception:

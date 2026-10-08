@@ -442,6 +442,7 @@ def load_market_catalog_scope(
         query=None,
         limit=max_rows,
         offset=0,
+        hard_cap=max_rows,
     )
     return markets
 
@@ -476,8 +477,10 @@ def search_market_catalog(
     query: str | None = None,
     limit: int = 100,
     offset: int = 0,
+    hard_cap: int | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
-    capped_limit = min(max(limit, 1), 500)
+    max_limit = hard_cap if hard_cap is not None else 500
+    capped_limit = min(max(limit, 1), max_limit)
     safe_offset = max(offset, 0)
     params: list[Any] = [catalog_scope]
     where_clause = "catalog_scope = ?"

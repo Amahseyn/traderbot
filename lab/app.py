@@ -22,6 +22,7 @@ from lab.store.catalog import (
     backfill_datasets,
     count_market_catalog,
     ensure_default_jobs_catalog,
+    ensure_market_catalog,
     fetch_dataset,
     fetch_dataset_by_repo_path,
     list_datasets,
@@ -349,9 +350,8 @@ def create_app(database_path: Path | None = None):
             raise HTTPException(status_code=400, detail="unsupported market catalog scope")
         connection = get_connection()
         try:
-            if scope == CATALOG_SCOPE_DEFAULT_JOBS:
-                ensure_default_jobs_catalog(connection)
-                connection.commit()
+            ensure_market_catalog(connection)
+            connection.commit()
             if catalog:
                 markets = load_market_catalog_scope(connection, catalog_scope=scope)
                 matched_count = len(markets)
@@ -403,10 +403,15 @@ def create_app(database_path: Path | None = None):
         except FileNotFoundError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except Exception as exc:
-            raise HTTPException(
-                status_code=502,
-                detail=f"Could not clone market catalog from Nobitex: {exc}",
-            ) from exc
+            if scope == CATALOG_SCOPE_DEFAULT_JOBS:
+                detail = f"Could not load market catalog from jobs file: {exc}"
+            else:
+                detail = (
+                    f"Could not reach Nobitex market/stats ({exc}). "
+                    "Check network/VPN, retry Sync, or switch catalog scope to "
+                    f"'{CATALOG_SCOPE_DEFAULT_JOBS}' for offline pairs from export.jobs."
+                )
+            raise HTTPException(status_code=502, detail=detail) from exc
         finally:
             connection.close()
         return {
