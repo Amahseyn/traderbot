@@ -9,12 +9,15 @@ import pytest
 from traderbot.algorithms.bands import bollinger_init, bollinger_update
 from traderbot.algorithms.streaming import (
     atr_init,
-    atr_reset,
     atr_update,
     ema_init,
     ema_update,
+    macd_init,
+    macd_update,
     rolling_mean_init,
     rolling_mean_update,
+    rsi_init,
+    rsi_update,
 )
 from traderbot.utils.indicators import atr, macd, rsi
 
@@ -42,17 +45,24 @@ def test_incremental_rsi_macd_atr_match_batch():
     closes = [float(b["close"]) for b in bars]
     highs = [float(b["high"]) for b in bars]
     lows = [float(b["low"]) for b in bars]
+    rsi_state = rsi_init(14)
+    macd_state = macd_init(12, 26, 9)
+    stream_rsi = None
+    stream_line = None
+    stream_sig = None
+    for close in closes:
+        stream_rsi = rsi_update(rsi_state, close)
+        stream_line, stream_sig, _stream_hist = macd_update(macd_state, close)
 
-    for i in range(30, len(bars)):
-        prefix_c = closes[: i + 1]
-        prefix_h = highs[: i + 1]
-        prefix_l = lows[: i + 1]
-        rsi_v = rsi(prefix_c)[i]
-        line, sig, hist = macd(prefix_c)
-        atr_v = atr(prefix_h, prefix_l, prefix_c)[i]
-        assert rsi_v is not None
-        assert line[i] is not None
-        assert atr_v is not None
+    batch_rsi = rsi(closes)[-1]
+    line, sig, _hist = macd(closes)
+    atr_v = atr(highs, lows, closes)[-1]
+    assert batch_rsi is not None
+    assert line[-1] is not None
+    assert atr_v is not None
+    assert stream_rsi == pytest.approx(batch_rsi)
+    assert stream_line == pytest.approx(line[-1])
+    assert stream_sig == pytest.approx(sig[-1])
 
 
 def test_streaming_atr_matches_batch_tail():

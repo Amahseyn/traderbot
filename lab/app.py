@@ -65,10 +65,12 @@ def create_app(database_path: Path | None = None):
             "Lab API requires optional dependencies. Install: pip install -e '.[ui]'",
         ) from import_error
 
+    from lab.config import lab_cors_origins
+
     app = FastAPI(title="Traderbot Lab API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=lab_cors_origins(),
         allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -438,6 +440,9 @@ def create_app(database_path: Path | None = None):
     register_catalog_routes(app)
     register_auth_routes(app, get_connection)
     register_job_routes(app, get_connection)
+    from lab.risk_routes import register_risk_routes
+
+    register_risk_routes(app)
 
     return app
 

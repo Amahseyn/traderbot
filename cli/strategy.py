@@ -76,7 +76,6 @@ def _add_fill_flags(parser: argparse.ArgumentParser) -> None:
     from traderbot.utils.trading_costs import (
         DEFAULT_BACKTEST_EXECUTION,
         DEFAULT_SLIPPAGE_RATE,
-        DEFAULT_TRADE_FEE_RATE,
     )
 
     parser.add_argument(

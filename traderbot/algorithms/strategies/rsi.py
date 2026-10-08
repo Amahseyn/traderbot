@@ -2,7 +2,7 @@ from traderbot.algorithms.base import Algorithm, Bar, SignalAction
 from traderbot.algorithms.price_context import apply_mean_reversion_context
 from traderbot.algorithms.signals import signal_from_thresholds
 from traderbot.algorithms.validators import validate_price_context, validate_rsi_bands
-from traderbot.utils.indicators import rsi
+from traderbot.algorithms.streaming import rsi_init, rsi_reset, rsi_update
 
 
 class RsiThresholdAlgorithm(Algorithm):
@@ -33,13 +33,16 @@ class RsiThresholdAlgorithm(Algorithm):
         self.buy_min_fine_last_5m = buy_min_fine_last_5m
         self.sell_max_fine_last_5m = sell_max_fine_last_5m
         self._closes: list[float] = []
+        self._rsi = rsi_init(period)
 
     def reset(self) -> None:
         self._closes.clear()
+        rsi_reset(self._rsi)
 
     def on_bar(self, bar: Bar) -> SignalAction:
-        self._closes.append(float(bar["close"]))
-        current = rsi(self._closes, period=self.period)[-1]
+        close = float(bar["close"])
+        self._closes.append(close)
+        current = rsi_update(self._rsi, close)
         action = signal_from_thresholds(
             current,
             buy_at_or_below=self.oversold,

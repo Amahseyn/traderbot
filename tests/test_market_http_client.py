@@ -1,4 +1,3 @@
-import pytest
 import requests
 
 from traderbot.markets.http_client import http_get_with_retries

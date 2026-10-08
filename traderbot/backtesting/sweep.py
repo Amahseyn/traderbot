@@ -9,7 +9,6 @@ from traderbot.algorithms.cli_args import default_strategy_namespace, merge_stra
 from traderbot.algorithms.registry import algorithm_for_id, strategy_kwargs_from_namespace
 from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_backtest
 from traderbot.backtesting.engine import normalize_bar
-from traderbot.backtesting.holdout_window import return_pct_over_equity_tail
 from traderbot.data.intrahour import enrich_bars_for_csv
 from traderbot.utils.trading_costs import (
     DEFAULT_BACKTEST_EXECUTION,
@@ -153,15 +152,25 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
         reason = skipped[0]["error"] if skipped else "no combinations"
         raise ValueError(f"sweep found no valid combos: {reason}")
 
-    rank_by = "return_pct"
+    rank_by = "holdout_return_pct" if holdout_bars is not None else "return_pct"
+
+    for row in rows:
+        holdout_return = row.get("holdout_return_pct")
+        row["holdout_losing"] = (
+            holdout_return is not None and float(holdout_return) < 0.0
+        )
 
     def _rank_key(row: dict[str, Any]) -> tuple[int, float, float]:
-        train_metric = row.get("return_pct")
-        holdout_metric = row.get("holdout_return_pct")
+        primary = (
+            row.get("holdout_return_pct")
+            if holdout_bars is not None
+            else row.get("return_pct")
+        )
+        secondary = row.get("return_pct")
         return (
             1 if row["eligible"] else 0,
-            float(train_metric) if train_metric is not None else float("-inf"),
-            float(holdout_metric) if holdout_metric is not None else float("-inf"),
+            float(primary) if primary is not None else float("-inf"),
+            float(secondary) if secondary is not None else float("-inf"),
         )
 
     rows.sort(key=_rank_key, reverse=True)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlencode
@@ -55,11 +56,15 @@ class NobitexClient:
         *,
         json_body: dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
+        idempotent: bool | None = None,
     ) -> Any:
+        if idempotent is None:
+            idempotent = method.upper() == "GET"
         if not path.startswith("/"):
             path = f"/{path}"
+        query_path = path
         if params:
-            path += "?" + urlencode({k: v for k, v in params.items() if v is not None})
+            query_path += "?" + urlencode({k: v for k, v in params.items() if v is not None})
 
         body = ""
         data = None
@@ -69,26 +74,45 @@ class NobitexClient:
             headers["Content-Type"] = "application/json"
             data = body
 
-        signature, timestamp = sign_request(
-            private_key_b64=self._private_key,
-            method=method,
-            full_path=path,
-            body=body,
-        )
-        headers["Nobitex-Key"] = self._public_key
-        headers["Nobitex-Signature"] = signature
-        headers["Nobitex-Timestamp"] = timestamp
+        url = f"{self._base_url}{query_path}"
+        attempt = 0
+        while True:
+            signature, timestamp = sign_request(
+                private_key_b64=self._private_key,
+                method=method,
+                full_path=query_path,
+                body=body,
+            )
+            headers["Nobitex-Key"] = self._public_key
+            headers["Nobitex-Signature"] = signature
+            headers["Nobitex-Timestamp"] = timestamp
 
-        url = f"{self._base_url}{path}"
-        if self._request_fn:
-            response = self._request_fn(method.upper(), url, headers=headers, data=data, timeout=60)
-        else:
-            response = requests.request(method.upper(), url, headers=headers, data=data, timeout=60)
+            if self._request_fn:
+                response = self._request_fn(method.upper(), url, headers=headers, data=data, timeout=60)
+            else:
+                response = requests.request(method.upper(), url, headers=headers, data=data, timeout=60)
 
-        try:
-            parsed = response.json()
-        except json.JSONDecodeError:
-            parsed = response.text
-        if response.status_code != 200:
-            raise NobitexClientError(f"{method} {path} failed", response.status_code, parsed)
-        return parsed
+            try:
+                parsed = response.json()
+            except json.JSONDecodeError:
+                parsed = response.text
+            if response.status_code == 429 and idempotent and attempt < 4:
+                attempt += 1
+                time.sleep(2**attempt)
+                continue
+            if response.status_code != 200:
+                raise NobitexClientError(f"{method} {path} failed", response.status_code, parsed)
+            if isinstance(parsed, dict):
+                status = parsed.get("status")
+                if status is not None and status != "ok":
+                    code = str(parsed.get("code", ""))
+                    if idempotent and code in ("TooManyRequests", "RateLimitExceeded") and attempt < 4:
+                        attempt += 1
+                        time.sleep(2**attempt)
+                        continue
+                    raise NobitexClientError(
+                        f"{method} {path} rejected: {parsed.get('message', status)}",
+                        response.status_code,
+                        parsed,
+                    )
+            return parsed

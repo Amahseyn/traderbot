@@ -1,4 +1,5 @@
 import base64
+from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives import serialization
@@ -16,3 +17,8 @@ def keys():
         format=serialization.PublicFormat.Raw,
     )
     return base64.urlsafe_b64encode(pub).decode().rstrip("="), private_b64
+
+
+@pytest.fixture(autouse=True)
+def hermetic_data_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("TRADERBOT_DB", str(tmp_path / "hermetic-traderbot.db"))

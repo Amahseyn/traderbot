@@ -36,7 +36,8 @@ def _terminal_namespace(body: dict[str, Any], *, csv_path: str | None = None) ->
         csv=Path(csv_path) if csv_path else Path(body.get("csv") or "."),
         max_bars=body.get("max_bars"),
         pace_sec=float(body.get("pace_sec") or 0.0),
-        use_optimized_defaults=bool(body.get("use_optimized_defaults", True)),
+        use_optimized_defaults=bool(body.get("use_optimized_defaults", False)),
+        apply_sweep_winner=bool(body.get("apply_sweep_winner", False)),
         paper_initial_cash=body.get("paper_initial_cash"),
         paper_fee_rate=body.get("paper_fee_rate"),
         until_stopped=bool(body.get("until_stopped")),
@@ -73,7 +74,6 @@ def run_terminal_once_task(body: dict[str, Any]) -> None:
 
 def run_terminal_replay_task(body: dict[str, Any], csv_path: str) -> None:
     args = _terminal_namespace(body, csv_path=csv_path)
-    import sys
     from contextlib import redirect_stdout
 
     buffer = StringIO()

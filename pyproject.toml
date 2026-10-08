@@ -20,8 +20,8 @@ build-backend = "setuptools.build_meta"
 [project.optional-dependencies]
 viz = ["matplotlib>=3.8"]
 backtest = ["vectorbt>=1.1.1", "pandas>=2.0", "numpy>=1.24"]
-dev = ["pytest>=8.0", "traderbot[viz]"]
-ui = ["fastapi>=0.115", "uvicorn[standard]>=0.32"]
+dev = ["pytest>=8.0", "httpx2>=0.1.0", "traderbot[viz]"]
+ui = ["fastapi>=0.115", "uvicorn[standard]>=0.32", "httpx2>=0.1.0"]
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -100,7 +100,8 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
   const [pollSec, setPollSec] = useState("60");
   const [continuousLimit, setContinuousLimit] = useState<ContinuousLimit>("until_stopped");
   const [maxSteps, setMaxSteps] = useState("24");
-  const [useOptimized, setUseOptimized] = useState(true);
+  const [useOptimized, setUseOptimized] = useState(false);
+  const [applySweepWinner, setApplySweepWinner] = useState(false);
   const [strategyParams, setStrategyParams] = useState<Record<string, unknown>>({});
   const [paperInitialCash, setPaperInitialCash] = useState("10000000");
 
@@ -218,6 +219,7 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
       no_sell: noSell,
       emit_holds: emitHolds,
       use_optimized_defaults: useOptimized,
+      apply_sweep_winner: applySweepWinner,
     };
     if (!liveOrders) {
       const cash = Number(paperInitialCash);
@@ -249,6 +251,7 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
     noSell,
     emitHolds,
     useOptimized,
+    applySweepWinner,
     strategyParams,
     executionMode,
     pollSec,
@@ -615,6 +618,15 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
               manualValues={strategyParams}
               onManualValuesChange={setStrategyParams}
             />
+            <label className="flex items-center gap-2 text-sm text-slate-200">
+              <input
+                type="checkbox"
+                checked={applySweepWinner}
+                disabled={!useOptimized}
+                onChange={(event) => setApplySweepWinner(event.target.checked)}
+              />
+              Apply latest sweep winner (explicit approval; never automatic for live)
+            </label>
           </div>
 
           <div className="border-t border-border pt-4">

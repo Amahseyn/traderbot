@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import sys
 
-from cli.interface.pickables import Pickable, pickable_by_id
+from cli.interface.pickables import pickable_by_id
 
 
 def run_pickable(pick_id: str, *, dry_run = False) -> list[list[str]]:

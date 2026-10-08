@@ -6,7 +6,6 @@ from typing import Any
 
 from traderbot.backtesting.compare_session import StrategyCompareOptions, run_strategy_compare
 from traderbot.data.crypto_store import resolve_crypto_1h_csv_paths
-from traderbot.backtesting import load_bars_csv
 from traderbot.data.export import run_export
 from traderbot.markets.market_data import market_symbol as build_market_symbol
 from traderbot.utils.bars import filter_bars_by_unix_range

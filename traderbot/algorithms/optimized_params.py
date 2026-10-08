@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -47,12 +46,17 @@ def best_sweep_params_from_db(
     if resolution:
         clauses.append("resolution = ?")
         params.append(str(resolution))
-    with sqlite3.connect(db_path) as connection:
+    from lab.store.database import open_database
+
+    connection = open_database(db_path)
+    try:
         row = connection.execute(
             f"SELECT best_params_json FROM sweep_sessions WHERE {' AND '.join(clauses)}"
             " ORDER BY created_at_utc DESC LIMIT 1",
             params,
         ).fetchone()
+    finally:
+        connection.close()
     if row is None:
         return None
     try:
@@ -73,8 +77,9 @@ def resolve_optimized_namespace(
     resolution: str | None = None,
     defaults_file: Path | str | None = None,
     database_path: Path | str | None = None,
+    apply_sweep_winner: bool = False,
 ) -> Any:
-    """Robust tuned defaults, then latest sweep winner for symbol × resolution when present."""
+    """Robust tuned defaults; sweep winner only when ``apply_sweep_winner`` is explicitly set."""
     namespace = namespace_for_strategy_backtest(
         strategy_id,
         base,
@@ -91,16 +96,17 @@ def resolve_optimized_namespace(
             bar_resolution = resolution_from_csv_path(Path(csv_path).name)
         except (ValueError, IndexError):
             bar_resolution = None
-    sweep_params = best_sweep_params_from_db(
-        strategy_id,
-        symbol=market_symbol,
-        resolution=bar_resolution,
-        database_path=database_path,
-    )
-    if sweep_params:
-        for name, value in sweep_params.items():
-            if hasattr(namespace, name):
-                setattr(namespace, name, value)
+    if apply_sweep_winner:
+        sweep_params = best_sweep_params_from_db(
+            strategy_id,
+            symbol=market_symbol,
+            resolution=bar_resolution,
+            database_path=database_path,
+        )
+        if sweep_params:
+            for name, value in sweep_params.items():
+                if hasattr(namespace, name):
+                    setattr(namespace, name, value)
     return namespace
 
 

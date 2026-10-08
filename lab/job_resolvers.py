@@ -3,7 +3,6 @@ from __future__ import annotations
 import math
 import sqlite3
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any
 
 from traderbot.algorithms.registry import normalize_strategy_mode, strategy_ids_for_mode

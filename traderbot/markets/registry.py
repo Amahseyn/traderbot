@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from traderbot.data.export import load_jobs
-from traderbot.markets.market_data import BASE_URL, RESOLUTIONS, fetch_nobitex_market_symbols, market_symbol
+from traderbot.markets.market_data import BASE_URL, RESOLUTIONS, fetch_nobitex_market_symbols
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_JOBS_PATH = REPO_ROOT / "export.jobs.example.json"

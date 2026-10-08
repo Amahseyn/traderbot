@@ -219,18 +219,44 @@ def fetch_recent_closed_bars(
     return closed_bars[-max_bars:]
 
 
+def fetch_closed_bars_after(
+    *,
+    symbol: str,
+    resolution: str,
+    after_open_unix_seconds: int,
+    session: requests.Session | None = None,
+) -> list[dict[str, Any]]:
+    """Closed bars with open time strictly after ``after_open_unix_seconds`` (oldest first)."""
+    history_to_unix_seconds = history_to_timestamp(resolution, None)
+    rows = fetch_ohlc_range(
+        symbol=symbol,
+        resolution=resolution,
+        history_from_unix_seconds=after_open_unix_seconds + 1,
+        history_to_unix_seconds=history_to_unix_seconds,
+        session=session,
+    )
+    closed = trim_forming_candle(rows)
+    return [bar for bar in closed if int(bar["timestamp"]) > after_open_unix_seconds]
+
+
 def incremental_bar_source(
     *,
     symbol: str,
     resolution: str,
     session: requests.Session | None = None,
     last_bar_open_unix_seconds: int | None = None,
+    pending_bars: list[dict[str, Any]] | None = None,
 ) -> Callable[[], dict[str, Any] | None]:
     """Callable that yields each closed bar once (for live ``AlgorithmTrader`` loops)."""
     seen_last = last_bar_open_unix_seconds
+    queue: list[dict[str, Any]] = list(pending_bars or [])
 
     def source() -> dict[str, Any] | None:
         nonlocal seen_last
+        if queue:
+            bar = queue.pop(0)
+            seen_last = int(bar["timestamp"])
+            return bar
         bar = fetch_latest_closed_bar(symbol=symbol, resolution=resolution, session=session)
         if bar is None:
             return None

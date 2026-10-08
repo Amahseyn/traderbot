@@ -5,7 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ui_dir="${repo_root}/apps/lab-ui"
 lab_port="${LAB_API_PORT:-8765}"
 ui_port="${LAB_UI_PORT:-3000}"
-ui_host="${LAB_UI_HOST:-0.0.0.0}"
+ui_host="${LAB_UI_HOST:-127.0.0.1}"
 
 # shellcheck source=scripts/kill-listen-port.sh
 source "${repo_root}/scripts/kill-listen-port.sh"
