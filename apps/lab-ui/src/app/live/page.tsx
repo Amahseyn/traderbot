@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import { JobMonitor } from "@/components/JobMonitor";
 import { LiveSessionsCharts } from "@/components/LiveSessionsCharts";
 import { LiveTradingPanel } from "@/components/LiveTradingPanel";
+import { RiskStatePanel } from "@/components/RiskStatePanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { api } from "@/lib/api";
 
@@ -67,6 +68,8 @@ export default function LiveTradingPage() {
           </div>
         }
       />
+
+      <RiskStatePanel />
 
       <LiveTradingPanel onJobsStarted={handleJobsStarted} />
 

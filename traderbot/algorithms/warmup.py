@@ -17,9 +17,9 @@ def warmup_bar_count(strategy_id: str, kwargs: dict[str, Any]) -> int:
     if strategy_id == "macd_cross":
         return slow + signal + 10
     if strategy_id in ("sma_cross", "ema_cross"):
-        return max(fast, slow) + 5
+        return max(fast, slow) + 2
     if strategy_id == "rsi_threshold":
-        return period + 5
+        return period + 2
     if strategy_id == "bollinger_mean_reversion":
         return period + 5
     if strategy_id == "breakout_atr":

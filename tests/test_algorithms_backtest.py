@@ -30,7 +30,7 @@ def test_sma_cross_signals():
     bars = _bars([1, 2, 3, 2, 1])
     assert algo.on_bar(bars[0]) == "hold"
     assert algo.on_bar(bars[1]) == "hold"
-    assert algo.on_bar(bars[2]) == "buy"
+    assert algo.on_bar(bars[2]) == "hold"
     algo.reset()
     for bar in bars[:4]:
         algo.on_bar(bar)
@@ -66,21 +66,24 @@ def test_long_only_gates_repeat_buys():
 
 
 def test_algorithm_trader_calls_on_signal(keys):
+    from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+
+    class _BuyAlgo(Algorithm):
+        def on_bar(self, bar: Bar) -> SignalAction:
+            return "buy"
+
     pub, priv = keys
     client = NobitexClient(pub, priv, request_fn=lambda *_a, **_k: None)
-    algo = SmaCrossAlgorithm(fast=2, slow=3)
-    sequence = _bars([1, 2, 3, 4, 5, 4, 3])
+    bar = _bars([5.0])[0]
     signals: list[str] = []
 
     class T(AlgorithmTrader):
         def on_signal(self, action, _bar):
             signals.append(action)
 
-    t = T(client, algo, execution=ExecutionPolicy.live())
-    for bar in sequence:
-        t.bar_source = lambda b=bar: b
-        t.step()
-    assert "buy" in signals
+    t = T(client, _BuyAlgo(), bar_source=lambda: bar, execution=ExecutionPolicy.live())
+    t.step()
+    assert signals == ["buy"]
 
 
 def test_algorithm_trader_with_bot(keys):

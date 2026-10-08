@@ -1,5 +1,4 @@
 import json
-from dataclasses import asdict
 from pathlib import Path
 
 import pytest
@@ -58,7 +57,7 @@ def test_sma_cross_signals():
     bars = _bars([1, 2, 3, 2, 1])
     assert algo.on_bar(bars[0]) == "hold"
     assert algo.on_bar(bars[1]) == "hold"
-    assert algo.on_bar(bars[2]) == "buy"
+    assert algo.on_bar(bars[2]) == "hold"
     algo.reset()
     for bar in bars[:4]:
         algo.on_bar(bar)

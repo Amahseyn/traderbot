@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import patch
 
 from lab.store.constants import (
     JOB_STATUS_CANCELLED,
@@ -127,7 +126,7 @@ def test_stop_running_lab_job(tmp_path: Path):
     import threading
     import time
 
-    from lab.jobs import _insert_job, _start_inprocess, stop_lab_job
+    from lab.jobs import _insert_job, stop_lab_job
 
     database_path = tmp_path / "lab.db"
     connection = open_database(database_path)

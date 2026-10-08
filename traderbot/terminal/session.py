@@ -6,7 +6,14 @@ import sys
 from traderbot.algorithms.registry import strategy_kwargs_from_namespace
 from traderbot.algorithms.strategy_defaults import namespace_for_strategy_backtest
 from traderbot.algorithms.warmup import warmup_bar_count
-from traderbot.markets.market_data import fetch_recent_closed_bars, incremental_bar_source, market_symbol
+from traderbot.markets.market_data import (
+    fetch_closed_bars_after,
+    fetch_recent_closed_bars,
+    incremental_bar_source,
+    market_symbol,
+)
+from traderbot.risk.runtime import configure_risk_manager
+from traderbot.risk.manager import RiskLimits
 from traderbot.nobitex.client import NobitexClient, NobitexClientError
 from traderbot.terminal.events import print_tick_event
 from traderbot.terminal.namespace_keys import EMIT_HOLDS
@@ -34,12 +41,29 @@ def build_terminal_trader(
     history = fetch_recent_closed_bars(symbol=symbol, resolution=args.interval, max_bars=warmup_count + 1)
     warmup_bars = history[:-1] if len(history) > 1 else []
     last_timestamp = int(warmup_bars[-1]["timestamp"]) if warmup_bars else None
+    missed_bars: list = []
+    if last_timestamp is not None:
+        missed_bars = fetch_closed_bars_after(
+            symbol=symbol,
+            resolution=args.interval,
+            after_open_unix_seconds=last_timestamp,
+        )
     if bar_source is None:
         bar_source = incremental_bar_source(
             symbol=symbol,
             resolution=args.interval,
             last_bar_open_unix_seconds=last_timestamp,
+            pending_bars=missed_bars,
         )
+    capital_cap = float(getattr(args, "capital_cap", 0) or 0)
+    if capital_cap <= 0:
+        capital_cap = default_paper_initial_cash(args.dst)
+    configure_risk_manager(
+        RiskLimits(
+            capital_cap=capital_cap,
+            kill_switch=bool(getattr(args, "risk_kill_switch", False)),
+        ),
+    )
     algo = algorithm_from_args(args)
     trader = TerminalAlgorithmTrader(
         client,
@@ -48,6 +72,7 @@ def build_terminal_trader(
         execution=execution_from_args(args),
         market_symbol=symbol,
         warmup_bars=warmup_bars,
+        capital_cap=capital_cap,
     )
     trader.strategy_id = args.strategy
     trader.emit_holds = getattr(args, EMIT_HOLDS, False)

@@ -40,14 +40,15 @@ def add_market_order(
     side: str,
     amount: str,
     price: str,
+    client_order_id: str | None = None,
 ) -> Any:
-    src_currency, dst_currency = _split_symbol(symbol)
-    body = {
-        "type": side,
-        "srcCurrency": src_currency,
-        "dstCurrency": dst_currency,
-        "amount": amount,
-        "price": price,
-        "execution": "market",
-    }
-    return client.request("POST", "/market/orders/add", json_body=body)
+    from traderbot.nobitex.orders import add_market_order as place_market_order
+
+    return place_market_order(
+        client,
+        symbol=symbol,
+        side=side,
+        amount=float(amount),
+        price=float(price),
+        client_order_id=client_order_id,
+    )

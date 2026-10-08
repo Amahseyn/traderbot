@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from cli.interface.pickables import all_pickables
-from cli.interface.runner import format_invocation, run_pickable
+from cli.interface.runner import run_pickable
 
 Argv = list[str]
 ArgvFn = Callable[[], Argv | None]

@@ -413,6 +413,13 @@ export const api = {
     }
     return response.json() as Promise<{ id: string; status: string; stop_requested?: boolean }>;
   },
+  riskState: () => fetchJson<Record<string, unknown>>("/api/risk/state"),
+  riskKillSwitch: (enabled: boolean) =>
+    fetchJson<Record<string, unknown>>("/api/risk/kill-switch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    }),
   postJob: async (jobType: string, body: Record<string, unknown>) => {
     const response = await fetch(`${API_BASE}/api/jobs/${jobType}`, {
       method: "POST",

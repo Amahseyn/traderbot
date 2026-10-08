@@ -139,7 +139,7 @@ export default function SettingsPage() {
 
       <Card
         title="Create API key"
-        description="Requires session token in .env. Saves public + private key to .env when Nobitex returns them."
+        description="Requires session token in .env. Private keys are stored server-side in .env only — never returned to the browser."
       >
         <form
           className="space-y-3 max-w-md"

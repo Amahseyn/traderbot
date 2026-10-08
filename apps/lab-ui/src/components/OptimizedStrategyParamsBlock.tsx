@@ -75,7 +75,7 @@ export function OptimizedStrategyParamsBlock({
           checked={useOptimized}
           onChange={(event) => onUseOptimizedChange(event.target.checked)}
         />
-        Use optimized parameters (robust defaults + best sweep for market)
+        Use robust optimized defaults (sweep winner requires separate approval)
       </label>
       {useOptimized && !symbol && !datasetId && (
         <p className="text-sm text-amber-200/90">Select a market or dataset to load tuned values.</p>

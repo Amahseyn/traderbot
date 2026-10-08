@@ -1,5 +1,5 @@
 from traderbot.algorithms.base import Algorithm, Bar, SignalAction
-from traderbot.algorithms.signals import signal_from_levels
+from traderbot.algorithms.signals import signal_from_cross
 from traderbot.algorithms.streaming import rolling_mean_init, rolling_mean_reset, rolling_mean_update
 from traderbot.algorithms.validators import validate_fast_slow
 
@@ -16,16 +16,22 @@ class SmaCrossAlgorithm(Algorithm):
         self.price_confirm = price_confirm
         self._fast = rolling_mean_init(fast)
         self._slow = rolling_mean_init(slow)
+        self._prev_fast: float | None = None
+        self._prev_slow: float | None = None
 
     def reset(self) -> None:
         rolling_mean_reset(self._fast)
         rolling_mean_reset(self._slow)
+        self._prev_fast = None
+        self._prev_slow = None
 
     def on_bar(self, bar: Bar) -> SignalAction:
         close = float(bar["close"])
         fast_v = rolling_mean_update(self._fast, close)
         slow_v = rolling_mean_update(self._slow, close)
-        action = signal_from_levels(fast_v, slow_v)
+        action = signal_from_cross(self._prev_fast, self._prev_slow, fast_v, slow_v)
+        self._prev_fast = fast_v
+        self._prev_slow = slow_v
         if not self.price_confirm or action == "hold":
             return action
         if fast_v is None:

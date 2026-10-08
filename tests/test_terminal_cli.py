@@ -150,6 +150,14 @@ def test_terminal_trader_live_delegates_orders(keys, monkeypatch):
         fake_add_market_order,
     )
     monkeypatch.setattr(
+        "traderbot.traders.strategies.algorithm_trader.wait_for_order_fill",
+        lambda *_a, **_k: {"status": "done", "matchedAmount": "0.01"},
+    )
+    monkeypatch.setattr(
+        "traderbot.traders.strategies.algorithm_trader.add_stop_loss_order",
+        lambda *_a, **_k: {"status": "ok"},
+    )
+    monkeypatch.setattr(
         "traderbot.traders.strategies.algorithm_trader.list_wallets",
         lambda _client: {"rls": 1000.0},
     )

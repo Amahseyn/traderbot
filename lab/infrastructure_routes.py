@@ -22,7 +22,6 @@ def attach_infrastructure_routes(app: Any, registry: ServiceRegistry) -> None:
     """Attach scalable infrastructure endpoints to FastAPI app."""
 
     from fastapi import HTTPException
-    from fastapi.responses import StreamingResponse
     import json
     import asyncio
 

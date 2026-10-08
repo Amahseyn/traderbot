@@ -112,4 +112,16 @@ class TerminalAlgorithmTrader(AlgorithmTrader):
             strategy_id=self.strategy_id,
             emit_holds=self.emit_holds,
         )
-        AlgorithmTrader.on_signal(self, action, bar)
+        try:
+            AlgorithmTrader.on_signal(self, action, bar)
+        except Exception as exc:
+            print_tick_event(
+                {
+                    "event": "order_error",
+                    "strategy_id": self.strategy_id,
+                    "symbol": bar.get("symbol"),
+                    "action": action,
+                    "message": str(exc),
+                },
+            )
+            raise

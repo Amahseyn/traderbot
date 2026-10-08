@@ -1,6 +1,4 @@
-import json
 
-import pytest
 
 from lab.auth_service import api_keys_list, fetch_profile, login_session
 

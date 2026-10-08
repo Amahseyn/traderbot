@@ -20,8 +20,9 @@ def execution_from_args(args: argparse.Namespace) -> ExecutionPolicy:
 
 
 def algorithm_from_args(args: argparse.Namespace) -> Algorithm:
-    use_optimized = getattr(args, "use_optimized_defaults", True)
-    if use_optimized:
+    use_optimized = getattr(args, "use_optimized_defaults", False)
+    apply_sweep = getattr(args, "apply_sweep_winner", False)
+    if use_optimized or apply_sweep:
         src = getattr(args, "src", None)
         dst = getattr(args, "dst", None)
         symbol = market_symbol(str(src), str(dst)) if src and dst else None
@@ -32,6 +33,7 @@ def algorithm_from_args(args: argparse.Namespace) -> Algorithm:
             csv_path=csv_path,
             symbol=symbol,
             resolution=str(getattr(args, "interval", "") or "") or None,
+            apply_sweep_winner=apply_sweep,
         )
     else:
         namespace = merge_strategy_namespace(args)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-from typing import Any
 
 from lab.store.enabled import store_recording_enabled
 

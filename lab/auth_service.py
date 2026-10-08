@@ -8,7 +8,7 @@ from auth.apikeys import create_api_key, list_api_keys, redact_apikey_response
 from auth.envfile import load_env_file, upsert_env_vars
 from auth.login import login_v2
 from auth.session import normalize_totp, token_from_env
-from traderbot.nobitex.client import NobitexClient, NobitexClientError
+from traderbot.nobitex.client import NobitexClient
 from traderbot.nobitex.profile import nobitex_keys_configured
 
 
@@ -91,6 +91,4 @@ def api_keys_create(
                     "NOBITEX_API_PRIVATE_KEY": private,
                 },
             )
-    if write_env:
-        return dict(result)
     return redact_apikey_response(dict(result))

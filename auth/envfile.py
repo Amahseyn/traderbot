@@ -39,3 +39,7 @@ def upsert_env_vars(path: Path, updates: dict[str, str]) -> None:
             lines.append(entry)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass

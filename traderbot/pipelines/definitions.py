@@ -8,7 +8,7 @@ from traderbot.algorithms.visualize import compare_visualization_paths_to_dict, 
 from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_backtest, save_backtest_result
 from traderbot.backtesting.holdout_window import return_pct_over_equity_tail
 from traderbot.data.export import load_jobs, run_export, write_csv
-from traderbot.data.crypto_store import resolve_crypto_1h_csv_paths, resolve_crypto_data_dir
+from traderbot.data.crypto_store import resolve_crypto_1h_csv_paths
 from traderbot.results.layout import result_tree_at
 from traderbot.utils.bars import bars_last_n
 from traderbot.markets.registry import DEFAULT_JOBS_PATH

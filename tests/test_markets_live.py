@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 from traderbot.markets.live_visualize import fetch_recent_bars, run_live_market_visualization

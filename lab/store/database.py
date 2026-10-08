@@ -17,6 +17,7 @@ def open_database(database_path: Path | None = None) -> sqlite3.Connection:
     connection = sqlite3.connect(str(path))
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
+    init_database(connection)
     return connection
 
 
