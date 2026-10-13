@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from traderbot.data.export import load_jobs
+from traderbot.hyperliquid.market_data import HYPERLIQUID_RESOLUTIONS, fetch_hyperliquid_perp_coins
 from traderbot.markets.market_data import BASE_URL, RESOLUTIONS, fetch_nobitex_market_symbols
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -52,16 +53,30 @@ def list_nobitex_markets() -> list[MarketSpec]:
     return [market_spec_from_symbol(symbol) for symbol in fetch_nobitex_market_symbols()]
 
 
-def markets_catalog_dict(jobs_path: Path | None = None) -> dict:
+def list_hyperliquid_markets() -> list[MarketSpec]:
+    """Hyperliquid perp universe (USDC margin)."""
+    return [
+        MarketSpec(src=coin.lower(), dst="usdt", symbol=f"{coin}USDT")
+        for coin in fetch_hyperliquid_perp_coins()
+    ]
+
+
+def markets_catalog_dict(jobs_path: Path | None = None, *, exchange: str = "nobitex") -> dict:
     if jobs_path is not None:
         markets = list_supported_markets(jobs_path)
         meta = {"jobs_file": str(jobs_path)}
+        resolutions = list(RESOLUTIONS)
+    elif exchange == "hyperliquid":
+        markets = list_hyperliquid_markets()
+        meta = {"source": "https://api.hyperliquid.xyz/info", "exchange": "hyperliquid"}
+        resolutions = list(HYPERLIQUID_RESOLUTIONS)
     else:
         markets = list_nobitex_markets()
-        meta = {"source": f"{BASE_URL.rstrip('/')}/market/stats"}
+        meta = {"source": f"{BASE_URL.rstrip('/')}/market/stats", "exchange": "nobitex"}
+        resolutions = list(RESOLUTIONS)
     return {
         **meta,
         "market_count": len(markets),
         "markets": [asdict(market) | {"label": market.label} for market in markets],
-        "udf_resolutions": list(RESOLUTIONS),
+        "udf_resolutions": resolutions,
     }

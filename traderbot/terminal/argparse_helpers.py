@@ -41,6 +41,12 @@ def add_loop_flags(parser: argparse.ArgumentParser) -> None:
 
 def add_execution_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
+        "--exchange",
+        choices=("hyperliquid", "nobitex"),
+        default="hyperliquid",
+        help="Live data and order venue (default: hyperliquid)",
+    )
+    parser.add_argument(
         "--live",
         action="store_true",
         dest=LIVE,

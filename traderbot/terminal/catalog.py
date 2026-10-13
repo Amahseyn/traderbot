@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 from traderbot.algorithms.registry import list_strategies
-from traderbot.markets.market_data import RESOLUTIONS
+from traderbot.markets.exchange import LIVE_EXCHANGES, live_resolutions
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,5 +37,8 @@ def catalog_dict(*, implemented_only = False) -> dict:
         "commands": [asdict(c) for c in TERMINAL_COMMANDS],
         "strategies": [asdict(s) for s in list_strategies(implemented_only=implemented_only)],
         "execution_modes": ["paper", "live"],
-        "udf_resolutions": list(RESOLUTIONS),
+        "live_exchanges": list(LIVE_EXCHANGES),
+        "default_live_exchange": "hyperliquid",
+        "udf_resolutions": list(live_resolutions("nobitex")),
+        "hyperliquid_resolutions": list(live_resolutions("hyperliquid")),
     }

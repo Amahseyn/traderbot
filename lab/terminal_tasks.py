@@ -42,6 +42,7 @@ def _terminal_namespace(body: dict[str, Any], *, csv_path: str | None = None) ->
         paper_fee_rate=body.get("paper_fee_rate"),
         live_quote_budget=body.get("live_quote_budget"),
         until_stopped=bool(body.get("until_stopped")),
+        exchange=str(body.get("exchange") or "hyperliquid"),
     )
 
 
@@ -70,7 +71,9 @@ def _maybe_run_live_tune(body: dict[str, Any]) -> None:
         strategy_id=strategy_id,
         symbol=symbol,
         interval=interval,
+        src=src,
         dst=dst,
+        exchange=str(body.get("exchange") or "hyperliquid"),
         max_bars=max_bars,
         holdout_tail_bars=holdout_tail_bars,
         initial_cash=initial_cash,

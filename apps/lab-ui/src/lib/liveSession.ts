@@ -9,6 +9,7 @@ export type LiveTerminalSession = {
   marketSymbol: string | null;
   strategyId: string | null;
   liveOrders: boolean;
+  exchange: string;
   status: string;
   logText: string;
 };
@@ -36,6 +37,7 @@ export function liveSessionFromJob(job: JobRow): LiveTerminalSession {
     marketSymbol: symbolFromPayload,
     strategyId,
     liveOrders: Boolean(payload.live),
+    exchange: String(payload.exchange ?? "hyperliquid").trim().toLowerCase(),
     status: job.status,
     logText: job.log_text ?? "",
   };
@@ -51,9 +53,10 @@ export function liveSessionPairLabel(session: LiveTerminalSession): string {
 export function liveSessionSubtitle(session: LiveTerminalSession): string {
   const pair = `${session.src.toUpperCase()}/${session.dst.toUpperCase()}`;
   const horizon = formatResolutionLabel(session.interval);
+  const venue = session.exchange === "nobitex" ? "Nobitex" : "Hyperliquid";
   const mode = session.liveOrders ? "Live orders" : "Paper";
   const strategy = session.strategyId ?? "strategy";
-  return `${pair} · ${horizon} · ${strategy} · ${mode}`;
+  return `${pair} · ${horizon} · ${venue} · ${strategy} · ${mode}`;
 }
 
 export function liveSessionSortKey(session: LiveTerminalSession): string {

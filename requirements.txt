@@ -1,0 +1,3 @@
+# Editable install with Lab API/UI, backtesting (vectorbt), and dev tools.
+#   python -m venv .venv && .venv/bin/pip install -r requirements.txt
+-e ".[ui,dev,backtest]"

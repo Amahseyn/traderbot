@@ -1,6 +1,6 @@
 import type { DatasetRow } from "@/lib/api";
 
-export type MarketScope = "default_jobs" | "nobitex_all";
+export type MarketScope = "default_jobs" | "nobitex_all" | "hyperliquid_all";
 
 export function marketMatchesSearch(
   market: { symbol: string; label: string; src: string; dst: string },

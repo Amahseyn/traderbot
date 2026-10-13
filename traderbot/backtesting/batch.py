@@ -79,6 +79,7 @@ def run_strategy_batch(options: StrategyBatchOptions) -> dict[str, Any]:
                 initial_cash=options.cash,
                 fee_rate=options.fee,
                 slippage_rate=options.slippage,
+                execution=options.execution,
             )
             or {}
             if options.vectorbt

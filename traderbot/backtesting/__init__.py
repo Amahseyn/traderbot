@@ -22,6 +22,7 @@ from traderbot.backtesting.vectorbt import (
     entry_exit_series,
     infer_bar_freq,
     vectorbt_extra_for_backtest,
+    vectorbt_is_available,
     vectorbt_metrics_dict,
     vectorbt_portfolio,
 )
@@ -48,6 +49,7 @@ __all__ = [
     "tune_grid_for_strategy",
     "tune_robust_defaults",
     "vectorbt_extra_for_backtest",
+    "vectorbt_is_available",
     "vectorbt_metrics_dict",
     "vectorbt_portfolio",
     "write_robust_defaults_file",

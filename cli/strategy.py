@@ -52,6 +52,7 @@ def _vectorbt_extra(
         initial_cash=args.cash,
         fee_rate=args.fee,
         slippage_rate=getattr(args, "slippage", 0.0),
+        execution=getattr(args, "execution", "close"),
     )
     if extra is None:
         print(

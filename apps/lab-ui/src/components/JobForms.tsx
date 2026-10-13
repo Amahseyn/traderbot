@@ -14,6 +14,8 @@ type JobTab = "test" | "compare" | "sweep";
 type BacktestParamState = {
   cash: string;
   fee: string;
+  slippage: string;
+  execution: string;
   vectorbt: boolean;
   fast: string;
   slow: string;
@@ -30,6 +32,8 @@ function backtestParamsBody(params: BacktestParamState): Record<string, unknown>
   return {
     cash: Number(params.cash),
     fee: Number(params.fee),
+    slippage: Number(params.slippage),
+    execution: params.execution,
     vectorbt: params.vectorbt,
     fast: Number(params.fast),
     slow: Number(params.slow),
@@ -121,8 +125,10 @@ function SweepBaseParamsFields({
 
 const DEFAULT_BACKTEST_PARAMS: BacktestParamState = {
   cash: "10000",
-  fee: "0",
-  vectorbt: false,
+  fee: "0.0025",
+  slippage: "0.0005",
+  execution: "next_open",
+  vectorbt: true,
   fast: "5",
   slow: "20",
   signal: "9",
@@ -139,11 +145,13 @@ function BacktestSimulationFields({
   onChange,
   showStrategyParams,
   onToggleStrategyParams,
+  vectorbtAvailable,
 }: {
   params: BacktestParamState;
   onChange: (patch: Partial<BacktestParamState>) => void;
   showStrategyParams: boolean;
   onToggleStrategyParams: () => void;
+  vectorbtAvailable: boolean;
 }) {
   return (
     <section className="panel-inset space-y-3">
@@ -167,14 +175,38 @@ function BacktestSimulationFields({
             onChange={(event) => onChange({ fee: event.target.value })}
           />
         </Field>
+        <Field label="Slippage per fill" hint="Fraction, e.g. 0.0005 = 0.05%.">
+          <TextInput
+            type="number"
+            min={0}
+            step={0.0001}
+            value={params.slippage}
+            onChange={(event) => onChange({ slippage: event.target.value })}
+          />
+        </Field>
+        <Field
+          label="Execution"
+          hint="next_open fills at the next bar open; last-bar signals expire unfilled."
+        >
+          <SelectInput
+            value={params.execution}
+            onChange={(event) => onChange({ execution: event.target.value })}
+          >
+            <option value="close">Signal-bar close</option>
+            <option value="next_open">Next-bar open</option>
+          </SelectInput>
+        </Field>
       </div>
       <label className="flex items-center gap-2 text-sm text-muted">
         <input
           type="checkbox"
           checked={params.vectorbt}
+          disabled={!vectorbtAvailable}
           onChange={(event) => onChange({ vectorbt: event.target.checked })}
         />
-        Include vectorbt metrics when available
+        {vectorbtAvailable
+          ? "Include vectorbt risk metrics (Sharpe, drawdown, win rate, …)"
+          : "vectorbt not installed on Lab API (pip install -e '.[ui]')"}
       </label>
       <button
         type="button"
@@ -295,6 +327,12 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
     queryKey: ["catalog-strategies"],
     queryFn: () => api.catalogStrategies(true),
   });
+  const backtestCatalogQuery = useQuery({
+    queryKey: ["catalog-backtest"],
+    queryFn: () => api.catalogBacktest(),
+    staleTime: 60_000,
+  });
+  const vectorbtAvailable = backtestCatalogQuery.data?.vectorbt_available ?? false;
 
   const [compareDatasetId, setCompareDatasetId] = useState("");
   const [compareVisualize, setCompareVisualize] = useState(true);
@@ -304,6 +342,8 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
   const [testDatasetId, setTestDatasetId] = useState("");
   const [testVisualize, setTestVisualize] = useState(true);
   const [testStrategyId, setTestStrategyId] = useState("");
+  const [testParams, setTestParams] = useState<BacktestParamState>(DEFAULT_BACKTEST_PARAMS);
+  const [testShowParams, setTestShowParams] = useState(false);
 
   const [sweepDatasetId, setSweepDatasetId] = useState("");
   const [sweepStrategyId, setSweepStrategyId] = useState("");
@@ -442,6 +482,7 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
         visualize: testVisualize,
         mode: "strategies",
         strategy_id: testStrategyId,
+        ...backtestParamsBody(testParams),
       }),
     onSuccess: (data) => onJob(data.id),
   });
@@ -535,6 +576,13 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
                       ))}
                     </SelectInput>
                   </Field>
+                  <BacktestSimulationFields
+                    params={testParams}
+                    onChange={(patch) => setTestParams((current) => ({ ...current, ...patch }))}
+                    showStrategyParams={testShowParams}
+                    onToggleStrategyParams={() => setTestShowParams((open) => !open)}
+                    vectorbtAvailable={vectorbtAvailable}
+                  />
                   <label className="flex items-center gap-2 text-sm text-muted">
                     <input
                       type="checkbox"
@@ -594,6 +642,7 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
                   onChange={(patch) => setCompareParams((current) => ({ ...current, ...patch }))}
                   showStrategyParams={compareShowParams}
                   onToggleStrategyParams={() => setCompareShowParams((open) => !open)}
+                  vectorbtAvailable={vectorbtAvailable}
                 />
                 <label className="flex items-center gap-2 text-sm text-muted">
                   <input

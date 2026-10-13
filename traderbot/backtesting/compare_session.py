@@ -81,6 +81,7 @@ def _vectorbt_extra(algo, bars: list[dict], options: StrategyCompareOptions) -> 
         initial_cash=options.cash,
         fee_rate=options.fee,
         slippage_rate=options.slippage,
+        execution=options.execution,
     )
     return extra or {}
 
@@ -293,7 +294,12 @@ def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None)
         bars=len(bars),
         bar_rows=bars,
         visualize=options.visualize,
-        extra={"strategy_id": options.strategy_id, "csv": str(csv_path), "mode": mode},
+        extra={
+            "strategy_id": options.strategy_id,
+            "csv": str(csv_path),
+            "mode": mode,
+            **_vectorbt_extra(algo, bars, compare_options),
+        },
     )
     summary["run_dir"] = str(run_dir)
     _log(log, json.dumps(summary, indent=2))

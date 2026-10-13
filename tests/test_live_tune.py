@@ -19,18 +19,24 @@ def test_default_live_tune_param_grid_sma():
 
 def test_fetch_live_tune_bars_empty(monkeypatch):
     monkeypatch.setattr(
-        "traderbot.backtesting.live_tune.fetch_recent_closed_bars",
+        "traderbot.backtesting.live_tune.fetch_live_recent_closed_bars",
         lambda **_kwargs: [],
     )
-    with pytest.raises(ValueError, match="No closed bars from Nobitex"):
-        fetch_live_tune_bars("ZAMAIRT", "1", 100)
+    with pytest.raises(ValueError, match="No closed bars"):
+        fetch_live_tune_bars(
+            exchange="hyperliquid",
+            src="btc",
+            dst="usdt",
+            interval="60",
+            max_bars=100,
+        )
 
 
 def test_run_live_tune_uses_api_bars(monkeypatch):
     bars = [
         {
-            "symbol": "ZAMAIRT",
-            "resolution": "1",
+            "symbol": "BTCUSDT",
+            "resolution": "60",
             "timestamp": index,
             "open": 100.0 + index,
             "high": 101.0 + index,
@@ -41,19 +47,21 @@ def test_run_live_tune_uses_api_bars(monkeypatch):
         for index in range(80)
     ]
     monkeypatch.setattr(
-        "traderbot.backtesting.live_tune.fetch_recent_closed_bars",
+        "traderbot.backtesting.live_tune.fetch_live_recent_closed_bars",
         lambda **_kwargs: bars,
     )
     payload = run_live_tune_sweep(
         strategy_id="sma_cross",
-        symbol="ZAMAIRT",
-        interval="1",
-        dst="rls",
+        symbol="BTCUSDT",
+        interval="60",
+        src="btc",
+        dst="usdt",
+        exchange="hyperliquid",
         max_bars=80,
         holdout_tail_bars=20,
     )
     assert payload["best_params"]
-    assert payload["live_tune"]["data_source"] == "nobitex_api"
+    assert payload["live_tune"]["data_source"] == "hyperliquid_api"
     assert payload["bars"] == 80
 
 
@@ -88,6 +96,8 @@ def test_run_live_tune_on_repo_btcirt():
         symbol="BTCIRT",
         interval="60",
         dst="rls",
+        exchange="nobitex",
+        src="btc",
     )
     assert payload["best_params"]
     assert payload["cash"] == default_paper_initial_cash("rls")

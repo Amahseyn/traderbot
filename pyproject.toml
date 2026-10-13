@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "cryptography>=42.0.0",
+    "hyperliquid-python-sdk>=0.8.0",
     "requests>=2.31.0",
 ]
 
@@ -21,7 +22,14 @@ build-backend = "setuptools.build_meta"
 viz = ["matplotlib>=3.8"]
 backtest = ["vectorbt>=1.1.1", "pandas>=2.0", "numpy>=1.24"]
 dev = ["pytest>=8.0", "httpx2>=0.1.0", "traderbot[viz]"]
-ui = ["fastapi>=0.115", "uvicorn[standard]>=0.32", "httpx2>=0.1.0"]
+ui = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "httpx2>=0.1.0",
+    "vectorbt>=1.1.1",
+    "pandas>=2.0",
+    "numpy>=1.24",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]

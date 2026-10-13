@@ -41,7 +41,25 @@ def test_vectorbt_metrics_align_with_builtin_backtest():
         bars,
         initial_cash=1000.0,
         fee_rate=0.0,
+        execution="close",
     )
     assert "total_return_pct" in metrics
     assert metrics["total_return_pct"] is not None
     assert abs(metrics["total_return_pct"] - result.return_pct) < 0.05
+
+
+def test_vectorbt_next_open_aligns_with_builtin_backtest():
+    closes = [1, 2, 3, 2, 1, 2, 3, 4, 3, 2]
+    bars = _bars(closes)
+    algo = SmaCrossAlgorithm(fast=2, slow=3)
+    result = run_backtest(algo, bars, initial_cash=1000.0, fee_rate=0.0, execution="next_open")
+    metrics = vectorbt_metrics_dict(
+        algo,
+        bars,
+        initial_cash=1000.0,
+        fee_rate=0.0,
+        execution="next_open",
+    )
+    assert metrics["execution"] == "next_open"
+    assert metrics["total_return_pct"] is not None
+    assert abs(metrics["total_return_pct"] - result.return_pct) < 0.15

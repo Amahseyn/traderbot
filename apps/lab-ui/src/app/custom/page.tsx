@@ -83,7 +83,8 @@ export default function CustomPipelinePage() {
   const [cash, setCash] = useState("10000");
   const [feePct, setFeePct] = useState("0.1");
   const [slippagePct, setSlippagePct] = useState("0.05");
-  const [execution, setExecution] = useState("close");
+  const [execution, setExecution] = useState("next_open");
+  const [vectorbt, setVectorbt] = useState(true);
   const [visualize, setVisualize] = useState(true);
   const [limitRunWindow, setLimitRunWindow] = useState(false);
   const [runStartLocal, setRunStartLocal] = useState("");
@@ -171,6 +172,7 @@ export default function CustomPipelinePage() {
         fee: Number(feePct) / 100,
         slippage: Number(slippagePct) / 100,
         execution,
+        vectorbt,
         use_optimized_strategy_params: useOptimizedStrategyParams,
       };
       if (!useOptimizedStrategyParams) {
@@ -377,6 +379,14 @@ export default function CustomPipelinePage() {
                 <option value="next_open">Next-bar open (realistic)</option>
               </SelectInput>
             </Field>
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                checked={vectorbt}
+                onChange={(event) => setVectorbt(event.target.checked)}
+              />
+              Include vectorbt risk metrics on compare runs
+            </label>
 
             <div className="panel-inset space-y-3">
               <label className="flex items-center gap-2 text-sm text-slate-200">

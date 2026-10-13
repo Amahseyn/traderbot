@@ -167,6 +167,7 @@ export function LiveSessionsCharts({
               jobStatus={session.status}
               strategyId={session.strategyId}
               liveOrders={session.liveOrders}
+              exchange={session.exchange}
               title={liveSessionPairLabel(session)}
               subtitle={liveSessionSubtitle(session)}
               focused={focusedJobId === session.jobId}

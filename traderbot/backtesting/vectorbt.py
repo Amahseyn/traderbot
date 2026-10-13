@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from traderbot.algorithms.base import Algorithm
-from traderbot.backtesting.engine import normalize_bar
+from traderbot.algorithms.base import Algorithm, SignalAction
+from traderbot.backtesting.engine import EXECUTION_MODES, normalize_bar
 from traderbot.traders.position import order_action_for_long_only
 
 _STAT_MAP: tuple[tuple[str, str], ...] = (
@@ -16,6 +16,14 @@ _STAT_MAP: tuple[tuple[str, str], ...] = (
     ("Expectancy", "expectancy"),
     ("Calmar Ratio", "calmar_ratio"),
 )
+
+
+def vectorbt_is_available() -> bool:
+    try:
+        import vectorbt  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 def _json_number(value: Any) -> float | int | None:
@@ -52,30 +60,60 @@ def infer_bar_freq(bars: list[dict[str, Any]]):
     return pd.to_timedelta(median_s, unit="s")
 
 
-def entry_exit_series(algorithm: Algorithm, bars: list[dict[str, Any]]):
-    """Boolean entry/exit arrays from the same bar loop as :func:`traderbot.backtesting.run_backtest`."""
+def _order_action_for_bar(
+    *,
+    execution: str,
+    in_position: bool,
+    signal: SignalAction,
+    pending: SignalAction | None,
+) -> tuple[SignalAction, SignalAction | None]:
+    if execution == "close":
+        return order_action_for_long_only(in_position, signal), pending
+    fill_signal: SignalAction = pending if pending is not None else "hold"
+    return order_action_for_long_only(in_position, fill_signal), signal
+
+
+def entry_exit_series(
+    algorithm: Algorithm,
+    bars: list[dict[str, Any]],
+    *,
+    execution: str = "close",
+):
+    """Boolean entry/exit arrays aligned with :func:`traderbot.backtesting.run_backtest`."""
     import pandas as pd
+
+    if execution not in EXECUTION_MODES:
+        raise ValueError(f"execution must be one of {EXECUTION_MODES}")
 
     algorithm.reset()
     entries: list[bool] = []
     exits: list[bool] = []
+    opens: list[float] = []
     closes: list[float] = []
     in_position = False
+    pending: SignalAction | None = None
     for raw in bars:
         bar = normalize_bar(raw)
         signal = algorithm.on_bar(bar)
-        order_action = order_action_for_long_only(in_position, signal)
+        order_action, pending = _order_action_for_bar(
+            execution=execution,
+            in_position=in_position,
+            signal=signal,
+            pending=pending,
+        )
         entries.append(order_action == "buy")
         exits.append(order_action == "sell")
         if order_action == "buy":
             in_position = True
         elif order_action == "sell":
             in_position = False
+        opens.append(float(bar["open"]))
         closes.append(float(bar["close"]))
     index = pd.Index([int(normalize_bar(b)["timestamp"]) for b in bars], name="timestamp")
     return (
         pd.Series(entries, index=index, dtype=bool),
         pd.Series(exits, index=index, dtype=bool),
+        pd.Series(opens, index=index, dtype=float),
         pd.Series(closes, index=index, dtype=float),
     )
 
@@ -87,10 +125,11 @@ def vectorbt_portfolio(
     initial_cash: float,
     fee_rate: float,
     slippage_rate: float = 0.0,
+    execution: str = "close",
 ):
     import vectorbt as vbt
 
-    entries, exits, close = entry_exit_series(algorithm, bars)
+    entries, exits, opens, closes = entry_exit_series(algorithm, bars, execution=execution)
     freq = infer_bar_freq(bars)
     kwargs: dict[str, Any] = {
         "init_cash": initial_cash,
@@ -101,7 +140,11 @@ def vectorbt_portfolio(
     }
     if freq is not None:
         kwargs["freq"] = freq
-    return vbt.Portfolio.from_signals(close, entries, exits, **kwargs)
+    if execution == "next_open":
+        kwargs["open"] = opens
+        kwargs["price"] = opens
+        return vbt.Portfolio.from_signals(closes, entries, exits, **kwargs)
+    return vbt.Portfolio.from_signals(closes, entries, exits, **kwargs)
 
 
 def vectorbt_metrics_dict(
@@ -111,12 +154,13 @@ def vectorbt_metrics_dict(
     initial_cash: float,
     fee_rate: float,
     slippage_rate: float = 0.0,
+    execution: str = "close",
 ) -> dict[str, Any]:
     """
     Risk and trade analytics via vectorbt (optional dependency).
 
-    Uses the same long-only entry/exit gating as :func:`traderbot.backtesting.run_backtest`
-    (fees + slippage; fill timing still differs from ``next_open``).
+    Uses the same long-only entry/exit gating and execution timing as
+    :func:`traderbot.backtesting.run_backtest`.
     """
     pf = vectorbt_portfolio(
         algorithm,
@@ -124,9 +168,10 @@ def vectorbt_metrics_dict(
         initial_cash=initial_cash,
         fee_rate=fee_rate,
         slippage_rate=slippage_rate,
+        execution=execution,
     )
     stats = pf.stats()
-    out: dict[str, Any] = {}
+    out: dict[str, Any] = {"execution": execution}
     for src_key, dst_key in _STAT_MAP:
         if src_key not in stats.index:
             continue
@@ -141,6 +186,7 @@ def vectorbt_extra_for_backtest(
     initial_cash: float,
     fee_rate: float,
     slippage_rate: float = 0.0,
+    execution: str = "close",
 ) -> dict[str, Any] | None:
     try:
         metrics = vectorbt_metrics_dict(
@@ -149,6 +195,7 @@ def vectorbt_extra_for_backtest(
             initial_cash=initial_cash,
             fee_rate=fee_rate,
             slippage_rate=slippage_rate,
+            execution=execution,
         )
     except ImportError:
         return None

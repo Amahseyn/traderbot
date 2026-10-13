@@ -131,11 +131,19 @@ export type CatalogStrategy = {
   implemented: boolean;
 };
 
+export type BacktestCatalog = {
+  vectorbt_available: boolean;
+  execution_modes: string[];
+};
+
 export type TerminalCatalog = {
   commands: Array<{ id: string; summary: string }>;
   strategies: CatalogStrategy[];
   execution_modes: string[];
+  live_exchanges?: string[];
+  default_live_exchange?: string;
   udf_resolutions: string[];
+  hyperliquid_resolutions?: string[];
 };
 
 export type StrategyParamField = {
@@ -160,6 +168,9 @@ export type OptimizedStrategyParams = {
 export type AuthStatus = {
   api_keys_configured: boolean;
   auth_token_configured: boolean;
+  hyperliquid_wallet_configured?: boolean;
+  hyperliquid_trading_configured?: boolean;
+  live_exchange_default?: string;
 };
 
 export type JobRow = {
@@ -197,6 +208,7 @@ export type OhlcBar = {
 };
 
 export type MarketsOhlcResponse = {
+  exchange?: string;
   symbol: string;
   src: string;
   dst: string;
@@ -294,12 +306,12 @@ export const api = {
   datasets: (limit = 200) => fetchJson<DatasetRow[]>(`/api/datasets?limit=${limit}`),
   /** Same rows as datasets — catalog OHLC files under data/ (SQLite-backed). */
   dataCsvFiles: (limit = 200) => fetchJson<DatasetRow[]>(`/api/data/csv-files?limit=${limit}`),
-  dataMarketsCatalog: (scope: "default_jobs" | "nobitex_all" = "nobitex_all") => {
+  dataMarketsCatalog: (scope: "default_jobs" | "nobitex_all" | "hyperliquid_all" = "nobitex_all") => {
     const params = new URLSearchParams({ scope, catalog: "true" });
     return fetchJson<MarketsCatalog>(`/api/data/markets?${params.toString()}`);
   },
   dataMarkets: (options?: {
-    scope?: "default_jobs" | "nobitex_all";
+    scope?: "default_jobs" | "nobitex_all" | "hyperliquid_all";
     q?: string;
     limit?: number;
     offset?: number;
@@ -317,7 +329,7 @@ export const api = {
     }
     return fetchJson<MarketsCatalog>(`/api/data/markets?${params.toString()}`);
   },
-  syncMarkets: async (scope: "default_jobs" | "nobitex_all" = "nobitex_all") => {
+  syncMarkets: async (scope: "default_jobs" | "nobitex_all" | "hyperliquid_all" = "nobitex_all") => {
     const response = await fetch(
       `${API_BASE}/api/data/markets/sync?scope=${encodeURIComponent(scope)}`,
       { method: "POST" },
@@ -364,6 +376,14 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }),
+  authHyperliquidAccount: () => fetchJson<Record<string, unknown>>("/api/auth/hyperliquid"),
+  authSaveHyperliquid: (body: Record<string, unknown>) =>
+    fetchJson<Record<string, unknown>>("/api/auth/hyperliquid", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  catalogBacktest: () => fetchJson<BacktestCatalog>("/api/catalog/backtest"),
   catalogStrategies: (implementedOnly = true) =>
     fetchJson<CatalogStrategy[]>(
       `/api/catalog/strategies?implemented_only=${implementedOnly ? "true" : "false"}`,
@@ -399,12 +419,14 @@ export const api = {
     dst: string;
     resolution: string;
     maxBars?: number;
+    exchange?: string;
   }) => {
     const params = new URLSearchParams({
       src: options.src,
       dst: options.dst,
       resolution: options.resolution,
       max_bars: String(options.maxBars ?? 300),
+      exchange: options.exchange ?? "hyperliquid",
     });
     return fetchJson<MarketsOhlcResponse>(`/api/markets/ohlc?${params.toString()}`);
   },

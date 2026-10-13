@@ -17,6 +17,7 @@ type MarketSearchPickerProps = {
   onToggleBatch?: (market: MarketSpec) => void;
   onClearBatch?: () => void;
   maxBatchSelect?: number;
+  defaultMarketScope?: MarketScope;
 };
 
 export function MarketSearchPicker({
@@ -27,9 +28,10 @@ export function MarketSearchPicker({
   onToggleBatch,
   onClearBatch,
   maxBatchSelect = 16,
+  defaultMarketScope = "nobitex_all",
 }: MarketSearchPickerProps) {
   const queryClient = useQueryClient();
-  const [marketScope, setMarketScope] = useState<MarketScope>("nobitex_all");
+  const [marketScope, setMarketScope] = useState<MarketScope>(defaultMarketScope);
   const [marketSearch, setMarketSearch] = useState("");
 
   const catalogQuery = useQuery({
@@ -152,6 +154,7 @@ export function MarketSearchPicker({
               setMarketSearch("");
             }}
           >
+            <option value="hyperliquid_all">Hyperliquid perps</option>
             <option value="nobitex_all">All Nobitex (cloned)</option>
             <option value="default_jobs">Crypto 1h jobs file</option>
           </SelectInput>

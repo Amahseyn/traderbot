@@ -10,7 +10,7 @@ from traderbot.backtesting.sweep import (
     SweepOptions,
     run_strategy_sweep,
 )
-from traderbot.markets.market_data import fetch_recent_closed_bars
+from traderbot.markets.exchange import DEFAULT_LIVE_EXCHANGE, fetch_live_recent_closed_bars, normalize_live_exchange
 from traderbot.recording import try_record
 from traderbot.terminal.paper_portfolio import default_paper_initial_cash
 from traderbot.utils.trading_costs import DEFAULT_TRADE_FEE_RATE
@@ -53,18 +53,28 @@ def _default_sweep_values(default: Any) -> list[Any]:
     return [default]
 
 
-def fetch_live_tune_bars(symbol: str, interval: str, max_bars: int) -> list[dict[str, Any]]:
-    """Closed OHLC from Nobitex (same source as terminal live polling)."""
+def fetch_live_tune_bars(
+    *,
+    exchange: str,
+    src: str,
+    dst: str,
+    interval: str,
+    max_bars: int,
+) -> list[dict[str, Any]]:
+    """Closed OHLC from the live exchange (same source as terminal polling)."""
     if max_bars < 1:
         raise ValueError("max_bars must be at least 1")
-    bars = fetch_recent_closed_bars(
-        symbol=symbol.upper(),
+    live_exchange = normalize_live_exchange(exchange)
+    bars = fetch_live_recent_closed_bars(
+        exchange=live_exchange,
+        src=src,
+        dst=dst,
         resolution=str(interval),
         max_bars=max_bars,
     )
     if not bars:
         raise ValueError(
-            f"No closed bars from Nobitex for {symbol.upper()} at resolution {interval}. "
+            f"No closed bars from {live_exchange} for {src}/{dst} at resolution {interval}. "
             "Check the market and resolution."
         )
     return bars
@@ -76,13 +86,27 @@ def run_live_tune_sweep(
     symbol: str,
     interval: str,
     dst: str,
+    src: str | None = None,
+    exchange: str | None = None,
     max_bars: int = DEFAULT_LIVE_TUNE_MAX_BARS,
     holdout_tail_bars: int | None = DEFAULT_LIVE_TUNE_HOLDOUT_BARS,
     fee: float = DEFAULT_TRADE_FEE_RATE,
     initial_cash: float | None = None,
 ) -> dict[str, Any]:
     """Small holdout sweep on recent Nobitex history; records winner per symbol × resolution."""
-    bars = fetch_live_tune_bars(symbol, interval, max_bars)
+    bar_src = (src or symbol).strip().lower()
+    if bar_src.endswith("usdt"):
+        bar_src = bar_src[:-4]
+    elif bar_src.endswith("irt"):
+        bar_src = bar_src[:-3]
+    live_exchange = normalize_live_exchange(exchange or DEFAULT_LIVE_EXCHANGE)
+    bars = fetch_live_tune_bars(
+        exchange=live_exchange,
+        src=bar_src,
+        dst=dst,
+        interval=interval,
+        max_bars=max_bars,
+    )
     param_grid = default_live_tune_param_grid(strategy_id)
     cash = float(initial_cash) if initial_cash is not None else default_paper_initial_cash(dst)
     if cash <= 0:
@@ -114,7 +138,8 @@ def run_live_tune_sweep(
         "holdout_tail_bars": holdout_tail_bars,
         "initial_cash": cash,
         "dst": dst.strip().lower(),
-        "data_source": "nobitex_api",
+        "data_source": f"{live_exchange}_api",
+        "exchange": live_exchange,
     }
     try_record("sweep_session", sweep_payload=payload)
     return payload

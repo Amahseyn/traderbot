@@ -8,6 +8,14 @@ from auth.apikeys import create_api_key, list_api_keys, redact_apikey_response
 from auth.envfile import load_env_file, upsert_env_vars
 from auth.login import login_v2
 from auth.session import normalize_totp, token_from_env
+from traderbot.hyperliquid.credentials import (
+    PRIVATE_KEY_ENV,
+    WALLET_ADDRESS_ENV,
+    hyperliquid_trading_configured,
+    hyperliquid_wallet_configured,
+    normalize_wallet_address,
+)
+from traderbot.hyperliquid.info_client import hyperliquid_info
 from traderbot.nobitex.client import NobitexClient
 from traderbot.nobitex.profile import nobitex_keys_configured
 
@@ -18,6 +26,48 @@ def auth_status() -> dict[str, bool]:
     return {
         "api_keys_configured": nobitex_keys_configured(),
         "auth_token_configured": bool(token),
+        "hyperliquid_wallet_configured": hyperliquid_wallet_configured(),
+        "hyperliquid_trading_configured": hyperliquid_trading_configured(),
+        "live_exchange_default": "hyperliquid",
+    }
+
+
+def fetch_hyperliquid_account() -> dict[str, Any]:
+    load_env_file()
+    address = normalize_wallet_address(os.environ.get(WALLET_ADDRESS_ENV, ""))
+    state = hyperliquid_info().user_state(address)
+    margin = state.get("marginSummary") or {}
+    return {
+        "wallet_address": address,
+        "account_value_usd": float(margin.get("accountValue") or 0.0),
+        "total_margin_used": float(margin.get("totalMarginUsed") or 0.0),
+        "positions": state.get("assetPositions") or [],
+    }
+
+
+def save_hyperliquid_credentials(
+    *,
+    wallet_address: str,
+    private_key: str | None = None,
+    write_env: bool = False,
+    env_file: Path | None = None,
+) -> dict[str, Any]:
+    load_env_file()
+    address = normalize_wallet_address(wallet_address)
+    updates: dict[str, str] = {WALLET_ADDRESS_ENV: address}
+    saved_private_key = False
+    if private_key is not None and str(private_key).strip():
+        updates[PRIVATE_KEY_ENV] = str(private_key).strip()
+        saved_private_key = True
+    if write_env:
+        upsert_env_vars(env_file or Path(".env"), updates)
+        load_env_file()
+    return {
+        "ok": True,
+        "wallet_address": address,
+        "private_key_saved": saved_private_key,
+        "saved_to_env": write_env,
+        "trading_configured": hyperliquid_trading_configured(),
     }
 
 

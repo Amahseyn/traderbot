@@ -10,6 +10,7 @@ import {
   returnPctClassName,
 } from "@/lib/format";
 import { runListMetrics } from "@/lib/runDisplay";
+import { parseVectorbtMetrics, vectorbtMetricRows } from "@/lib/vectorbtMetrics";
 
 type RunDetailOverviewProps = {
   run: EvaluationRun;
@@ -23,6 +24,8 @@ export function RunDetailOverview({ run }: RunDetailOverviewProps) {
   const feeRate = run.metrics.fee_rate;
   const slippageRate = run.metrics.slippage_rate;
   const execution = run.metrics.execution;
+  const vectorbt = isStrategy ? parseVectorbtMetrics(run.metrics) : null;
+  const vectorbtRows = vectorbt ? vectorbtMetricRows(vectorbt) : [];
 
   const headline = isStrategy
     ? formatReturnPct(returnPct)
@@ -102,6 +105,20 @@ export function RunDetailOverview({ run }: RunDetailOverviewProps) {
           <DetailRow label="Recorded" value={formatUtcTimestamp(run.created_at_utc)} />
         </dl>
       </Card>
+
+      {vectorbtRows.length > 0 && (
+        <Card
+          className="lg:col-span-2"
+          title="vectorbt analytics"
+          description="Risk and trade stats from vectorbt (same signals and execution as the built-in engine)."
+        >
+          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+            {vectorbtRows.map((row) => (
+              <MetricTile key={row.label} label={row.label} value={row.value} />
+            ))}
+          </dl>
+        </Card>
+      )}
     </div>
   );
 }

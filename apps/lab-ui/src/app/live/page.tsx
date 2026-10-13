@@ -44,23 +44,28 @@ export default function LiveTradingPage() {
     setWatchedJobIds((current) => mergeWatchedIds(current, jobIds));
   }, []);
 
-  const keysReady = authQuery.data?.api_keys_configured === true;
+  const hyperliquidReady = authQuery.data?.hyperliquid_wallet_configured === true;
+  const nobitexReady = authQuery.data?.api_keys_configured === true;
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Live trading"
-        description="Run one or many sessions in parallel — each job gets its own chart, log stream, and Nobitex candle feed."
+        description="Run one or many sessions in parallel — each job gets its own chart, log stream, and live candle feed (Hyperliquid by default)."
         actions={
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                keysReady
+                hyperliquidReady || nobitexReady
                   ? "bg-emerald-900/40 text-emerald-200 ring-1 ring-emerald-500/30"
                   : "bg-amber-900/30 text-amber-100 ring-1 ring-amber-500/25"
               }`}
             >
-              {keysReady ? "API keys configured" : "Paper test ready without keys"}
+              {hyperliquidReady
+                ? "Hyperliquid ready"
+                : nobitexReady
+                  ? "Nobitex keys configured"
+                  : "Paper test ready without keys"}
             </span>
             <Link href="/settings" className="text-accent hover:underline">
               Credentials

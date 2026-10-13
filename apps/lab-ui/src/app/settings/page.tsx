@@ -18,6 +18,29 @@ export default function SettingsPage() {
   const [totp, setTotp] = useState("");
   const [keyName, setKeyName] = useState("traderbot-lab");
   const [createTotp, setCreateTotp] = useState("");
+  const [hlWallet, setHlWallet] = useState("");
+  const [hlPrivateKey, setHlPrivateKey] = useState("");
+
+  const hyperliquidQuery = useQuery({
+    queryKey: ["auth-hyperliquid"],
+    queryFn: api.authHyperliquidAccount,
+    enabled: statusQuery.data?.hyperliquid_wallet_configured === true,
+    retry: false,
+  });
+
+  const saveHyperliquidMutation = useMutation({
+    mutationFn: () =>
+      api.authSaveHyperliquid({
+        wallet_address: hlWallet,
+        private_key: hlPrivateKey || undefined,
+        write_env: true,
+      }),
+    onSuccess: () => {
+      setHlPrivateKey("");
+      void queryClient.invalidateQueries({ queryKey: ["auth-status"] });
+      void queryClient.invalidateQueries({ queryKey: ["auth-hyperliquid"] });
+    },
+  });
 
   const profileQuery = useQuery({
     queryKey: ["auth-profile"],
@@ -65,8 +88,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Nobitex & credentials"
-        description="Session login and API keys are written to the repo .env on the machine running the Lab API (local research only)."
+        title="Exchange credentials"
+        description="Hyperliquid (default for Live) and Nobitex settings are written to .env on the machine running the Lab API (local research only)."
       />
 
       <Card title="Status">
@@ -85,8 +108,72 @@ export default function SettingsPage() {
                 {statusQuery.data.auth_token_configured ? "yes" : "no"}
               </span>
             </li>
+            <li>
+              Hyperliquid wallet:{" "}
+              <span
+                className={
+                  statusQuery.data.hyperliquid_wallet_configured ? "text-emerald-300" : "text-muted"
+                }
+              >
+                {statusQuery.data.hyperliquid_wallet_configured ? "yes" : "no"}
+              </span>
+            </li>
+            <li>
+              Hyperliquid trading key:{" "}
+              <span
+                className={
+                  statusQuery.data.hyperliquid_trading_configured ? "text-emerald-300" : "text-muted"
+                }
+              >
+                {statusQuery.data.hyperliquid_trading_configured ? "yes" : "no"}
+              </span>
+            </li>
           </ul>
         )}
+      </Card>
+
+      <Card
+        title="Hyperliquid"
+        description="Wallet address for charts and account state; private key required for live perp orders."
+      >
+        {hyperliquidQuery.data && <JsonBlock value={hyperliquidQuery.data} />}
+        <form
+          className="mt-4 space-y-3 max-w-md"
+          onSubmit={(event) => {
+            event.preventDefault();
+            saveHyperliquidMutation.mutate();
+          }}
+        >
+          <Field label="Wallet address (0x…)">
+            <TextInput
+              value={hlWallet}
+              onChange={(event) => setHlWallet(event.target.value)}
+              placeholder="0x…"
+              autoComplete="off"
+            />
+          </Field>
+          <Field label="Private key (optional, for live orders)" hint="Never committed to git — stored in .env only.">
+            <TextInput
+              type="password"
+              value={hlPrivateKey}
+              onChange={(event) => setHlPrivateKey(event.target.value)}
+              autoComplete="off"
+            />
+          </Field>
+          {saveHyperliquidMutation.isError && (
+            <p className="text-sm text-red-400">
+              {saveHyperliquidMutation.error instanceof Error
+                ? saveHyperliquidMutation.error.message
+                : "Save failed."}
+            </p>
+          )}
+          {saveHyperliquidMutation.isSuccess && (
+            <p className="text-sm text-emerald-300/90">Saved to .env on the Lab API host.</p>
+          )}
+          <Button type="submit" disabled={saveHyperliquidMutation.isPending || !hlWallet.trim()}>
+            Save Hyperliquid credentials
+          </Button>
+        </form>
       </Card>
 
       {statusQuery.data?.api_keys_configured && (

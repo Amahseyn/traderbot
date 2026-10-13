@@ -16,6 +16,7 @@ from lab.store.database import ensure_dataset_columns
 
 CATALOG_SCOPE_DEFAULT_JOBS = "default_jobs"
 CATALOG_SCOPE_NOBITEX_ALL = "nobitex_all"
+CATALOG_SCOPE_HYPERLIQUID_ALL = "hyperliquid_all"
 
 
 def _utc_now() -> str:
@@ -382,7 +383,9 @@ def refresh_market_catalog(
     if catalog_scope == CATALOG_SCOPE_DEFAULT_JOBS:
         catalog = markets_catalog_dict(jobs_path or DEFAULT_JOBS_PATH)
     elif catalog_scope == CATALOG_SCOPE_NOBITEX_ALL:
-        catalog = markets_catalog_dict(None)
+        catalog = markets_catalog_dict(None, exchange="nobitex")
+    elif catalog_scope == CATALOG_SCOPE_HYPERLIQUID_ALL:
+        catalog = markets_catalog_dict(None, exchange="hyperliquid")
     else:
         raise ValueError(f"unsupported catalog scope: {catalog_scope}")
     now = _utc_now()
@@ -425,6 +428,15 @@ def ensure_market_catalog(connection: sqlite3.Connection) -> None:
     if all_count == 0:
         try:
             refresh_market_catalog(connection, catalog_scope=CATALOG_SCOPE_NOBITEX_ALL)
+        except Exception:
+            pass
+    hyperliquid_count = connection.execute(
+        "SELECT COUNT(*) FROM market_catalog WHERE catalog_scope = ?",
+        (CATALOG_SCOPE_HYPERLIQUID_ALL,),
+    ).fetchone()[0]
+    if hyperliquid_count == 0:
+        try:
+            refresh_market_catalog(connection, catalog_scope=CATALOG_SCOPE_HYPERLIQUID_ALL)
         except Exception:
             pass
 

@@ -12,8 +12,9 @@ def run_live(args: argparse.Namespace) -> None:
     trader = build_terminal_trader(args, bar_source=None)
 
     if getattr(args, LIVE, False):
+        exchange = getattr(args, "exchange", "hyperliquid")
         print(
-            "live mode: market orders via Nobitex API; use --no-buy/--no-sell to gate sides",
+            f"live mode: market orders via {exchange}; use --no-buy/--no-sell to gate sides",
             file=sys.stderr,
         )
 

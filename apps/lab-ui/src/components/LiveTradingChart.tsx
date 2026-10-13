@@ -19,6 +19,7 @@ type LiveTradingChartProps = {
   jobStatus?: string;
   strategyId?: string | null;
   liveOrders?: boolean;
+  exchange?: string;
   title: string;
   subtitle?: string;
   focused?: boolean;
@@ -79,6 +80,7 @@ export function LiveTradingChart({
   jobStatus,
   strategyId,
   liveOrders,
+  exchange = "hyperliquid",
   title,
   subtitle,
   focused,
@@ -103,8 +105,9 @@ export function LiveTradingChart({
   }, []);
 
   const ohlcQuery = useQuery({
-    queryKey: ["markets-ohlc", src, dst, interval],
-    queryFn: () => api.marketsOhlc({ src, dst, resolution: interval, maxBars: 300 }),
+    queryKey: ["markets-ohlc", exchange, src, dst, interval],
+    queryFn: () =>
+      api.marketsOhlc({ src, dst, resolution: interval, maxBars: 300, exchange }),
     enabled: Boolean(src && dst && interval),
     staleTime: 10_000,
     refetchInterval: refreshActive ? 15_000 : 90_000,

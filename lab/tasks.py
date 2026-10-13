@@ -11,6 +11,7 @@ from traderbot.backtesting.compare_session import (
 )
 from traderbot.data.export import run_export
 from traderbot.markets.market_data import market_symbol
+from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION
 
 
 def run_export_task(fields: dict[str, Any]) -> None:
@@ -69,7 +70,7 @@ def run_strategy_compare_task(body: dict[str, Any], csv_path: str) -> None:
             cash=float(body.get("cash") or 10_000.0),
             fee=float(body.get("fee") or 0.0),
             slippage=float(body.get("slippage") or 0.0),
-            execution=str(body.get("execution") or "close"),
+            execution=str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION),
             vectorbt=bool(body.get("vectorbt")),
             strategy_namespace=_strategy_namespace_from_body(body),
             mode=mode,
@@ -96,7 +97,7 @@ def run_strategy_sweep_task(body: dict[str, Any], csv_path: str) -> None:
             cash=float(body.get("cash") or 10_000.0),
             fee=float(body.get("fee") or 0.0),
             slippage=float(body.get("slippage") or 0.0),
-            execution=str(body.get("execution") or "close"),
+            execution=str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION),
             holdout_tail_bars=None if holdout_raw in (None, "") else int(holdout_raw),
             min_trades=int(body.get("min_trades") or 0),
             max_combos=int(body.get("max_combos") or 64),
@@ -134,7 +135,7 @@ def run_strategy_test_task(body: dict[str, Any], csv_path: str) -> None:
             cash=float(body.get("cash") or 10_000.0),
             fee=float(body.get("fee") or 0.0),
             slippage=float(body.get("slippage") or 0.0),
-            execution=str(body.get("execution") or "close"),
+            execution=str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION),
             vectorbt=bool(body.get("vectorbt")),
             strategy_namespace=_strategy_namespace_from_body(body),
             mode=mode,

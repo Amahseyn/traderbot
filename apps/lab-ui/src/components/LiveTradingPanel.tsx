@@ -14,6 +14,7 @@ import { formatDurationMinutes, formatResolutionLabel, minutesFromResolution } f
 
 type ExecutionMode = "once" | "continuous";
 type OrderMode = "paper" | "live";
+type LiveExchange = "hyperliquid" | "nobitex";
 type ContinuousLimit = "until_stopped" | "max_cycles";
 
 const MAX_LIVE_BATCH_COMBOS = 16;
@@ -30,6 +31,7 @@ export type LiveSessionConfig = {
   dst: string;
   interval: string;
   marketSymbol: string | null;
+  exchange: LiveExchange;
 };
 
 type LiveTradingPanelProps = {
@@ -87,11 +89,12 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
   const [multiRun, setMultiRun] = useState(false);
   const [batchMarkets, setBatchMarkets] = useState<BatchMarket[]>([]);
   const [batchIntervals, setBatchIntervals] = useState<string[]>([]);
+  const [liveExchange, setLiveExchange] = useState<LiveExchange>("hyperliquid");
   const [orderMode, setOrderMode] = useState<OrderMode>("paper");
   const [strategyId, setStrategyId] = useState("sma_cross");
-  const [marketSymbol, setMarketSymbol] = useState<string | null>("BTCIRT");
+  const [marketSymbol, setMarketSymbol] = useState<string | null>("BTCUSDT");
   const [src, setSrc] = useState("btc");
-  const [dst, setDst] = useState("rls");
+  const [dst, setDst] = useState("usdt");
   const [interval, setInterval] = useState("60");
   const [noBuy, setNoBuy] = useState(false);
   const [noSell, setNoSell] = useState(false);
@@ -115,7 +118,12 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
   const authQuery = useQuery({ queryKey: ["auth-status"], queryFn: api.authStatus });
 
   const strategies = terminalCatalogQuery.data?.strategies ?? [];
-  const resolutions = terminalCatalogQuery.data?.udf_resolutions ?? ["60", "240", "D"];
+  const resolutions =
+    liveExchange === "hyperliquid"
+      ? (terminalCatalogQuery.data?.hyperliquid_resolutions ??
+        terminalCatalogQuery.data?.udf_resolutions ??
+        ["1", "60", "240", "D"])
+      : (terminalCatalogQuery.data?.udf_resolutions ?? ["60", "240", "D"]);
 
   const intervalMinutes = minutesFromResolution(interval);
   const suggestedPollSec = intervalMinutes != null ? String(Math.max(15, intervalMinutes * 60)) : "60";
@@ -208,8 +216,9 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
       dst,
       interval,
       marketSymbol,
+      exchange: liveExchange,
     });
-  }, [src, dst, interval, marketSymbol, onSessionChange]);
+  }, [src, dst, interval, marketSymbol, liveExchange, onSessionChange]);
 
   const liveOrders = orderMode === "live";
 
@@ -229,6 +238,7 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
       optimize_before_run: optimizeBeforeRun && !liveOrders,
       optimize_max_bars: 100,
       optimize_holdout_bars: 20,
+      exchange: liveExchange,
     };
     if (!liveOrders) {
       const cash = Number(paperInitialCash);
@@ -269,6 +279,7 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
     useOptimized,
     applySweepWinner,
     optimizeBeforeRun,
+    liveExchange,
     strategyParams,
     executionMode,
     pollSec,
@@ -278,8 +289,18 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      if (liveOrders && !authQuery.data?.api_keys_configured) {
+      if (liveOrders && liveExchange === "nobitex" && !authQuery.data?.api_keys_configured) {
         throw new Error("Configure Nobitex API keys in Settings before live orders.");
+      }
+      if (liveOrders && liveExchange === "hyperliquid" && !authQuery.data?.hyperliquid_wallet_configured) {
+        throw new Error("Configure Hyperliquid wallet in Settings before live orders.");
+      }
+      if (
+        liveOrders &&
+        liveExchange === "hyperliquid" &&
+        !authQuery.data?.hyperliquid_trading_configured
+      ) {
+        throw new Error("Add Hyperliquid private key in Settings to place live perp orders.");
       }
       if (executionMode === "continuous" && continuousLimit === "max_cycles") {
         const steps = Number(maxSteps);
@@ -325,7 +346,10 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
     },
   });
 
-  const apiKeysReady = authQuery.data?.api_keys_configured === true;
+  const hyperliquidReady = authQuery.data?.hyperliquid_wallet_configured === true;
+  const nobitexKeysReady = authQuery.data?.api_keys_configured === true;
+  const liveCredentialsReady =
+    liveExchange === "hyperliquid" ? hyperliquidReady : nobitexKeysReady;
   const pairLabel = `${src.toUpperCase()}/${dst.toUpperCase()}`;
 
   const comboCount = liveRunCombos.length;
@@ -347,7 +371,7 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
       <div className="space-y-4">
         <Card
           title="How it works"
-          description="Strategies read the latest closed Nobitex candle for your market and resolution."
+          description="Strategies read the latest closed candle from your chosen exchange (Hyperliquid by default)."
         >
           <dl className="space-y-4 text-sm">
             <div>
@@ -378,13 +402,20 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
         <Card title="Credentials">
           <ul className="space-y-2 text-sm">
             <li className="flex items-center justify-between gap-2">
+              <span className="text-muted">Hyperliquid wallet</span>
+              <span className={hyperliquidReady ? "text-emerald-300" : "text-amber-200"}>
+                {hyperliquidReady ? "Ready" : "Not set"}
+              </span>
+            </li>
+            <li className="flex items-center justify-between gap-2">
               <span className="text-muted">Nobitex API keys</span>
-              <span className={apiKeysReady ? "text-emerald-300" : "text-amber-200"}>
-                {apiKeysReady ? "Ready" : "Not set"}
+              <span className={nobitexKeysReady ? "text-emerald-300" : "text-amber-200"}>
+                {nobitexKeysReady ? "Ready" : "Not set"}
               </span>
             </li>
             <li className="text-xs text-muted">
-              Paper mode works without keys. Live orders need keys in{" "}
+              Paper mode works without credentials. Live Hyperliquid needs wallet + private key; Nobitex
+              needs API keys — configure in{" "}
               <Link href="/settings" className="text-accent hover:underline">Settings</Link>.
             </li>
           </ul>
@@ -393,9 +424,41 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
 
       <Card
         title="Configure session"
-        description="Pick market, strategy, and whether to trade on Nobitex or log signals only."
+        description="Pick exchange, market, strategy, and paper vs live execution."
       >
         <div className="space-y-6">
+          <div>
+            <h3 className="mb-2 text-sm font-medium text-white">Exchange</h3>
+            <SegmentedOption
+              value={liveExchange}
+              onChange={(value) => {
+                setLiveExchange(value);
+                if (value === "hyperliquid" && dst === "rls") {
+                  setDst("usdt");
+                  setMarketSymbol("BTCUSDT");
+                  setPaperInitialCash(defaultPaperCash("usdt"));
+                }
+                if (value === "nobitex" && dst === "usdt" && marketSymbol === "BTCUSDT") {
+                  setDst("rls");
+                  setMarketSymbol("BTCIRT");
+                  setPaperInitialCash(defaultPaperCash("rls"));
+                }
+              }}
+              options={[
+                {
+                  id: "hyperliquid",
+                  label: "Hyperliquid",
+                  description: "USDC perps — default for live tests.",
+                },
+                {
+                  id: "nobitex",
+                  label: "Nobitex",
+                  description: "IRT/USDT spot via Nobitex UDF.",
+                },
+              ]}
+            />
+          </div>
+
           <div>
             <h3 className="mb-2 text-sm font-medium text-white">When to run</h3>
             <SegmentedOption
@@ -592,6 +655,7 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
             <MarketSearchPicker
               selectedSymbol={marketSymbol}
               onSelect={selectMarket}
+              defaultMarketScope={liveExchange === "hyperliquid" ? "hyperliquid_all" : "nobitex_all"}
               batchMode={multiRun}
               batchSymbols={batchMarkets.map((row) => row.symbol)}
               onToggleBatch={toggleBatchMarket}

@@ -7,8 +7,10 @@ from lab.auth_service import (
     api_keys_create,
     api_keys_list,
     auth_status,
+    fetch_hyperliquid_account,
     fetch_profile,
     login_session,
+    save_hyperliquid_credentials,
 )
 from traderbot.nobitex.client import NobitexClientError
 
@@ -49,6 +51,27 @@ def register_auth_routes(app, _get_connection: Callable | None = None) -> None:
         try:
             return api_keys_list()
         except (NobitexClientError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/api/auth/hyperliquid")
+    def api_auth_hyperliquid_account():
+        try:
+            return fetch_hyperliquid_account()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/auth/hyperliquid")
+    def api_auth_hyperliquid_save(body: dict[str, Any]):
+        wallet_address = body.get("wallet_address")
+        if not wallet_address:
+            raise HTTPException(status_code=400, detail="wallet_address required")
+        try:
+            return save_hyperliquid_credentials(
+                wallet_address=str(wallet_address),
+                private_key=body.get("private_key"),
+                write_env=bool(body.get("write_env", True)),
+            )
+        except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/api/auth/api-keys")

@@ -18,6 +18,7 @@ from lab.store import (
 from lab.store.queries import fetch_experiment
 from lab.store.catalog import (
     CATALOG_SCOPE_DEFAULT_JOBS,
+    CATALOG_SCOPE_HYPERLIQUID_ALL,
     CATALOG_SCOPE_NOBITEX_ALL,
     backfill_datasets,
     count_market_catalog,
@@ -348,7 +349,11 @@ def create_app(database_path: Path | None = None):
             description="If true, return the full cloned scope from SQLite (for client-side search)",
         ),
     ):
-        if scope not in (CATALOG_SCOPE_DEFAULT_JOBS, CATALOG_SCOPE_NOBITEX_ALL):
+        if scope not in (
+            CATALOG_SCOPE_DEFAULT_JOBS,
+            CATALOG_SCOPE_NOBITEX_ALL,
+            CATALOG_SCOPE_HYPERLIQUID_ALL,
+        ):
             raise HTTPException(status_code=400, detail="unsupported market catalog scope")
         connection = get_connection()
         try:
@@ -369,6 +374,9 @@ def create_app(database_path: Path | None = None):
             updated_at_utc = market_catalog_updated_at(connection, catalog_scope=scope)
         finally:
             connection.close()
+        from traderbot.markets.exchange import live_resolutions
+
+        catalog_exchange = "hyperliquid" if scope == CATALOG_SCOPE_HYPERLIQUID_ALL else "nobitex"
         return {
             "catalog_scope": scope,
             "total_in_catalog": total_in_catalog,
@@ -385,7 +393,7 @@ def create_app(database_path: Path | None = None):
                 }
                 for market in markets
             ],
-            "udf_resolutions": list(RESOLUTIONS),
+            "udf_resolutions": list(live_resolutions(catalog_exchange)),
         }
 
     @app.post("/api/data/markets/sync")
@@ -395,7 +403,11 @@ def create_app(database_path: Path | None = None):
             description=f"Re-clone from Nobitex or jobs file into SQLite ({CATALOG_SCOPE_NOBITEX_ALL} hits /market/stats)",
         ),
     ):
-        if scope not in (CATALOG_SCOPE_DEFAULT_JOBS, CATALOG_SCOPE_NOBITEX_ALL):
+        if scope not in (
+            CATALOG_SCOPE_DEFAULT_JOBS,
+            CATALOG_SCOPE_NOBITEX_ALL,
+            CATALOG_SCOPE_HYPERLIQUID_ALL,
+        ):
             raise HTTPException(status_code=400, detail="unsupported market catalog scope")
         connection = get_connection()
         try:
@@ -407,6 +419,8 @@ def create_app(database_path: Path | None = None):
         except Exception as exc:
             if scope == CATALOG_SCOPE_DEFAULT_JOBS:
                 detail = f"Could not load market catalog from jobs file: {exc}"
+            elif scope == CATALOG_SCOPE_HYPERLIQUID_ALL:
+                detail = f"Could not reach Hyperliquid meta API ({exc}). Check network and retry Sync."
             else:
                 detail = (
                     f"Could not reach Nobitex market/stats ({exc}). "

@@ -3,11 +3,20 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from traderbot.algorithms.registry import list_strategies
+from traderbot.backtesting.engine import EXECUTION_MODES
+from traderbot.backtesting.vectorbt import vectorbt_is_available
 from traderbot.terminal.catalog import catalog_dict
 
 
 def register_catalog_routes(app) -> None:
     from fastapi import HTTPException, Query
+
+    @app.get("/api/catalog/backtest")
+    def api_catalog_backtest():
+        return {
+            "vectorbt_available": vectorbt_is_available(),
+            "execution_modes": list(EXECUTION_MODES),
+        }
 
     @app.get("/api/catalog/strategies")
     def api_catalog_strategies(implemented_only: bool = False):
@@ -95,15 +104,24 @@ def register_catalog_routes(app) -> None:
         dst: str = Query(..., min_length=1),
         resolution: str = Query("60"),
         max_bars: int = Query(300, ge=1, le=500),
+        exchange: str = Query("hyperliquid"),
     ):
-        from traderbot.markets.market_data import fetch_recent_closed_bars, market_symbol
+        from traderbot.markets.exchange import fetch_live_recent_closed_bars, live_market_symbol, normalize_live_exchange
 
-        symbol = market_symbol(src, dst)
+        live_exchange = normalize_live_exchange(exchange)
+        symbol = live_market_symbol(live_exchange, src, dst)
         try:
-            bars = fetch_recent_closed_bars(symbol=symbol, resolution=resolution, max_bars=max_bars)
+            bars = fetch_live_recent_closed_bars(
+                exchange=live_exchange,
+                src=src,
+                dst=dst,
+                resolution=resolution,
+                max_bars=max_bars,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {
+            "exchange": live_exchange,
             "symbol": symbol,
             "src": src.strip().lower(),
             "dst": dst.strip().lower(),

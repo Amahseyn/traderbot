@@ -46,7 +46,8 @@ def test_terminal_run_max_steps(keys, monkeypatch):
 
     monkeypatch.setenv("NOBITEX_API_PUBLIC_KEY", pub)
     monkeypatch.setenv("NOBITEX_API_PRIVATE_KEY", priv)
-    monkeypatch.setattr("traderbot.terminal.session.fetch_recent_closed_bars", lambda **_k: [])
+    monkeypatch.setattr("traderbot.markets.exchange.fetch_live_recent_closed_bars", lambda **_k: [])
+    monkeypatch.setattr("traderbot.markets.exchange.fetch_live_closed_bars_after", lambda **_k: [])
     monkeypatch.setattr("traderbot.markets.market_data.fetch_latest_closed_bar", lambda **_k: bar)
     monkeypatch.setattr("traderbot.terminal.live.Bot", FakeBot)
 
@@ -71,6 +72,7 @@ def test_terminal_run_max_steps(keys, monkeypatch):
         no_buy=False,
         no_sell=False,
         emit_holds=False,
+        exchange="nobitex",
     )
     run_live(args)
 
@@ -87,7 +89,10 @@ def test_terminal_once(monkeypatch, capsys):
         "volume": 1.0,
     }
     monkeypatch.setattr("traderbot.terminal.once.fetch_latest_closed_bar", lambda **_k: bar)
-    monkeypatch.setattr("traderbot.terminal.once.fetch_recent_closed_bars", lambda **_k: [])
+    monkeypatch.setattr(
+        "traderbot.terminal.once.fetch_live_recent_closed_bars",
+        lambda **_k: [bar],
+    )
     args = argparse.Namespace(
         src="btc",
         dst="rls",
@@ -107,6 +112,7 @@ def test_terminal_once(monkeypatch, capsys):
         no_buy=False,
         no_sell=False,
         emit_holds=False,
+        exchange="nobitex",
     )
     run_once(args)
     row = json.loads(capsys.readouterr().out)

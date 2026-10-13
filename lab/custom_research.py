@@ -10,6 +10,7 @@ from traderbot.data.export import run_export
 from traderbot.markets.market_data import market_symbol as build_market_symbol
 from traderbot.utils.bars import filter_bars_by_unix_range
 from traderbot.utils.resolution import resolution_from_csv_path, resolution_minutes
+from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION
 
 
 def _bar_minutes_for_csv(csv_path: Path, body: dict[str, Any]) -> int:
@@ -155,7 +156,7 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
                     cash=float(body.get("cash") or 10_000.0),
                     fee=float(body.get("fee") or 0.0),
                     slippage=float(body.get("slippage") or 0.0),
-                    execution=str(body.get("execution") or "close"),
+                    execution=str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION),
                     vectorbt=bool(body.get("vectorbt")),
                     strategy_namespace=namespace,
                     mode=mode,
