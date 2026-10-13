@@ -4,6 +4,7 @@ from typing import Any
 
 from traderbot.algorithms.base import Algorithm, SignalAction
 from traderbot.backtesting.engine import EXECUTION_MODES, normalize_bar
+from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION
 from traderbot.traders.position import order_action_for_long_only
 
 _STAT_MAP: tuple[tuple[str, str], ...] = (
@@ -77,7 +78,7 @@ def entry_exit_series(
     algorithm: Algorithm,
     bars: list[dict[str, Any]],
     *,
-    execution: str = "close",
+    execution: str = DEFAULT_BACKTEST_EXECUTION,
 ):
     """Boolean entry/exit arrays aligned with :func:`traderbot.backtesting.run_backtest`."""
     import pandas as pd
@@ -125,7 +126,7 @@ def vectorbt_portfolio(
     initial_cash: float,
     fee_rate: float,
     slippage_rate: float = 0.0,
-    execution: str = "close",
+    execution: str = DEFAULT_BACKTEST_EXECUTION,
 ):
     import vectorbt as vbt
 
@@ -154,7 +155,7 @@ def vectorbt_metrics_dict(
     initial_cash: float,
     fee_rate: float,
     slippage_rate: float = 0.0,
-    execution: str = "close",
+    execution: str = DEFAULT_BACKTEST_EXECUTION,
 ) -> dict[str, Any]:
     """
     Risk and trade analytics via vectorbt (optional dependency).
@@ -186,7 +187,7 @@ def vectorbt_extra_for_backtest(
     initial_cash: float,
     fee_rate: float,
     slippage_rate: float = 0.0,
-    execution: str = "close",
+    execution: str = DEFAULT_BACKTEST_EXECUTION,
 ) -> dict[str, Any] | None:
     try:
         metrics = vectorbt_metrics_dict(

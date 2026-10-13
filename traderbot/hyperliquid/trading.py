@@ -33,6 +33,26 @@ def hyperliquid_exchange_from_env() -> Exchange:
     return Exchange(wallet, constants.MAINNET_API_URL)
 
 
+def hyperliquid_position_size(coin: str) -> float:
+    address = wallet_address_from_env()
+    if not address:
+        raise HyperliquidTradingError("HYPERLIQUID_WALLET_ADDRESS is not set")
+    state = hyperliquid_info().user_state(normalize_wallet_address(address))
+    for entry in state.get("assetPositions") or []:
+        if not isinstance(entry, dict):
+            continue
+        position = entry.get("position")
+        if not isinstance(position, dict):
+            continue
+        if str(position.get("coin") or "") != coin:
+            continue
+        try:
+            return abs(float(position.get("szi") or 0.0))
+        except (TypeError, ValueError):
+            return 0.0
+    return 0.0
+
+
 def hyperliquid_account_value_usd() -> float:
     address = wallet_address_from_env()
     if not address:

@@ -11,6 +11,7 @@ from traderbot.nobitex.trading import list_wallets
 from traderbot.risk.runtime import get_risk_manager
 from traderbot.traders.bot_inventory import BotInventory
 from traderbot.traders.execution import ExecutionPolicy
+from traderbot.traders.inventory_reconcile import base_currency_for_symbol, sync_inventory_to_exchange_base
 from traderbot.traders.nobitex import NobitexTrader
 from traderbot.traders.position import order_action_for_long_only
 
@@ -40,6 +41,8 @@ class AlgorithmTrader(NobitexTrader):
         warmup_bars: list[Bar] | None = None,
         capital_cap: float | None = None,
         inventory: BotInventory | None = None,
+        risk_scope: str | None = None,
+        risk_manager=None,
     ):
         super().__init__(client)
         self.algorithm = algorithm
@@ -55,9 +58,11 @@ class AlgorithmTrader(NobitexTrader):
         quote = "rls"
         if market_symbol and market_symbol.upper().endswith("USDT"):
             quote = "usdt"
-        cap = capital_cap if capital_cap is not None else get_risk_manager().limits.capital_cap
+        scope = risk_scope or market_symbol or "default"
+        self.risk_scope = scope
+        self.risk = risk_manager if risk_manager is not None else get_risk_manager(scope)
+        cap = capital_cap if capital_cap is not None else self.risk.limits.capital_cap
         self.inventory = inventory or BotInventory(quote_currency=quote, capital_cap=cap)
-        self.risk = get_risk_manager()
 
     @classmethod
     def from_env(
@@ -84,6 +89,8 @@ class AlgorithmTrader(NobitexTrader):
         bar = self.bar_source() if self.bar_source else None
         if bar is None:
             return
+        if self.execution.mode == "live" and self.market_symbol:
+            self._reconcile_inventory_from_exchange(bar)
         self.risk.update_bar_volatility(
             high=float(bar["high"]),
             low=float(bar["low"]),
@@ -125,6 +132,24 @@ class AlgorithmTrader(NobitexTrader):
             self.last_order_error = str(exc)
             logger.error("live order failed: %s", exc)
             raise
+
+    def _reconcile_inventory_from_exchange(self, bar: Bar) -> None:
+        symbol = self.market_symbol or str(bar.get("symbol") or "")
+        if not symbol:
+            return
+        try:
+            close_price = float(bar["close"])
+            balances = list_wallets(self.client)
+            base = base_currency_for_symbol(symbol)
+            exchange_base = balances.get(base, 0.0)
+            if sync_inventory_to_exchange_base(
+                self.inventory,
+                exchange_base,
+                mark_price=close_price,
+            ):
+                self.in_position = self.inventory.base_amount > 0
+        except (NobitexClientError, ValueError) as exc:
+            logger.debug("inventory reconcile skipped: %s", exc)
 
     def _quote_currency(self, symbol: str) -> str:
         return "usdt" if symbol.upper().endswith("USDT") else "rls"
@@ -171,7 +196,7 @@ class AlgorithmTrader(NobitexTrader):
             return
 
         if action == "sell":
-            sellable = self.inventory.record_sell(base_sold=self.inventory.base_amount)
+            sellable = self.inventory.base_amount
             if sellable <= 0:
                 raise NobitexClientError("bot has no inventory to sell")
             response = add_market_order(
@@ -183,8 +208,13 @@ class AlgorithmTrader(NobitexTrader):
             )
             order = response.get("order") if isinstance(response, dict) else None
             order_id = order.get("id") if isinstance(order, dict) else None
-            if order_id is not None:
+            filled = (
                 wait_for_order_fill(self.client, order_id)
+                if order_id is not None
+                else order
+            )
+            matched = float(filled.get("matchedAmount") or sellable) if isinstance(filled, dict) else sellable
+            self.inventory.record_sell(base_sold=matched)
 
     def _maybe_place_stop(self, symbol: str, *, base_amount: float, entry_price: float) -> None:
         stop_pct = self.risk.limits.stop_loss_pct
@@ -199,4 +229,4 @@ class AlgorithmTrader(NobitexTrader):
                 stop_price=stop_price,
             )
         except NobitexClientError as exc:
-            logger.warning("stop order not placed: %s", exc)
+            raise NobitexClientError(f"protective stop not placed: {exc}") from exc

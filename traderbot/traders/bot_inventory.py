@@ -26,9 +26,16 @@ class BotInventory:
 
     def record_sell(self, *, base_sold: float) -> float:
         sold = min(base_sold, self.base_amount)
-        self.base_amount -= sold
+        if sold <= 0:
+            return 0.0
+        base_before = self.base_amount
+        if base_before > 0:
+            remaining = base_before - sold
+            self.quote_reserved *= remaining / base_before
+        self.base_amount = base_before - sold
         if self.base_amount <= 0:
             self.avg_entry_price = 0.0
+            self.quote_reserved = 0.0
         return sold
 
     def snapshot(self) -> dict[str, float | str]:

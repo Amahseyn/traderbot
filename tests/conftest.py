@@ -22,3 +22,4 @@ def keys():
 @pytest.fixture(autouse=True)
 def hermetic_data_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("TRADERBOT_DB", str(tmp_path / "hermetic-traderbot.db"))
+    monkeypatch.setenv("LAB_API_DISABLE_AUTH", "1")

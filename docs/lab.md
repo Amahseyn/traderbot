@@ -39,6 +39,11 @@ Lab jobs (export, strategy compare, pipelines) run **in-process** in the API —
 | `NEXT_PUBLIC_API_BASE` | Browser API base (default `/lab-api` — proxied to FastAPI by Next.js) |
 | `LAB_API_PROXY_TARGET` | Where Next rewrites `/lab-api/*` (default `http://127.0.0.1:8765`) |
 | `LAB_ALLOWED_DEV_ORIGINS` | Extra hostnames for Next `allowedDevOrigins` (comma-separated). Lab UI also allowlists local interfaces plus broad `*.*…` wildcards for LAN dev. |
+| `LAB_API_TOKEN` | Bearer token for protected Lab API routes (POST jobs, risk, credentials, artifact download). If unset while auth is enabled, the API generates an ephemeral token at startup and logs it once. |
+| `LAB_API_DISABLE_AUTH` | Set to `1` to disable API auth (tests and trusted local dev only). |
+| `LAB_API_HOST` | Bind address for `python -m lab serve` / `run-lab-api.sh` (default `127.0.0.1`). |
+| `LAB_API_MAX_BODY_BYTES` | Max JSON body size for POST requests (default 2 MiB). |
+| `NEXT_PUBLIC_LAB_API_TOKEN` | Optional browser token sent as `Authorization: Bearer` from the Lab UI when the API requires auth. |
 
 Default database: `data/traderbot.db` (created by `python -m lab init`).
 
@@ -66,7 +71,9 @@ Two terminals:
 
 `python -m lab serve` auto-creates the SQLite schema on startup (`data/traderbot.db`).
 
-Dev helpers: `run-lab-ui.sh` frees `LAB_UI_PORT` (default 3000) before `next dev`. Set `LAB_KILL_UI_PORT=0` to skip. API bind address defaults to `0.0.0.0` via `run-lab-api.sh` (`LAB_API_HOST`). Lab API CORS allows any origin (local research only).
+Dev helpers: `run-lab-ui.sh` frees `LAB_UI_PORT` (default 3000) before `next dev`. Set `LAB_KILL_UI_PORT=0` to skip. API bind address defaults to `127.0.0.1` via `run-lab-api.sh` (`LAB_API_HOST`). Set `LAB_API_HOST=0.0.0.0` only on a trusted network and always set `LAB_API_TOKEN`.
+
+Protected routes (when auth is enabled): all `POST` endpoints, `GET /artifact`, dataset downloads, `/api/auth/*` except `/api/auth/status`, and `/api/risk/*`. Read-only catalog `GET` routes remain public. CORS is not authentication.
 
 Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1:8765/docs](http://127.0.0.1:8765/docs).
 
@@ -90,7 +97,7 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 | `/actions` | Redirects to `/experiments` |
 | `/custom` | Custom end-to-end pipeline (export, multi-dataset, compare) |
 | `/live` | Terminal paper/live: once, UDF poll loop, CSV replay (job log + stop) |
-| `/settings` | Nobitex login, API keys, profile |
+| `/settings` | Lab API token status, Nobitex login, API keys, Hyperliquid credentials |
 
 ## API (UI-facing)
 
@@ -115,7 +122,7 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 
 `strategy-test` and `strategy-compare` take `mode`: `strategies` (rule strategies only). `strategy-test` also requires `strategy_id`. Both jobs accept optional `cash`, `fee`, `slippage` (fractions, e.g. `0.001`), `execution` (`close` or `next_open`), `vectorbt`, and strategy knobs (`fast`, `slow`, `signal`, `period`, `oversold`, `overbought`, `num_std`, `context_bars`, `price_confirm`). Returns are net of fee + slippage; `next_open` fills at the next bar open (last-bar signals expire).
 
-`strategy-sweep` (optimizer) takes `dataset_id` (or `csv`), `strategy_id`, `mode`, and a 1–2 param grid as `params` (`{name: [values]}`) or `param_specs` (`["name=v1,v2"]`). Grid names must be strategy-namespace fields; `GET /api/catalog/strategy-params?strategy_id=` lists the knobs each strategy actually consumes (with kinds and defaults). Optional `cash`, `fee`, `slippage`, `execution`, `holdout_tail_bars` (rank by the last N bars; omit for full-run return), `min_trades`, `max_combos`, plus any other strategy-namespace knob as the base value underneath the grid. It writes `sweep_manifest.json` (default `results/strategies/sweep/<csv>_<strategy>/`) and records the winner in SQLite (`/api/sweeps`, `/api/sweeps/best`).
+`strategy-sweep` (optimizer) takes `dataset_id` (or `csv`), `strategy_id`, `mode`, and a 1–2 param grid as `params` (`{name: [values]}`) or `param_specs` (`["name=v1,v2"]`). Grid names must be strategy-namespace fields; `GET /api/catalog/strategy-params?strategy_id=` lists the knobs each strategy actually consumes (with kinds and defaults). Optional `cash`, `fee`, `slippage`, `execution`, `holdout_tail_bars` (fit on leading bars; report holdout return without using it to pick params), `min_trades`, `max_combos`, plus any other strategy-namespace knob as the base value underneath the grid. It writes `sweep_manifest.json` (default `results/strategies/sweep/<csv>_<strategy>/`) and records the winner in SQLite (`/api/sweeps`, `/api/sweeps/best`).
 
 `POST /api/jobs/custom-research` runs optional `export_market_symbol` + `interval` + `export_days` (or a batch `export_market_symbols` × `export_intervals` matrix, max 24 combos; per-horizon history via `export_days_by_interval` like `{"15": 7}`, falling back to `export_days`; or step-based via `export_steps` / `export_steps_by_interval`, which sizes days as `ceil(steps × minutes / 1440) + 1` and trims files to the last N bars), then on each selected catalog `dataset_ids` entry and/or `use_all_hourly_files` (`*_60.csv`): optional `compare_strategies` (`max_strategies`, `strategy_ids`, `cash`, `fee`, `slippage`, `execution`, `visualize`). Files with no bars (empty file or outside the run window) are skipped, not fatal, unless every file is skipped. At least one data source and `compare_strategies` is required.
 

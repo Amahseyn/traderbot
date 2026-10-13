@@ -20,7 +20,9 @@ from traderbot.nobitex.client import NobitexClient
 from traderbot.nobitex.profile import nobitex_keys_configured
 
 
-def auth_status() -> dict[str, bool]:
+def auth_status() -> dict[str, Any]:
+    from lab.config import lab_api_auth_enabled
+
     load_env_file()
     token = os.environ.get("NOBITEX_AUTH_TOKEN", "").strip()
     return {
@@ -29,6 +31,8 @@ def auth_status() -> dict[str, bool]:
         "hyperliquid_wallet_configured": hyperliquid_wallet_configured(),
         "hyperliquid_trading_configured": hyperliquid_trading_configured(),
         "live_exchange_default": "hyperliquid",
+        "lab_api_auth_enabled": lab_api_auth_enabled(),
+        "lab_api_token_configured": bool(os.environ.get("LAB_API_TOKEN", "").strip()),
     }
 
 

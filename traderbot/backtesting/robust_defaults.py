@@ -243,7 +243,7 @@ def compare_robust_strategies(
     cash: float = 10_000.0,
     fee: float = 0.0,
     slippage: float = 0.0,
-    execution: str = "close",
+    execution: str = DEFAULT_BACKTEST_EXECUTION,
     holdout_fraction: float = DEFAULT_HOLDOUT_FRACTION,
     min_trades: int = DEFAULT_MIN_TRADES,
     horizon_label: str | None = None,

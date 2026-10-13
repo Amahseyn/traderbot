@@ -89,6 +89,7 @@ def build_terminal_trader(
             capital_cap=capital_cap,
             kill_switch=bool(getattr(args, "risk_kill_switch", False)),
         ),
+        scope=symbol,
     )
     algo = algorithm_from_args(args)
 
@@ -105,6 +106,7 @@ def build_terminal_trader(
             market_symbol=symbol,
             warmup_bars=warmup_bars,
             capital_cap=capital_cap,
+            risk_scope=symbol,
         )
         trader.hyperliquid_coin = hyperliquid_coin_from_src(args.src)
     else:
@@ -121,6 +123,7 @@ def build_terminal_trader(
             market_symbol=symbol,
             warmup_bars=warmup_bars,
             capital_cap=capital_cap,
+            risk_scope=symbol,
         )
 
     trader.strategy_id = args.strategy

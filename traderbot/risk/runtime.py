@@ -2,17 +2,29 @@ from __future__ import annotations
 
 from traderbot.risk.manager import RiskLimits, RiskManager
 
-_runtime: RiskManager | None = None
+_managers: dict[str, RiskManager] = {}
 
 
-def get_risk_manager() -> RiskManager:
-    global _runtime
-    if _runtime is None:
-        _runtime = RiskManager(RiskLimits())
-    return _runtime
+def _normalize_scope(scope: str | None) -> str:
+    cleaned = (scope or "default").strip()
+    return cleaned or "default"
 
 
-def configure_risk_manager(limits: RiskLimits) -> RiskManager:
-    global _runtime
-    _runtime = RiskManager(limits)
-    return _runtime
+def get_risk_manager(scope: str | None = None) -> RiskManager:
+    key = _normalize_scope(scope)
+    manager = _managers.get(key)
+    if manager is None:
+        manager = RiskManager(RiskLimits())
+        _managers[key] = manager
+    return manager
+
+
+def configure_risk_manager(limits: RiskLimits, scope: str | None = None) -> RiskManager:
+    key = _normalize_scope(scope)
+    manager = RiskManager(limits)
+    _managers[key] = manager
+    return manager
+
+
+def clear_risk_managers() -> None:
+    _managers.clear()

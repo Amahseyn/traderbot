@@ -52,7 +52,7 @@ def _vectorbt_extra(
         initial_cash=args.cash,
         fee_rate=args.fee,
         slippage_rate=getattr(args, "slippage", 0.0),
-        execution=getattr(args, "execution", "close"),
+        execution=getattr(args, "execution", DEFAULT_BACKTEST_EXECUTION),
     )
     if extra is None:
         print(
@@ -149,7 +149,7 @@ def _run_backtest(
         initial_cash=args.cash,
         fee_rate=args.fee,
         slippage_rate=getattr(args, "slippage", 0.0) or 0.0,
-        execution=getattr(args, "execution", "close") or "close",
+        execution=getattr(args, "execution", DEFAULT_BACKTEST_EXECUTION) or DEFAULT_BACKTEST_EXECUTION,
     )
     return algo, result
 

@@ -76,6 +76,9 @@ def create_app(database_path: Path | None = None):
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    from lab.security import attach_lab_security
+
+    attach_lab_security(app)
 
     def get_connection():
         return open_database(database_path or default_database_path())

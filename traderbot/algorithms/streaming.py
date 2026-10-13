@@ -101,12 +101,13 @@ def atr_update(state: _AtrState, *, high: float, low: float, close: float) -> fl
     else:
         true_range = max(high - low, abs(high - prev_close), abs(low - prev_close))
     state["prev_close"] = close
-    state["true_ranges"].append(true_range)
     period = state["period"]
-    if len(state["true_ranges"]) < period:
-        return None
     if state["atr_value"] is None:
+        state["true_ranges"].append(true_range)
+        if len(state["true_ranges"]) < period:
+            return None
         state["atr_value"] = sum(state["true_ranges"][:period]) / period
+        state["true_ranges"].clear()
     else:
         state["atr_value"] = (state["atr_value"] * (period - 1) + true_range) / period
     return state["atr_value"]

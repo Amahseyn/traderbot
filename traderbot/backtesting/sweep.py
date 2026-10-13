@@ -75,7 +75,11 @@ class SweepResult:
 
 
 def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None) -> dict[str, Any]:
-    """Run a small coordinate grid (1-2 params) and rank by holdout or full return."""
+    """Run a small coordinate grid (1-2 params) and rank on the training window.
+
+    When ``holdout_tail_bars`` is set, combos are fit on leading bars only; ``holdout_return_pct``
+    is reported for comparison but is not used to select parameters (avoids holdout peeking).
+    """
     if not options.param_grid or len(options.param_grid) > MAX_SWEEP_PARAMS:
         raise ValueError(f"sweep requires 1-{MAX_SWEEP_PARAMS} params")
     combos = list(itertools.product(*options.param_grid.values()))
@@ -170,7 +174,7 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
         reason = skipped[0]["error"] if skipped else "no combinations"
         raise ValueError(f"sweep found no valid combos: {reason}")
 
-    rank_by = "holdout_return_pct" if holdout_bars is not None else "return_pct"
+    rank_by = "return_pct"
 
     for row in rows:
         holdout_return = row.get("holdout_return_pct")
@@ -180,8 +184,7 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
 
     def _rank_key(row: dict[str, Any]) -> tuple[int, float, float]:
         primary = row.get(rank_by)
-        secondary_key = "return_pct" if rank_by == "holdout_return_pct" else "holdout_return_pct"
-        secondary = row.get(secondary_key)
+        secondary = row.get("holdout_return_pct")
         return (
             1 if row["eligible"] else 0,
             float(primary) if primary is not None else float("-inf"),

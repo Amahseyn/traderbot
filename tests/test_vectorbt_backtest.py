@@ -35,7 +35,7 @@ def test_vectorbt_metrics_align_with_builtin_backtest():
     closes = [1, 2, 3, 2, 1, 2, 3, 4, 3, 2]
     bars = _bars(closes)
     algo = SmaCrossAlgorithm(fast=2, slow=3)
-    result = run_backtest(algo, bars, initial_cash=1000.0, fee_rate=0.0)
+    result = run_backtest(algo, bars, initial_cash=1000.0, fee_rate=0.0, execution="close")
     metrics = vectorbt_metrics_dict(
         algo,
         bars,

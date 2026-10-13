@@ -331,7 +331,9 @@ def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str,
         raise JobPayloadError("fee must be below 1 (fraction, e.g. 0.001 for 0.1%)")
     if prepared["slippage"] >= 1:
         raise JobPayloadError("slippage must be below 1 (fraction, e.g. 0.0005)")
-    execution = str(body.get("execution") or "close").strip().lower()
+    from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION
+
+    execution = str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION).strip().lower()
     if execution not in ("close", "next_open"):
         raise JobPayloadError("execution must be close or next_open")
     prepared["execution"] = execution

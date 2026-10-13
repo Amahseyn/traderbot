@@ -6,6 +6,8 @@ def test_risk_kill_switch_blocks_orders():
     verdict = manager.evaluate("buy", equity=1000.0, mark_price=100.0)
     assert not verdict.allowed
     assert verdict.reason == "kill_switch"
+    exit_verdict = manager.evaluate("sell", equity=1000.0, mark_price=100.0)
+    assert exit_verdict.allowed
 
 
 def test_risk_daily_loss_halts():
@@ -14,3 +16,5 @@ def test_risk_daily_loss_halts():
     verdict = manager.evaluate("buy", equity=940.0, mark_price=10.0)
     assert not verdict.allowed
     assert manager.halted
+    exit_verdict = manager.evaluate("sell", equity=940.0, mark_price=10.0)
+    assert exit_verdict.allowed

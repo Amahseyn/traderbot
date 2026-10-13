@@ -9,7 +9,9 @@ from traderbot.hyperliquid.trading import (
     hyperliquid_account_value_usd,
     hyperliquid_market_close,
     hyperliquid_market_open,
+    hyperliquid_position_size,
 )
+from traderbot.traders.inventory_reconcile import sync_inventory_to_exchange_base
 from traderbot.markets.order_limits import base_from_quote, spendable_quote
 from traderbot.nobitex.client import NobitexClientError
 from traderbot.terminal.trader import TerminalAlgorithmTrader
@@ -21,6 +23,23 @@ class HyperliquidTerminalTrader(TerminalAlgorithmTrader):
     """Terminal trader with Hyperliquid perp execution for live mode."""
 
     hyperliquid_coin: str = "BTC"
+
+    def _reconcile_inventory_from_exchange(self, bar: Bar) -> None:
+        close_price = float(bar["close"])
+        if close_price <= 0:
+            return
+        coin = self.hyperliquid_coin or hyperliquid_coin_from_src(self.market_symbol or "")
+        try:
+            exchange_base = hyperliquid_position_size(coin)
+        except HyperliquidTradingError as exc:
+            logger.debug("hyperliquid inventory reconcile skipped: %s", exc)
+            return
+        if sync_inventory_to_exchange_base(
+            self.inventory,
+            exchange_base,
+            mark_price=close_price,
+        ):
+            self.in_position = self.inventory.base_amount > 0
 
     def _place_live_order(self, action: SignalAction, bar: Bar, *, symbol: str) -> None:
         close_price = float(bar["close"])
@@ -50,11 +69,12 @@ class HyperliquidTerminalTrader(TerminalAlgorithmTrader):
             return
 
         if action == "sell":
-            sellable = self.inventory.record_sell(base_sold=self.inventory.base_amount)
+            sellable = self.inventory.base_amount
             if sellable <= 0:
                 raise NobitexClientError("bot has no inventory to sell")
             try:
                 hyperliquid_market_close(coin, size=sellable)
             except HyperliquidTradingError as exc:
                 raise NobitexClientError(str(exc)) from exc
+            self.inventory.record_sell(base_sold=sellable)
             return

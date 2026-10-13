@@ -6,6 +6,7 @@ from typing import Any
 
 from traderbot.algorithms.base import Algorithm, SignalAction
 from traderbot.utils.bars import bars_from_ohlc_rows, load_bars_csv, normalize_bar
+from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class BacktestResult:
     equity_curve: list[tuple[int, float]] = field(default_factory=list)
     fee_rate: float = 0.0
     slippage_rate: float = 0.0
-    execution: str = "close"
+    execution: str = DEFAULT_BACKTEST_EXECUTION
     total_fees: float = 0.0
 
     @property
@@ -72,7 +73,7 @@ def run_backtest(
     initial_cash: float = DEFAULT_BACKTEST_INITIAL_CASH,
     fee_rate = 0.0,
     slippage_rate = 0.0,
-    execution = "close",
+    execution: str = DEFAULT_BACKTEST_EXECUTION,
     reset_algorithm: bool = True,
 ) -> BacktestResult:
     """

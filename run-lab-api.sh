@@ -4,7 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${repo_root}"
 
-lab_host="${LAB_API_HOST:-0.0.0.0}"
+lab_host="${LAB_API_HOST:-127.0.0.1}"
 lab_port="${LAB_API_PORT:-8765}"
 
 # shellcheck source=scripts/kill-listen-port.sh

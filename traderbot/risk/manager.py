@@ -66,23 +66,25 @@ class RiskManager:
         equity: float,
         mark_price: float,
     ) -> RiskVerdict:
-        if self.limits.kill_switch:
-            return RiskVerdict(False, "kill_switch")
-        if self.halted:
-            return RiskVerdict(False, self.halt_reason or "risk_halt")
+        if action != "sell":
+            if self.limits.kill_switch:
+                return RiskVerdict(False, "kill_switch")
+            if self.halted:
+                return RiskVerdict(False, self.halt_reason or "risk_halt")
         self.update_mark(equity)
-        if self.day_start_equity and self.day_start_equity > 0:
-            day_loss_pct = (equity / self.day_start_equity - 1.0) * 100.0
-            if day_loss_pct <= -abs(self.limits.daily_loss_limit_pct):
-                self.halted = True
-                self.halt_reason = "daily_loss_limit"
-                return RiskVerdict(False, self.halt_reason)
-        if self.peak_equity and self.peak_equity > 0:
-            drawdown_pct = (equity / self.peak_equity - 1.0) * 100.0
-            if drawdown_pct <= -abs(self.limits.max_drawdown_pct):
-                self.halted = True
-                self.halt_reason = "max_drawdown"
-                return RiskVerdict(False, self.halt_reason)
+        if action != "sell":
+            if self.day_start_equity and self.day_start_equity > 0:
+                day_loss_pct = (equity / self.day_start_equity - 1.0) * 100.0
+                if day_loss_pct <= -abs(self.limits.daily_loss_limit_pct):
+                    self.halted = True
+                    self.halt_reason = "daily_loss_limit"
+                    return RiskVerdict(False, self.halt_reason)
+            if self.peak_equity and self.peak_equity > 0:
+                drawdown_pct = (equity / self.peak_equity - 1.0) * 100.0
+                if drawdown_pct <= -abs(self.limits.max_drawdown_pct):
+                    self.halted = True
+                    self.halt_reason = "max_drawdown"
+                    return RiskVerdict(False, self.halt_reason)
         multiplier = 1.0
         atr_value = self._atr.get("atr_value")
         if atr_value and mark_price > 0:

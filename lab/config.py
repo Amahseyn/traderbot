@@ -16,3 +16,17 @@ def lab_cors_origins() -> list[str]:
     if raw:
         return [part.strip() for part in raw.split(",") if part.strip()]
     return [lab_ui_origin()]
+
+
+def lab_api_auth_enabled() -> bool:
+    disabled = os.environ.get("LAB_API_DISABLE_AUTH", "").strip().lower()
+    return disabled not in ("1", "true", "yes")
+
+
+def lab_api_max_body_bytes() -> int:
+    raw = os.environ.get("LAB_API_MAX_BODY_BYTES", "2097152").strip()
+    try:
+        parsed = int(raw)
+    except ValueError:
+        parsed = 2_097_152
+    return max(1024, parsed)

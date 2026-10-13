@@ -64,7 +64,7 @@ def test_capital_cap_limits_live_buy_spend(keys, monkeypatch):
     from traderbot.risk.manager import RiskLimits
     from traderbot.risk.runtime import configure_risk_manager
 
-    configure_risk_manager(RiskLimits(capital_cap=50_000.0, stop_loss_pct=None))
+    configure_risk_manager(RiskLimits(capital_cap=50_000.0, stop_loss_pct=None), scope="BTCIRT")
     pub, priv = keys
     client = NobitexClient(pub, priv, request_fn=lambda *_a, **_k: None)
     bar = {

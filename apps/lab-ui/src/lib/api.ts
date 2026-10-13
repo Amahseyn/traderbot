@@ -171,6 +171,8 @@ export type AuthStatus = {
   hyperliquid_wallet_configured?: boolean;
   hyperliquid_trading_configured?: boolean;
   live_exchange_default?: string;
+  lab_api_auth_enabled?: boolean;
+  lab_api_token_configured?: boolean;
 };
 
 export type JobRow = {
@@ -234,8 +236,24 @@ export type MarketsCatalog = {
   udf_resolutions: string[];
 };
 
+function labAuthHeaders(): Record<string, string> {
+  const token = process.env.NEXT_PUBLIC_LAB_API_TOKEN?.trim();
+  if (!token) {
+    return {};
+  }
+  return { Authorization: `Bearer ${token}` };
+}
+
+function withLabAuth(init?: RequestInit): RequestInit {
+  const headers = new Headers(init?.headers ?? undefined);
+  for (const [key, value] of Object.entries(labAuthHeaders())) {
+    headers.set(key, value);
+  }
+  return { ...init, headers };
+}
+
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, init);
+  const response = await fetch(`${API_BASE}${path}`, withLabAuth(init));
   if (!response.ok) {
     if (response.status === 404) {
       throw new Error(
@@ -277,7 +295,7 @@ export const api = {
     ),
   experiments: () => fetchJson<ExperimentRow[]>("/api/experiments"),
   syncExperiments: async () => {
-    const response = await fetch(`${API_BASE}/api/experiments/sync`, { method: "POST" });
+    const response = await fetch(`${API_BASE}/api/experiments/sync`, withLabAuth({ method: "POST" }));
     if (!response.ok) {
       throw new Error(`${response.status} ${response.statusText}`);
     }
@@ -332,7 +350,7 @@ export const api = {
   syncMarkets: async (scope: "default_jobs" | "nobitex_all" | "hyperliquid_all" = "nobitex_all") => {
     const response = await fetch(
       `${API_BASE}/api/data/markets/sync?scope=${encodeURIComponent(scope)}`,
-      { method: "POST" },
+      withLabAuth({ method: "POST" }),
     );
     if (!response.ok) {
       if (response.status === 404) {
@@ -431,9 +449,10 @@ export const api = {
     return fetchJson<MarketsOhlcResponse>(`/api/markets/ohlc?${params.toString()}`);
   },
   stopJob: async (jobId: string) => {
-    const response = await fetch(`${API_BASE}/api/jobs/${encodeURIComponent(jobId)}/stop`, {
-      method: "POST",
-    });
+    const response = await fetch(
+      `${API_BASE}/api/jobs/${encodeURIComponent(jobId)}/stop`,
+      withLabAuth({ method: "POST" }),
+    );
     if (!response.ok) {
       const detail = await response.text();
       throw new Error(detail || `${response.status} ${response.statusText}`);
@@ -448,11 +467,14 @@ export const api = {
       body: JSON.stringify({ enabled }),
     }),
   postJob: async (jobType: string, body: Record<string, unknown>) => {
-    const response = await fetch(`${API_BASE}/api/jobs/${jobType}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const response = await fetch(
+      `${API_BASE}/api/jobs/${jobType}`,
+      withLabAuth({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    );
     if (!response.ok) {
       const detail = await response.text();
       throw new Error(detail || `${response.status} ${response.statusText}`);

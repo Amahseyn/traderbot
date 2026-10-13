@@ -9,6 +9,8 @@ import { JsonBlock } from "@/components/ui/JsonBlock";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { api } from "@/lib/api";
 
+const labUiTokenConfigured = Boolean(process.env.NEXT_PUBLIC_LAB_API_TOKEN?.trim());
+
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const statusQuery = useQuery({ queryKey: ["auth-status"], queryFn: api.authStatus });
@@ -88,11 +90,56 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Exchange credentials"
-        description="Hyperliquid (default for Live) and Nobitex settings are written to .env on the machine running the Lab API (local research only)."
+        title="Settings"
+        description="Lab API access, Hyperliquid (default for Live), and Nobitex credentials. Secrets stay on the machine running the Lab API (.env)."
       />
 
-      <Card title="Status">
+      <Card
+        title="Lab API access"
+        description="When API auth is enabled, jobs, risk changes, credential writes, and artifact downloads require a bearer token. See docs/live-trading.md in the repo."
+      >
+        {statusQuery.isLoading && <p className="text-sm text-muted">Checking…</p>}
+        {statusQuery.data && (
+          <ul className="text-sm space-y-1 text-slate-200">
+            <li>
+              API auth required:{" "}
+              <span
+                className={
+                  statusQuery.data.lab_api_auth_enabled !== false ? "text-amber-200" : "text-emerald-300"
+                }
+              >
+                {statusQuery.data.lab_api_auth_enabled === false ? "no (dev only)" : "yes"}
+              </span>
+            </li>
+            <li>
+              <code className="text-xs">LAB_API_TOKEN</code> on API host:{" "}
+              <span
+                className={
+                  statusQuery.data.lab_api_token_configured ? "text-emerald-300" : "text-muted"
+                }
+              >
+                {statusQuery.data.lab_api_token_configured ? "set" : "not set (ephemeral token may be logged at API startup)"}
+              </span>
+            </li>
+            <li>
+              <code className="text-xs">NEXT_PUBLIC_LAB_API_TOKEN</code> in UI build:{" "}
+              <span className={labUiTokenConfigured ? "text-emerald-300" : "text-muted"}>
+                {labUiTokenConfigured ? "set" : "not set"}
+              </span>
+            </li>
+          </ul>
+        )}
+        {statusQuery.data?.lab_api_auth_enabled !== false && !labUiTokenConfigured && (
+          <p className="mt-3 text-sm text-amber-200/90">
+            Add the same token to <code className="text-xs">apps/lab-ui/.env.local</code> as{" "}
+            <code className="text-xs">NEXT_PUBLIC_LAB_API_TOKEN</code>, then restart{" "}
+            <code className="text-xs">./run-lab-ui.sh</code>. Without it, job launches and Settings
+            credential saves return 401.
+          </p>
+        )}
+      </Card>
+
+      <Card title="Exchange status">
         {statusQuery.isLoading && <p className="text-sm text-muted">Checking…</p>}
         {statusQuery.data && (
           <ul className="text-sm space-y-1 text-slate-200">

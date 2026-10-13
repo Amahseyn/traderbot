@@ -185,13 +185,7 @@ def _run_crypto_1h_local_for_csv(
             extra={"strategy_id": strategy_id, "csv": str(slice_path)},
         )
 
-    if holdout_tail_bars is not None:
-        ranked.sort(
-            key=lambda row: row.get("holdout_return_pct", row["return_pct"]),
-            reverse=True,
-        )
-    else:
-        ranked.sort(key=lambda row: row["return_pct"], reverse=True)
+    ranked.sort(key=lambda row: row["return_pct"], reverse=True)
     compare_payload: dict = {
         "csv": str(slice_path),
         "source_csv": str(source_csv),

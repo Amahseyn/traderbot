@@ -9,6 +9,7 @@ Rules: `.cursor/rules/` — **`reduce-token-usage.mdc`** and **`traderbot-core.m
 | Topic | Path |
 |-------|------|
 | Lab API + UI | `docs/lab.md` |
+| Live trading ops | `docs/live-trading.md` |
 | Layout | `traderbot/` (trading), `cli/`, `auth/`, `lab/`, `nobitex/`, `markets/market_data.py`, `data/export.py` |
 | Lab stack | `apps/lab-ui`, `lab/` + `lab.store`, `cli/` |
 

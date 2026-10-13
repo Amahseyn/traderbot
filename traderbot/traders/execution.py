@@ -31,7 +31,9 @@ class ExecutionPolicy:
         return cls(mode="live", allow_buy=allow_buy, allow_sell=allow_sell)
 
     def permits(self, action: SignalAction) -> bool:
-        if action == "hold" or self.kill_switch:
+        if action == "hold":
+            return False
+        if self.kill_switch and action == "buy":
             return False
         if action == "buy" and not self.allow_buy:
             return False

@@ -72,7 +72,8 @@ def resolve_one_hour_window_params(params: dict[str, Any]) -> dict[str, Any]:
 
     Maps to ``holdout_tail_bars`` (one bar per hour on ``*_60.csv``). The pipeline
     compares rule-based strategies; ``holdout_tail_bars`` selects the tail used for
-    ``holdout_return_pct`` ranking. ``null`` = rank on the full data.
+    ``holdout_return_pct`` is reported on the tail but selection uses in-sample ``return_pct``.
+    ``null`` = rank on the full data.
 
     Explicit ``tail_bars`` still slices the entire CSV to the last N bars (legacy smoke).
     """
