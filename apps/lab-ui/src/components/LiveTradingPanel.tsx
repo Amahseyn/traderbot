@@ -102,8 +102,11 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
   const [maxSteps, setMaxSteps] = useState("24");
   const [useOptimized, setUseOptimized] = useState(false);
   const [applySweepWinner, setApplySweepWinner] = useState(false);
+  const [optimizeBeforeRun, setOptimizeBeforeRun] = useState(false);
   const [strategyParams, setStrategyParams] = useState<Record<string, unknown>>({});
   const [paperInitialCash, setPaperInitialCash] = useState("10000000");
+  const [liveQuoteBudget, setLiveQuoteBudget] = useState("");
+  const [useLiveQuoteBudget, setUseLiveQuoteBudget] = useState(false);
 
   const terminalCatalogQuery = useQuery({
     queryKey: ["catalog-terminal"],
@@ -137,6 +140,9 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
     setSrc(market.src);
     setDst(market.dst);
     setPaperInitialCash(defaultPaperCash(market.dst));
+    if (useLiveQuoteBudget) {
+      setLiveQuoteBudget(defaultPaperCash(market.dst));
+    }
   }
 
   function toggleBatchMarket(market: MarketSpec) {
@@ -218,16 +224,24 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
       no_buy: noBuy,
       no_sell: noSell,
       emit_holds: emitHolds,
-      use_optimized_defaults: useOptimized,
+      use_optimized_defaults: useOptimized || optimizeBeforeRun,
       apply_sweep_winner: applySweepWinner,
+      optimize_before_run: optimizeBeforeRun && !liveOrders,
+      optimize_max_bars: 100,
+      optimize_holdout_bars: 20,
     };
     if (!liveOrders) {
       const cash = Number(paperInitialCash);
       if (Number.isFinite(cash) && cash > 0) {
         body.paper_initial_cash = cash;
       }
+    } else if (useLiveQuoteBudget) {
+      const budget = Number(liveQuoteBudget);
+      if (Number.isFinite(budget) && budget > 0) {
+        body.live_quote_budget = budget;
+      }
     }
-    if (!useOptimized) {
+    if (!useOptimized && !optimizeBeforeRun) {
       Object.assign(body, strategyParams);
     }
     if (executionMode === "continuous") {
@@ -247,11 +261,14 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
     interval,
     liveOrders,
     paperInitialCash,
+    useLiveQuoteBudget,
+    liveQuoteBudget,
     noBuy,
     noSell,
     emitHolds,
     useOptimized,
     applySweepWinner,
+    optimizeBeforeRun,
     strategyParams,
     executionMode,
     pollSec,
@@ -407,8 +424,9 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
               options={[
                 {
                   id: "paper",
-                  label: "Paper test",
-                  description: "Simulated wallet + signals — no real orders.",
+                  label: "Simulated live",
+                  description:
+                    "Paper wallet at your chosen size — real candles, full-wallet fills, no orders.",
                 },
                 {
                   id: "live",
@@ -418,19 +436,61 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
               ]}
             />
             {orderMode === "live" && (
-              <p className="mt-3 rounded-lg border border-red-500/30 bg-red-950/30 px-3 py-2 text-sm text-red-200/90">
-                Live mode uses market orders and full balances. Start with paper, or enable “Ignore
-                buys” under advanced options while you validate signals.
-              </p>
+              <div className="mt-3 space-y-3">
+                <p className="rounded-lg border border-red-500/30 bg-red-950/30 px-3 py-2 text-sm text-red-200/90">
+                  Live mode places market orders on Nobitex. Start with paper, or enable “Ignore buys”
+                  under advanced options while you validate signals.
+                </p>
+                <label className="flex items-start gap-2 rounded-lg border border-border bg-surface/60 px-3 py-2 text-sm text-slate-200">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={useLiveQuoteBudget}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setUseLiveQuoteBudget(checked);
+                      if (checked && !liveQuoteBudget.trim()) {
+                        setLiveQuoteBudget(defaultPaperCash(dst));
+                      }
+                    }}
+                  />
+                  <span>
+                    <span className="font-medium text-white">Limit to manual quote balance</span>
+                    <span className="mt-1 block text-xs leading-snug text-muted">
+                      Cap each buy to this amount (and sell only base bought in this session). Leave
+                      off to use your full Nobitex wallet.
+                    </span>
+                  </span>
+                </label>
+                {useLiveQuoteBudget && (
+                  <Field
+                    label="Quote balance to trade"
+                    hint={
+                      dst === "usdt"
+                        ? "USDT available for buys (e.g. 1,000)."
+                        : "RLS available for buys (e.g. 10,000,000)."
+                    }
+                  >
+                    <TextInput
+                      type="number"
+                      min={1}
+                      step={1}
+                      className="max-w-xs"
+                      value={liveQuoteBudget}
+                      onChange={(event) => setLiveQuoteBudget(event.target.value)}
+                    />
+                  </Field>
+                )}
+              </div>
             )}
             {orderMode === "paper" && (
-              <div className="mt-3">
+              <div className="mt-3 space-y-3">
                 <Field
-                  label="Sample starting cash"
+                  label="Simulated starting cash"
                   hint={
                     dst === "usdt"
-                      ? "Paper USDT balance (default 1,000)."
-                      : "Paper RLS balance (default 10,000,000)."
+                      ? "USDT quote wallet (default 1,000). Optimizer uses the same size."
+                      : "RLS quote wallet (default 10,000,000). Optimizer uses the same size."
                   }
                 >
                   <TextInput
@@ -442,6 +502,28 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
                     onChange={(event) => setPaperInitialCash(event.target.value)}
                   />
                 </Field>
+                <label className="flex items-start gap-2 rounded-lg border border-border bg-surface/60 px-3 py-2 text-sm text-slate-200">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={optimizeBeforeRun}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setOptimizeBeforeRun(checked);
+                      if (checked) {
+                        setUseOptimized(true);
+                      }
+                    }}
+                  />
+                  <span>
+                    <span className="font-medium text-white">Optimize before session</span>
+                    <span className="mt-1 block text-xs leading-snug text-muted">
+                      Quick grid on the last ~100 closed Nobitex candles (20-bar holdout),
+                      saves params per market, then runs the session. Batch runs optimize each market
+                      separately.
+                    </span>
+                  </span>
+                </label>
               </div>
             )}
           </div>

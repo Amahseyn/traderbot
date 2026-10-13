@@ -150,6 +150,11 @@ export type OptimizedStrategyParams = {
   resolution: string | null;
   values: Record<string, unknown>;
   sources: Record<string, string>;
+  sweep_meta?: {
+    requested_symbol: string | null;
+    sweep_symbol: string | null;
+    sweep_fallback: boolean;
+  };
 };
 
 export type AuthStatus = {

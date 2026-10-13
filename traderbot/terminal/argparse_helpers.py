@@ -54,3 +54,10 @@ def add_execution_flags(parser: argparse.ArgumentParser) -> None:
         dest=EMIT_HOLDS,
         help="Print JSON lines for hold actions as well as buy/sell",
     )
+    parser.add_argument(
+        "--live-quote-budget",
+        type=float,
+        default=None,
+        dest="live_quote_budget",
+        help="Live mode: cap buy spend to this quote amount (omit for full wallet)",
+    )

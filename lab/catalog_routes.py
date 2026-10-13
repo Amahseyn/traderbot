@@ -46,7 +46,7 @@ def register_catalog_routes(app) -> None:
             if not bar_resolution and row.get("resolution"):
                 bar_resolution = str(row["resolution"])
         try:
-            values, sources = optimized_strategy_values(
+            values, sources, sweep_meta = optimized_strategy_values(
                 strategy_id,
                 symbol=market_symbol,
                 resolution=bar_resolution,
@@ -60,6 +60,7 @@ def register_catalog_routes(app) -> None:
             "resolution": bar_resolution,
             "values": values,
             "sources": sources,
+            "sweep_meta": sweep_meta,
         }
 
     @app.get("/api/catalog/strategy-params")

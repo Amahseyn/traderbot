@@ -77,6 +77,13 @@ export function OptimizedStrategyParamsBlock({
         />
         Use robust optimized defaults (sweep winner requires separate approval)
       </label>
+      {useOptimized && optimizedQuery.data?.sweep_meta?.sweep_fallback && (
+        <p className="text-sm text-amber-200/90">
+          No sweep stored for {optimizedQuery.data.sweep_meta.requested_symbol ?? "this market"} yet —
+          showing params from {optimizedQuery.data.sweep_meta.sweep_symbol}. Run “Optimize before
+          session” or a Lab sweep on this pair to tune locally.
+        </p>
+      )}
       {useOptimized && !symbol && !datasetId && (
         <p className="text-sm text-amber-200/90">Select a market or dataset to load tuned values.</p>
       )}

@@ -40,7 +40,55 @@ def _terminal_namespace(body: dict[str, Any], *, csv_path: str | None = None) ->
         apply_sweep_winner=bool(body.get("apply_sweep_winner", False)),
         paper_initial_cash=body.get("paper_initial_cash"),
         paper_fee_rate=body.get("paper_fee_rate"),
+        live_quote_budget=body.get("live_quote_budget"),
         until_stopped=bool(body.get("until_stopped")),
+    )
+
+
+def _maybe_run_live_tune(body: dict[str, Any]) -> None:
+    if not body.get("optimize_before_run"):
+        return
+    from traderbot.backtesting.live_tune import run_live_tune_sweep
+    from traderbot.markets.market_data import market_symbol
+
+    strategy_id = str(body.get("strategy") or "sma_cross")
+    interval = str(body.get("interval") or "60")
+    src = str(body.get("src") or "btc")
+    dst = str(body.get("dst") or "rls")
+    symbol = str(body.get("market_symbol") or market_symbol(src, dst)).upper()
+    max_bars_raw = body.get("optimize_max_bars")
+    max_bars = int(max_bars_raw) if max_bars_raw not in (None, "") else 100
+    holdout_raw = body.get("optimize_holdout_bars")
+    holdout_tail_bars = int(holdout_raw) if holdout_raw not in (None, "") else 20
+    initial_cash_raw = body.get("paper_initial_cash")
+    initial_cash = (
+        float(initial_cash_raw)
+        if initial_cash_raw not in (None, "") and float(initial_cash_raw) > 0
+        else None
+    )
+    payload = run_live_tune_sweep(
+        strategy_id=strategy_id,
+        symbol=symbol,
+        interval=interval,
+        dst=dst,
+        max_bars=max_bars,
+        holdout_tail_bars=holdout_tail_bars,
+        initial_cash=initial_cash,
+    )
+    print(
+        json.dumps(
+            {
+                "event": "live_tune_sweep",
+                "symbol": symbol,
+                "interval": interval,
+                "strategy": strategy_id,
+                "best_params": payload.get("best_params"),
+                "bars": payload.get("bars"),
+                "rank_by": payload.get("rank_by"),
+                "initial_cash": payload.get("live_tune", {}).get("initial_cash"),
+            },
+        ),
+        flush=True,
     )
 
 
@@ -56,6 +104,9 @@ def run_terminal_once_task(body: dict[str, Any]) -> None:
     from auth.envfile import load_env_file
 
     load_env_file()
+    if body.get("optimize_before_run"):
+        _maybe_run_live_tune(body)
+        body = {**body, "use_optimized_defaults": True}
     args = _terminal_namespace(body)
     buffer = StringIO()
     import sys
@@ -99,6 +150,9 @@ def run_terminal_live_task(body: dict[str, Any]) -> None:
     else:
         max_steps = int(max_steps)
     body = {**body, "max_steps": max_steps, "until_stopped": until_stopped}
+    if body.get("optimize_before_run"):
+        _maybe_run_live_tune(body)
+        body = {**body, "use_optimized_defaults": True}
     job_id = body.get("job_id")
     args = _terminal_namespace(body)
     if isinstance(job_id, str) and job_id:

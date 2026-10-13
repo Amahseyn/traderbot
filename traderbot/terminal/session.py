@@ -58,6 +58,15 @@ def build_terminal_trader(
     capital_cap = float(getattr(args, "capital_cap", 0) or 0)
     if capital_cap <= 0:
         capital_cap = default_paper_initial_cash(args.dst)
+    execution = execution_from_args(args)
+    if execution.mode == "live":
+        budget_raw = getattr(args, "live_quote_budget", None)
+        if budget_raw is not None:
+            budget = float(budget_raw)
+            if budget <= 0:
+                print("live_quote_budget must be positive", file=sys.stderr)
+                raise SystemExit(1)
+            capital_cap = budget
     configure_risk_manager(
         RiskLimits(
             capital_cap=capital_cap,
@@ -76,7 +85,16 @@ def build_terminal_trader(
     )
     trader.strategy_id = args.strategy
     trader.emit_holds = getattr(args, EMIT_HOLDS, False)
-    execution = execution_from_args(args)
+    if execution.mode == "live" and getattr(args, "live_quote_budget", None) is not None:
+        print_tick_event(
+            {
+                "event": "live_quote_budget",
+                "quote_currency": str(args.dst).strip().lower(),
+                "quote_budget": capital_cap,
+                "symbol": symbol,
+                "strategy_id": args.strategy,
+            },
+        )
     if execution.mode == "paper":
         initial_raw = getattr(args, "paper_initial_cash", None)
         initial_cash = float(initial_raw) if initial_raw is not None else default_paper_initial_cash(args.dst)

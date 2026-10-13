@@ -8,7 +8,7 @@ from typing import Any
 from traderbot.algorithms.cli_args import default_strategy_namespace, merge_strategy_namespace
 from traderbot.algorithms.registry import algorithm_for_id, strategy_kwargs_from_namespace
 from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_backtest
-from traderbot.backtesting.engine import normalize_bar
+from traderbot.backtesting.holdout_window import return_pct_over_equity_tail
 from traderbot.data.intrahour import enrich_bars_for_csv
 from traderbot.utils.trading_costs import (
     DEFAULT_BACKTEST_EXECUTION,
@@ -18,6 +18,8 @@ from traderbot.utils.trading_costs import (
 
 MAX_SWEEP_PARAMS = 2
 DEFAULT_MAX_COMBOS = 64
+DEFAULT_LIVE_TUNE_MAX_BARS = 100
+DEFAULT_LIVE_TUNE_HOLDOUT_BARS = 20
 
 
 def parse_sweep_param(spec: str) -> tuple[str, list[Any]]:
@@ -53,9 +55,10 @@ def _parse_scalar(text: str) -> Any:
 
 @dataclass
 class SweepOptions:
-    csv_path: Path
     strategy_id: str
     param_grid: dict[str, list[Any]]
+    csv_path: Path | None = None
+    bars: list[dict[str, Any]] | None = None
     cash: float = 10_000.0
     fee: float = DEFAULT_TRADE_FEE_RATE
     slippage: float = DEFAULT_SLIPPAGE_RATE
@@ -63,6 +66,7 @@ class SweepOptions:
     holdout_tail_bars: int | None = None
     min_trades: int = 0
     max_combos: int = DEFAULT_MAX_COMBOS
+    max_bars: int | None = None
 
 
 @dataclass
@@ -85,10 +89,25 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
         raise ValueError("min_trades must be >= 0")
 
     base = merge_strategy_namespace(base_namespace)
-    csv_path = Path(options.csv_path)
-    bars = enrich_bars_for_csv(load_bars_csv(csv_path), csv_path, base)
-    if not bars:
-        raise ValueError(f"No bars in CSV: {csv_path}")
+    if options.bars is not None:
+        bars = list(options.bars)
+        csv_path = (
+            Path(options.csv_path)
+            if options.csv_path is not None
+            else Path(f"nobitex://{options.strategy_id}")
+        )
+    else:
+        if options.csv_path is None:
+            raise ValueError("sweep requires csv_path or preloaded bars")
+        csv_path = Path(options.csv_path)
+        bars = enrich_bars_for_csv(load_bars_csv(csv_path), csv_path, base)
+        if not bars:
+            raise ValueError(f"No bars in CSV: {csv_path}")
+    if options.max_bars is not None:
+        if options.max_bars < 2:
+            raise ValueError("max_bars must be at least 2")
+        if len(bars) > options.max_bars:
+            bars = bars[-options.max_bars :]
 
     holdout_bars = options.holdout_tail_bars
     train_bars = bars
@@ -98,7 +117,6 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
                 f"holdout_tail_bars={holdout_bars} requires more than {holdout_bars} bars (got {len(bars)})"
             )
         train_bars = bars[:-holdout_bars]
-        holdout_slice = bars[-holdout_bars:]
 
     names = list(options.param_grid.keys())
     rows: list[dict[str, Any]] = []
@@ -123,22 +141,22 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
             continue
         holdout_return = None
         if holdout_bars is not None:
-            warmup_algo = algorithm_for_id(
+            full_algo = algorithm_for_id(
                 options.strategy_id,
                 **strategy_kwargs_from_namespace(options.strategy_id, namespace),
             )
-            for warmup_bar in train_bars:
-                warmup_algo.on_bar(normalize_bar(warmup_bar))
-            holdout_result = run_backtest(
-                warmup_algo,
-                holdout_slice,
+            full_result = run_backtest(
+                full_algo,
+                bars,
                 initial_cash=options.cash,
                 fee_rate=options.fee,
                 slippage_rate=options.slippage,
                 execution=options.execution,
-                reset_algorithm=False,
             )
-            holdout_return = holdout_result.return_pct
+            holdout_return = return_pct_over_equity_tail(
+                list(full_result.equity_curve),
+                holdout_bars,
+            )
         row = backtest_summary_dict(
             algo,
             result,
@@ -161,12 +179,9 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
         )
 
     def _rank_key(row: dict[str, Any]) -> tuple[int, float, float]:
-        primary = (
-            row.get("holdout_return_pct")
-            if holdout_bars is not None
-            else row.get("return_pct")
-        )
-        secondary = row.get("return_pct")
+        primary = row.get(rank_by)
+        secondary_key = "return_pct" if rank_by == "holdout_return_pct" else "holdout_return_pct"
+        secondary = row.get(secondary_key)
         return (
             1 if row["eligible"] else 0,
             float(primary) if primary is not None else float("-inf"),

@@ -25,6 +25,9 @@ function sourceHint(source: string | undefined): string | undefined {
   if (source === "sweep") {
     return "Best optimizer sweep for this market";
   }
+  if (source === "sweep_fallback") {
+    return "Sweep from a default liquid pair (no sweep saved for this market yet)";
+  }
   return source;
 }
 
