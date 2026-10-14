@@ -442,7 +442,8 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
                       });
                     }}
                   >
-                    <option value="nobitex_all">All Nobitex (cloned)</option>
+                    <option value="hyperliquid_all">Hyperliquid perps</option>
+                    <option value="nobitex_all">Nobitex spot (optional)</option>
                     <option value="default_jobs">Crypto 1h jobs file</option>
                   </SelectInput>
                 </Field>
@@ -501,7 +502,7 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
               )}
               {catalogEmpty && !catalogQuery.isLoading && (
                 <p className="text-sm text-amber-200/90">
-                  Market catalog is empty. Click <strong>Sync catalog</strong> (needs network to Nobitex), or switch
+                  Market catalog is empty. Click <strong>Sync catalog</strong> (Hyperliquid or Nobitex scope), or switch
                   scope to <strong>Crypto 1h jobs file</strong> for offline pairs.
                 </p>
               )}

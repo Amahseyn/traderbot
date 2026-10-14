@@ -23,3 +23,12 @@ def keys():
 def hermetic_data_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("TRADERBOT_DB", str(tmp_path / "hermetic-traderbot.db"))
     monkeypatch.setenv("LAB_API_DISABLE_AUTH", "1")
+
+
+@pytest.fixture(autouse=True)
+def isolated_risk_managers():
+    from traderbot.risk.runtime import clear_risk_managers
+
+    clear_risk_managers()
+    yield
+    clear_risk_managers()

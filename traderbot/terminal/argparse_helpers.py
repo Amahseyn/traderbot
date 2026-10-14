@@ -10,12 +10,16 @@ from traderbot.terminal.namespace_keys import EMIT_HOLDS, LIVE, NO_BUY, NO_SELL
 
 def add_market_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--src", default="btc", help="Base asset (e.g. btc)")
-    parser.add_argument("--dst", default="rls", help="Quote asset (rls/irt or usdt)")
+    parser.add_argument(
+        "--dst",
+        default="usdt",
+        help="Quote asset (usdt for Hyperliquid default; rls/irt for Nobitex)",
+    )
     parser.add_argument(
         "--interval",
         default="60",
         choices=RESOLUTIONS,
-        help="Candle resolution (Nobitex UDF)",
+        help="Candle resolution (exchange-specific set when live)",
     )
 
 

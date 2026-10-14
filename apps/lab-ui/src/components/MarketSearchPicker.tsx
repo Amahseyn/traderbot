@@ -28,7 +28,7 @@ export function MarketSearchPicker({
   onToggleBatch,
   onClearBatch,
   maxBatchSelect = 16,
-  defaultMarketScope = "nobitex_all",
+  defaultMarketScope = "hyperliquid_all",
 }: MarketSearchPickerProps) {
   const queryClient = useQueryClient();
   const [marketScope, setMarketScope] = useState<MarketScope>(defaultMarketScope);

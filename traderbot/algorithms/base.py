@@ -18,6 +18,9 @@ class Algorithm(ABC):
     def reset(self) -> None:
         """Clear state before a new backtest run or bot session."""
 
+    def sync_open_position(self, in_position: bool) -> None:
+        """Align internal flags when live inventory diverges from strategy state."""
+
     @abstractmethod
     def on_bar(self, bar: Bar) -> SignalAction:
         """Called once per candle, oldest to newest."""

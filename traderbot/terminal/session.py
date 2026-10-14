@@ -23,6 +23,7 @@ from traderbot.terminal.events import print_tick_event
 from traderbot.terminal.hyperliquid_trader import HyperliquidTerminalTrader
 from traderbot.terminal.namespace_keys import EMIT_HOLDS
 from traderbot.terminal.paper_portfolio import PaperPortfolio, default_paper_initial_cash
+from traderbot.utils.trading_costs import DEFAULT_TRADE_FEE_RATE
 from traderbot.terminal.trader import TerminalAlgorithmTrader
 from traderbot.terminal.utils import algorithm_from_args, execution_from_args
 from traderbot.traders.strategies.algorithm_trader import BarSource
@@ -156,7 +157,9 @@ def build_terminal_trader(
         trader.paper_portfolio = PaperPortfolio(
             quote_cash=initial_cash,
             quote_currency=dst,
-            fee_rate=float(getattr(args, "paper_fee_rate", 0.0025) or 0.0025),
+            fee_rate=float(
+                getattr(args, "paper_fee_rate", None) or DEFAULT_TRADE_FEE_RATE
+            ),
         )
         print_tick_event(
             {

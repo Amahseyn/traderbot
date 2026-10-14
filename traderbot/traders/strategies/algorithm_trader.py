@@ -6,7 +6,13 @@ from collections.abc import Callable
 from traderbot.algorithms.base import Algorithm, Bar, SignalAction
 from traderbot.markets.order_limits import base_from_quote, spendable_quote
 from traderbot.nobitex.client import NobitexClient, NobitexClientError
-from traderbot.nobitex.orders import add_market_order, add_stop_loss_order, wait_for_order_fill
+from traderbot.nobitex.orders import (
+    add_market_order,
+    add_stop_loss_order,
+    cancel_open_order,
+    order_id_from_response,
+    wait_for_order_fill,
+)
 from traderbot.nobitex.trading import list_wallets
 from traderbot.risk.runtime import get_risk_manager
 from traderbot.traders.bot_inventory import BotInventory
@@ -63,6 +69,7 @@ class AlgorithmTrader(NobitexTrader):
         self.risk = risk_manager if risk_manager is not None else get_risk_manager(scope)
         cap = capital_cap if capital_cap is not None else self.risk.limits.capital_cap
         self.inventory = inventory or BotInventory(quote_currency=quote, capital_cap=cap)
+        self.active_stop_order_id: int | str | None = None
 
     @classmethod
     def from_env(
@@ -85,10 +92,7 @@ class AlgorithmTrader(NobitexTrader):
             capital_cap=capital_cap,
         )
 
-    def step(self) -> None:
-        bar = self.bar_source() if self.bar_source else None
-        if bar is None:
-            return
+    def prepare_for_bar(self, bar: Bar) -> None:
         if self.execution.mode == "live" and self.market_symbol:
             self._reconcile_inventory_from_exchange(bar)
         self.risk.update_bar_volatility(
@@ -96,6 +100,13 @@ class AlgorithmTrader(NobitexTrader):
             low=float(bar["low"]),
             close=float(bar["close"]),
         )
+        self.algorithm.sync_open_position(self.in_position)
+
+    def step(self) -> None:
+        bar = self.bar_source() if self.bar_source else None
+        if bar is None:
+            return
+        self.prepare_for_bar(bar)
         signal = self.algorithm.on_bar(bar)
         order_action = order_action_for_long_only(self.in_position, signal)
         if order_action is None:
@@ -130,6 +141,7 @@ class AlgorithmTrader(NobitexTrader):
             self.last_order_error = None
         except NobitexClientError as exc:
             self.last_order_error = str(exc)
+            self.algorithm.sync_open_position(self.in_position)
             logger.error("live order failed: %s", exc)
             raise
 
@@ -199,6 +211,7 @@ class AlgorithmTrader(NobitexTrader):
             sellable = self.inventory.base_amount
             if sellable <= 0:
                 raise NobitexClientError("bot has no inventory to sell")
+            self._cancel_active_stop(symbol)
             response = add_market_order(
                 self.client,
                 symbol=symbol,
@@ -216,13 +229,25 @@ class AlgorithmTrader(NobitexTrader):
             matched = float(filled.get("matchedAmount") or sellable) if isinstance(filled, dict) else sellable
             self.inventory.record_sell(base_sold=matched)
 
+    def _cancel_active_stop(self, symbol: str) -> None:
+        if self.active_stop_order_id is None:
+            return
+        order_id = self.active_stop_order_id
+        try:
+            cancel_open_order(self.client, order_id)
+        except NobitexClientError as exc:
+            logger.warning("failed to cancel stop order %s on %s: %s", order_id, symbol, exc)
+        finally:
+            self.active_stop_order_id = None
+
     def _maybe_place_stop(self, symbol: str, *, base_amount: float, entry_price: float) -> None:
         stop_pct = self.risk.limits.stop_loss_pct
         if stop_pct is None or base_amount <= 0 or entry_price <= 0:
             return
+        self._cancel_active_stop(symbol)
         stop_price = entry_price * (1.0 - abs(stop_pct) / 100.0)
         try:
-            add_stop_loss_order(
+            response = add_stop_loss_order(
                 self.client,
                 symbol=symbol,
                 amount=base_amount,
@@ -230,3 +255,4 @@ class AlgorithmTrader(NobitexTrader):
             )
         except NobitexClientError as exc:
             raise NobitexClientError(f"protective stop not placed: {exc}") from exc
+        self.active_stop_order_id = order_id_from_response(response)

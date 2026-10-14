@@ -182,7 +182,9 @@ def resolve_sweep_body(connection: sqlite3.Connection, body: dict[str, Any]) -> 
     prepared["csv"] = csv_path
     prepared["param_grid"] = param_grid
     prepared["cash"] = _to_job_float(body.get("cash"), default=10_000.0, field="cash", minimum=0.0)
-    prepared["fee"] = _to_job_float(body.get("fee"), default=0.0, field="fee", minimum=0.0)
+    from traderbot.utils.trading_costs import DEFAULT_SLIPPAGE_RATE, DEFAULT_TRADE_FEE_RATE
+
+    prepared["fee"] = _to_job_float(body.get("fee"), default=DEFAULT_TRADE_FEE_RATE, field="fee", minimum=0.0)
     holdout_raw = body.get("holdout_tail_bars")
     if holdout_raw in (None, ""):
         prepared["holdout_tail_bars"] = None
@@ -317,13 +319,25 @@ def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str,
                 "dataset_ids required unless export_market_symbol(s) or use_all_hourly_files",
             )
 
+    from traderbot.utils.trading_costs import DEFAULT_SLIPPAGE_RATE, DEFAULT_TRADE_FEE_RATE
+
     prepared: dict[str, Any] = {
         "compare_strategies": compare_strategies,
         "use_all_hourly_files": use_all_hourly_files,
         "visualize": bool(body.get("visualize", True)),
         "cash": body.get("cash"),
-        "fee": _to_job_float(body.get("fee"), default=0.0, field="fee", minimum=0.0),
-        "slippage": _to_job_float(body.get("slippage"), default=0.0, field="slippage", minimum=0.0),
+        "fee": _to_job_float(
+            body.get("fee"),
+            default=DEFAULT_TRADE_FEE_RATE,
+            field="fee",
+            minimum=0.0,
+        ),
+        "slippage": _to_job_float(
+            body.get("slippage"),
+            default=DEFAULT_SLIPPAGE_RATE,
+            field="slippage",
+            minimum=0.0,
+        ),
         "vectorbt": body.get("vectorbt"),
         "compare_mode": body.get("compare_mode") or "strategies",
     }

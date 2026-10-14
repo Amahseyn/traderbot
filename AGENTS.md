@@ -10,7 +10,7 @@ Rules: `.cursor/rules/` — **`reduce-token-usage.mdc`** and **`traderbot-core.m
 |-------|------|
 | Lab API + UI | `docs/lab.md` |
 | Live trading ops | `docs/live-trading.md` |
-| Layout | `traderbot/` (trading), `cli/`, `auth/`, `lab/`, `nobitex/`, `markets/market_data.py`, `data/export.py` |
+| Layout | `traderbot/` (trading), `cli/`, `auth/`, `lab/`, `hyperliquid/`, optional `nobitex/`, `markets/`, `data/export.py` |
 | Lab stack | `apps/lab-ui`, `lab/` + `lab.store`, `cli/` |
 
 No `*_cli.py` or `backtest.py` at package root.

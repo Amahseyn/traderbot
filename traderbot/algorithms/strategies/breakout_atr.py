@@ -42,6 +42,11 @@ class BreakoutAtrAlgorithm(Algorithm):
         self._in_long = False
         self._stop_price = None
 
+    def sync_open_position(self, in_position: bool) -> None:
+        if not in_position:
+            self._in_long = False
+            self._stop_price = None
+
     def on_bar(self, bar: Bar) -> SignalAction:
         high = float(bar["high"])
         low = float(bar["low"])
