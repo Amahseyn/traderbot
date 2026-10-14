@@ -405,3 +405,50 @@ def test_lab_api_pipelines_and_experiment_sync(tmp_path: Path):
     experiment_ids = {row["experiment_id"] for row in experiments}
     assert "crypto-1h-local-all" in experiment_ids
     assert any(row["runnable"] for row in experiments)
+
+
+def test_lab_api_pair_research_backtest(tmp_path: Path):
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    from lab.app import create_app
+    from traderbot.data.export import write_csv
+
+    database_path = tmp_path / "lab.db"
+    connection = open_database(database_path)
+    init_database(connection)
+    connection.close()
+
+    primary = tmp_path / "eth.csv"
+    hedge = tmp_path / "btc.csv"
+    bars = [
+        {
+            "symbol": "ETHIRT",
+            "resolution": "60",
+            "timestamp": index * 3600,
+            "datetime_utc": "",
+            "open": 100.0 + index * 0.1,
+            "high": 100.0 + index * 0.1,
+            "low": 100.0 + index * 0.1,
+            "close": 100.0 + index * 0.1,
+            "volume": 1.0,
+        }
+        for index in range(80)
+    ]
+    hedge_bars = [
+        {**bar, "symbol": "BTCIRT", "close": 50.0 + index * 0.05}
+        for index, bar in enumerate(bars)
+    ]
+    write_csv(primary, bars)
+    write_csv(hedge, hedge_bars)
+
+    app = create_app(database_path=database_path)
+    client = TestClient(app)
+    response = client.post(
+        "/api/research/pair-backtest",
+        json={"primary_csv": str(primary), "hedge_csv": str(hedge), "entry_z": 1.5},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert "summary" in payload
+    assert len(payload["equity_curve"]) == 80

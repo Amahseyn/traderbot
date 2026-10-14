@@ -4,6 +4,8 @@ from traderbot.algorithms.strategies.chart_patterns import ChartPatternsAlgorith
 from traderbot.algorithms.strategies.ema_cross import EmaCrossAlgorithm
 from traderbot.algorithms.strategies.macd import MacdCrossAlgorithm
 from traderbot.algorithms.strategies.rsi import RsiThresholdAlgorithm
+from traderbot.algorithms.strategies.grid_trading import GridTradingAlgorithm
+from traderbot.algorithms.strategies.pair_trading import PairTradingSpreadAlgorithm
 from traderbot.algorithms.strategies.sma_cross import SmaCrossAlgorithm
 
 __all__ = [
@@ -13,5 +15,7 @@ __all__ = [
     "EmaCrossAlgorithm",
     "MacdCrossAlgorithm",
     "RsiThresholdAlgorithm",
+    "GridTradingAlgorithm",
+    "PairTradingSpreadAlgorithm",
     "SmaCrossAlgorithm",
 ]

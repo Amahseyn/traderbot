@@ -29,6 +29,17 @@ def default_strategy_namespace(**overrides: Any) -> argparse.Namespace:
         "pattern_score_threshold": 0.35,
         "no_auto_fine": False,
         "fine_csv": None,
+        "hedge_csv": None,
+        "lookback": 60,
+        "hedge_lookback": 60,
+        "entry_z": 2.0,
+        "exit_z": 0.5,
+        "use_dynamic_hedge_ratio": True,
+        "fixed_hedge_ratio": 1.0,
+        "grid_low_pct": -0.08,
+        "grid_high_pct": 0.04,
+        "grid_levels": 5,
+        "take_profit_pct": 0.01,
     }
     values.update(overrides)
     return argparse.Namespace(**values)
@@ -110,3 +121,29 @@ def add_strategy_param_flags(parser: argparse.ArgumentParser) -> None:
         default=0.35,
         help="Minimum pattern score before chart_patterns emits buy/sell",
     )
+    parser.add_argument(
+        "--hedge-csv",
+        default=None,
+        help="Second OHLC CSV for pair_trading (aligned by timestamp on primary bars)",
+    )
+    parser.add_argument("--lookback", type=int, default=60, help="Pair trading z-score lookback")
+    parser.add_argument("--hedge-lookback", type=int, default=60, help="Rolling hedge ratio window")
+    parser.add_argument("--entry-z", type=float, default=2.0, help="Enter long when z-score below -entry_z")
+    parser.add_argument("--exit-z", type=float, default=0.5, help="Exit when z-score above -exit_z")
+    parser.add_argument(
+        "--use-dynamic-hedge-ratio",
+        action="store_true",
+        default=True,
+        help="Estimate hedge ratio with rolling OLS on log prices",
+    )
+    parser.add_argument(
+        "--no-dynamic-hedge-ratio",
+        action="store_false",
+        dest="use_dynamic_hedge_ratio",
+        help="Use fixed hedge ratio for pair trading",
+    )
+    parser.add_argument("--fixed-hedge-ratio", type=float, default=1.0, help="Fixed hedge ratio when dynamic is off")
+    parser.add_argument("--grid-low-pct", type=float, default=-0.08, help="Grid lower bound vs anchor (fraction)")
+    parser.add_argument("--grid-high-pct", type=float, default=0.04, help="Grid upper bound vs anchor (fraction)")
+    parser.add_argument("--grid-levels", type=int, default=5, help="Number of grid buy levels")
+    parser.add_argument("--take-profit-pct", type=float, default=0.01, help="Grid take-profit fraction from entry")

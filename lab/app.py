@@ -455,6 +455,9 @@ def create_app(database_path: Path | None = None):
     from lab.jobs import register_job_routes
 
     register_catalog_routes(app)
+    from lab.research_routes import register_research_routes
+
+    register_research_routes(app)
     register_auth_routes(app, get_connection)
     register_job_routes(app, get_connection)
     from lab.risk_routes import register_risk_routes

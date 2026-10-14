@@ -53,6 +53,7 @@ class BacktestVisualizationPaths:
     equity_curve: Path
     drawdown: Path
     price_trades: Path
+    pair_spread: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -282,19 +283,62 @@ def render_backtest_plots(
     fig.savefig(price_path, dpi=140)
     plt.close(fig)
 
+    pair_path: Path | None = None
+    if bars and bars[0].get("hedge_close") is not None:
+        pair_path = plots_dir / "pair_spread.png"
+        _render_pair_spread_chart(bars, result, pair_path, algorithm_name=algorithm.name)
+
     return BacktestVisualizationPaths(
         equity_curve=equity_path,
         drawdown=dd_path,
         price_trades=price_path,
+        pair_spread=pair_path,
     )
 
 
+def _render_pair_spread_chart(
+    bars: Sequence[dict[str, Any]],
+    result: BacktestResult,
+    out_path: Path,
+    *,
+    algorithm_name: str,
+) -> None:
+    import matplotlib.pyplot as plt
+
+    from traderbot.algorithms.cli_args import default_strategy_namespace
+    from traderbot.backtesting.pair_research import build_pair_chart_series
+
+    series = build_pair_chart_series(list(bars), default_strategy_namespace())
+    xs = list(range(len(bars)))
+    fig, axes = plt.subplots(2, 1, figsize=(10, 5.5), sharex=True)
+    ax0, ax1 = axes
+    ax0.plot(xs, series["primary_close"], label="Primary", color="#2563eb", linewidth=1.2)
+    ax0.plot(xs, series["hedge_close"], label="Hedge", color="#f59e0b", linewidth=1.0, alpha=0.85)
+    ax0.set_ylabel("Price")
+    ax0.set_title(f"{algorithm_name} — pair prices")
+    ax0.legend(loc="upper left", fontsize=8)
+    ax0.grid(True, axis="y", alpha=0.85)
+    z_vals = [value if value is not None else float("nan") for value in series["z_score"]]
+    ax1.plot(xs, z_vals, color="#7c3aed", linewidth=1.1, label="Z-score")
+    ax1.axhline(0.0, color="#94a3b8", linestyle="--", linewidth=0.8)
+    ax1.set_ylabel("Spread z")
+    ax1.set_xlabel("Bar")
+    ax1.set_title("Log-spread z-score")
+    ax1.grid(True, axis="y", alpha=0.85)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=140)
+    plt.close(fig)
+
+
 def visualization_paths_to_dict(paths: BacktestVisualizationPaths) -> dict[str, str]:
-    return {
+    payload = {
         "equity_curve": str(paths.equity_curve),
         "drawdown": str(paths.drawdown),
         "price_trades": str(paths.price_trades),
     }
+    if paths.pair_spread is not None:
+        payload["pair_spread"] = str(paths.pair_spread)
+    return payload
 
 
 def compare_visualization_paths_to_dict(paths: CompareVisualizationPaths) -> dict[str, str]:

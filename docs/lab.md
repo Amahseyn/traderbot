@@ -77,6 +77,8 @@ Protected routes (when auth is enabled): all `POST` endpoints, `GET /artifact`, 
 
 Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1:8765/docs](http://127.0.0.1:8765/docs).
 
+**Research UI:** [http://localhost:3000/research](http://localhost:3000/research) runs pair-trading backtests via `POST /api/research/pair-backtest` (aligned primary + hedge CSV paths on the API host).
+
 ## Layout
 
 - `lab/store/` — schema, upserts, queries (no HTTP).

@@ -1,0 +1,14 @@
+{
+  "pair_trading_synthetic": {
+    "return_pct": -12.548416,
+    "fee_rate": 0.002,
+    "bars": 200,
+    "note": "Synthetic ETH/BTC spread; illustrative only — tune entry_z and hedge pair on real Nobitex CSVs."
+  },
+  "grid_trading_synthetic": {
+    "return_pct": 2.270332,
+    "fee_rate": 0.002,
+    "bars": 120,
+    "note": "Range-bound synthetic series; grid wins when price oscillates within anchor band."
+  }
+}

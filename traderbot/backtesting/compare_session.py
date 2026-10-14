@@ -20,6 +20,7 @@ from traderbot.algorithms.visualize import (
     render_compare_plots,
 )
 from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_backtest, save_backtest_result
+from traderbot.backtesting.pair_bars import attach_hedge_bars_from_namespace
 from traderbot.backtesting import vectorbt_extra_for_backtest
 from traderbot.data.intrahour import enrich_bars_for_csv
 from traderbot.utils.resolution import resolution_from_csv_path, resolution_minutes
@@ -36,9 +37,18 @@ from traderbot.utils.trading_costs import (
 )
 
 
-def strategy_compare_plan(_mode: str | None) -> list[tuple[str, str, dict[str, Any]]]:
+def strategy_compare_plan(
+    _mode: str | None,
+    strategy_namespace: Any | None = None,
+) -> list[tuple[str, str, dict[str, Any]]]:
     """Rows for strategy compare: (result id, algorithm id, extra kwargs)."""
-    return [(strategy_id, strategy_id, {}) for strategy_id in backtest_strategy_ids()]
+    from traderbot.algorithms.cli_args import merge_strategy_namespace
+
+    namespace = merge_strategy_namespace(strategy_namespace)
+    strategy_ids = backtest_strategy_ids()
+    if not namespace.hedge_csv:
+        strategy_ids = [strategy_id for strategy_id in strategy_ids if strategy_id != "pair_trading"]
+    return [(strategy_id, strategy_id, {}) for strategy_id in strategy_ids]
 
 
 LogFn = Callable[[str], None]
@@ -107,6 +117,7 @@ def _algorithm_kwargs(strategy_id: str, options: StrategyCompareOptions) -> dict
 def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None = None) -> dict[str, Any]:
     csv_path = options.csv_path.resolve()
     raw_bars = enrich_bars_for_csv(load_bars_csv(csv_path), csv_path, options.strategy_namespace)
+    raw_bars = attach_hedge_bars_from_namespace(raw_bars, options.strategy_namespace, primary_csv=csv_path)
     if not raw_bars:
         raise ValueError(f"No bars in CSV: {csv_path}")
     bars = raw_bars
@@ -126,7 +137,7 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
         )
 
     mode = normalize_strategy_mode(options.mode)
-    plan = strategy_compare_plan(mode)
+    plan = strategy_compare_plan(mode, options.strategy_namespace)
     if options.strategy_ids:
         plan = [entry for entry in plan if entry[0] in options.strategy_ids]
     if options.max_strategies is not None:
@@ -260,6 +271,7 @@ def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None)
     )
     csv_path = options.csv_path.resolve()
     bars = enrich_bars_for_csv(load_bars_csv(csv_path), csv_path, options.strategy_namespace)
+    bars = attach_hedge_bars_from_namespace(bars, options.strategy_namespace, primary_csv=csv_path)
     if not bars:
         raise ValueError(f"No bars in CSV: {csv_path}")
 

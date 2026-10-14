@@ -284,6 +284,23 @@ export type HealthResponse = {
   features: string[];
 };
 
+export type PairBacktestResponse = {
+  summary: Record<string, unknown> & {
+    return_pct?: number;
+    trades?: number;
+    final_equity?: number;
+  };
+  series: {
+    timestamp: number[];
+    primary_close: number[];
+    hedge_close: number[];
+    log_spread: Array<number | null>;
+    z_score: Array<number | null>;
+  };
+  equity_curve: Array<{ timestamp: number; equity: number }>;
+  trades: Array<{ timestamp: number; action: string; price: number; equity_after?: number }>;
+};
+
 export const api = {
   health: () => fetchJson<HealthResponse>("/health"),
   stats: () => fetchJson<DashboardStats>("/api/stats"),
@@ -432,6 +449,24 @@ export const api = {
     }
     return fetchJson<OptimizedStrategyParams>(`/api/catalog/optimized-strategy-params?${params.toString()}`);
   },
+  pairBacktest: (body: {
+    primary_csv: string;
+    hedge_csv: string;
+    cash?: number;
+    fee?: number;
+    slippage?: number;
+    lookback?: number;
+    hedge_lookback?: number;
+    entry_z?: number;
+    exit_z?: number;
+    use_dynamic_hedge_ratio?: boolean;
+    fixed_hedge_ratio?: number;
+  }) =>
+    fetchJson<PairBacktestResponse>("/api/research/pair-backtest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
   marketsOhlc: (options: {
     src: string;
     dst: string;

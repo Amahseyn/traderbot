@@ -11,6 +11,8 @@ from traderbot.algorithms.strategies.chart_patterns import ChartPatternsAlgorith
 from traderbot.algorithms.strategies.ema_cross import EmaCrossAlgorithm
 from traderbot.algorithms.strategies.macd import MacdCrossAlgorithm
 from traderbot.algorithms.strategies.rsi import RsiThresholdAlgorithm
+from traderbot.algorithms.strategies.grid_trading import GridTradingAlgorithm
+from traderbot.algorithms.strategies.pair_trading import PairTradingSpreadAlgorithm
 from traderbot.algorithms.strategies.sma_cross import SmaCrossAlgorithm
 from traderbot.algorithms.utils import price_context_kwargs_from_namespace
 
@@ -76,6 +78,20 @@ STRATEGY_CATALOG: tuple[StrategyCatalogEntry, ...] = (
         style="breakout",
         implemented=True,
     ),
+    StrategyCatalogEntry(
+        id="pair_trading",
+        name="Pair trading (spread z-score)",
+        summary="Mean-revert log spread vs a hedge pair (e.g. ETH vs BTC on Nobitex). Requires hedge CSV.",
+        style="stat_arb",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="grid_trading",
+        name="Grid trading",
+        summary="Range grid dip buys with take-profit exits (Hummingbot grid_strike inspired).",
+        style="grid",
+        implemented=True,
+    ),
 )
 
 _IMPLEMENTED: dict[str, type[Algorithm]] = {
@@ -86,6 +102,8 @@ _IMPLEMENTED: dict[str, type[Algorithm]] = {
     "bollinger_mean_reversion": BollingerMeanReversionAlgorithm,
     "chart_patterns": ChartPatternsAlgorithm,
     "breakout_atr": BreakoutAtrAlgorithm,
+    "pair_trading": PairTradingSpreadAlgorithm,
+    "grid_trading": GridTradingAlgorithm,
 }
 
 _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
@@ -119,6 +137,20 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "lookback_bars": a.lookback_bars,
         "atr_period": a.atr_period,
         "atr_multiplier": a.atr_multiplier,
+    },
+    "pair_trading": lambda a: {
+        "lookback": a.lookback,
+        "hedge_lookback": a.hedge_lookback,
+        "entry_z": a.entry_z,
+        "exit_z": a.exit_z,
+        "use_dynamic_hedge_ratio": a.use_dynamic_hedge_ratio,
+        "fixed_hedge_ratio": a.fixed_hedge_ratio,
+    },
+    "grid_trading": lambda a: {
+        "grid_low_pct": a.grid_low_pct,
+        "grid_high_pct": a.grid_high_pct,
+        "grid_levels": a.grid_levels,
+        "take_profit_pct": a.take_profit_pct,
     },
 }
 
