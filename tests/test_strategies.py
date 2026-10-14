@@ -46,6 +46,8 @@ def test_strategy_catalog_has_implemented_entries():
         "breakout_atr",
         "spot_grid",
         "pair_trading",
+        "funding_carry",
+        "perp_market_making",
     }
 
 
@@ -135,7 +137,7 @@ def test_strategy_compare_plan_rules_only():
     from traderbot.backtesting.compare_session import strategy_compare_plan
 
     rules = strategy_compare_plan("strategies")
-    assert len(rules) == 8
+    assert len(rules) == 9
     assert all(row[0] == row[1] for row in rules)
 
 
@@ -151,7 +153,7 @@ def test_strategy_compare(tmp_path):
     )
     manifest = json.loads((out_dir / "reports" / "compare_manifest.json").read_text(encoding="utf-8"))
     assert manifest["bars"] == len(closes)
-    assert len(manifest["strategies"]) == 8
+    assert len(manifest["strategies"]) == 9
     assert manifest["best_strategy_id"] in {s["strategy_id"] for s in manifest["strategies"]}
     assert "visualization" not in manifest
 

@@ -8,6 +8,7 @@ from traderbot.algorithms.base import Algorithm
 from traderbot.algorithms.strategies.bollinger import BollingerMeanReversionAlgorithm
 from traderbot.algorithms.strategies.breakout_atr import BreakoutAtrAlgorithm
 from traderbot.algorithms.strategies.pair_trading import PairTradingAlgorithm
+from traderbot.algorithms.strategies.perp_market_making import PerpMarketMakingAlgorithm
 from traderbot.algorithms.strategies.spot_grid import SpotGridAlgorithm
 from traderbot.algorithms.strategies.chart_patterns import ChartPatternsAlgorithm
 from traderbot.algorithms.strategies.ema_cross import EmaCrossAlgorithm
@@ -81,15 +82,29 @@ STRATEGY_CATALOG: tuple[StrategyCatalogEntry, ...] = (
     StrategyCatalogEntry(
         id="spot_grid",
         name="Spot grid",
-        summary="Long-only grid between price bounds; buy dips, take profit on bounces (Hummingbot-inspired).",
+        summary="Long-only grid on OHLC; Nobitex spot or Hyperliquid perp candles (paper).",
         style="grid",
         implemented=True,
     ),
     StrategyCatalogEntry(
         id="pair_trading",
         name="Pair trading (stat arb)",
-        summary="Two-asset spread z-score mean reversion; rebalance spot legs (Nobitex pairs).",
+        summary="Spread z-score mean reversion; Nobitex spot rebalance or Hyperliquid perp long/short legs.",
         style="pair",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="funding_carry",
+        name="Funding carry",
+        summary="Short perp when funding is elevated to collect payments (Hyperliquid only).",
+        style="carry",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="perp_market_making",
+        name="Perp market making (paper)",
+        summary="Maker-style bid/ask simulation using Hyperliquid maker fee tier.",
+        style="market_making",
         implemented=True,
     ),
 )
@@ -103,6 +118,7 @@ _IMPLEMENTED: dict[str, type[Algorithm]] = {
     "chart_patterns": ChartPatternsAlgorithm,
     "breakout_atr": BreakoutAtrAlgorithm,
     "spot_grid": SpotGridAlgorithm,
+    "perp_market_making": PerpMarketMakingAlgorithm,
 }
 
 _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
@@ -143,6 +159,10 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "grid_count": a.grid_count,
         "take_profit_pct": a.grid_take_profit_pct,
     },
+    "perp_market_making": lambda a: {
+        "half_spread_pct": a.mm_half_spread_pct,
+        "inventory_skew": a.mm_inventory_skew,
+    },
 }
 
 
@@ -177,8 +197,12 @@ def strategy_ids_for_mode(mode: str | None) -> list[str]:
 def algorithm_for_id(strategy_id: str, **kwargs: Any) -> Algorithm:
     if strategy_id == "pair_trading":
         raise ValueError(
-            "pair_trading requires two aligned CSV series; use pair_algorithm_for_id() "
-            "and run_pair_backtest() instead of run_backtest().",
+            "pair_trading requires two series; use pair_algorithm_for_id() and "
+            "run_pair_backtest_for_exchange() instead of run_backtest().",
+        )
+    if strategy_id == "funding_carry":
+        raise ValueError(
+            "funding_carry requires Hyperliquid funding history; use run_funding_carry_backtest().",
         )
     cls = _IMPLEMENTED.get(strategy_id)
     if cls is None:

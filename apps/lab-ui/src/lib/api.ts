@@ -285,6 +285,8 @@ export type HealthResponse = {
 };
 
 export type PairBacktestResult = {
+  exchange: string;
+  fee_role?: string;
   initial_cash: number;
   final_equity: number;
   return_pct: number;
@@ -302,6 +304,32 @@ export type PairBacktestResult = {
     size: number;
     fee: number;
   }>;
+};
+
+export type FundingBacktestResult = {
+  exchange: string;
+  src: string;
+  return_pct: number;
+  max_drawdown_pct: number;
+  total_funding_pnl: number;
+  total_fees: number;
+  trade_count: number;
+  equity_curve: [number, number][];
+  funding_curve: [number, number][];
+};
+
+export type GridBacktestResult = {
+  exchange: string;
+  return_pct: number;
+  trade_count: number;
+  final_equity: number;
+  total_fees: number;
+};
+
+export type StrategyExchangeCatalog = {
+  exchanges: string[];
+  strategies: Record<string, string[]>;
+  execution_costs: Record<string, Record<string, { fee_rate: number; slippage_rate: number }>>;
 };
 
 export const api = {
@@ -486,8 +514,21 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ enabled }),
     }),
+  strategyExchangeCatalog: () => fetchJson<StrategyExchangeCatalog>("/api/strategies/exchange-catalog"),
   pairBacktest: (body: Record<string, unknown>) =>
     fetchJson<PairBacktestResult>("/api/strategies/pair-backtest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  fundingBacktest: (body: Record<string, unknown>) =>
+    fetchJson<FundingBacktestResult>("/api/strategies/funding-backtest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  gridBacktest: (body: Record<string, unknown>) =>
+    fetchJson<GridBacktestResult>("/api/strategies/grid-backtest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

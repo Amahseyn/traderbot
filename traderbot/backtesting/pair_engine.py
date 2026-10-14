@@ -231,3 +231,166 @@ def run_pair_backtest(
         fee_rate=fee_rate,
         total_fees=total_fees,
     )
+
+
+def run_perp_pair_backtest(
+    algorithm: PairTradingAlgorithm,
+    dominant_bars: list[dict[str, Any]],
+    hedge_bars: list[dict[str, Any]],
+    *,
+    initial_cash: float = DEFAULT_BACKTEST_INITIAL_CASH,
+    fee_rate: float = 0.0,
+    slippage_rate: float = 0.0,
+    hedge_ratio: float = 1.0,
+    position_fraction: float = 0.5,
+    reset_algorithm: bool = True,
+) -> PairBacktestResult:
+    """
+    Hyperliquid-style perp pair backtest: long/short legs (signed coin size), no spot short constraint.
+    """
+    if initial_cash <= 0:
+        raise ValueError("initial_cash must be positive")
+    if not 0 < position_fraction <= 1:
+        raise ValueError("position_fraction must be in (0, 1]")
+
+    aligned = [normalize_bar(bar) for bar in align_bars_by_timestamp(dominant_bars, hedge_bars)]
+    if not aligned:
+        raise ValueError("no aligned bars for pair backtest")
+
+    if reset_algorithm:
+        algorithm.reset()
+
+    cash = initial_cash
+    dominant_position = 0.0
+    hedge_position = 0.0
+    spread_state: Literal["flat", "long_spread", "short_spread"] = "flat"
+    total_fees = 0.0
+    trades: list[PairTrade] = []
+    equity_curve: list[tuple[int, float]] = []
+    spread_curve: list[tuple[int, float]] = []
+    z_score_curve: list[tuple[int, float]] = []
+    dominant_history: list[float] = []
+    hedge_history: list[float] = []
+
+    def equity_at(close_d: float, close_h: float) -> float:
+        return cash + dominant_position * close_d + hedge_position * close_h
+
+    def adjust_position(
+        timestamp: int,
+        leg: Literal["dominant", "hedge"],
+        price: float,
+        target_delta_coins: float,
+    ) -> None:
+        nonlocal cash, dominant_position, hedge_position, total_fees
+        if target_delta_coins == 0:
+            return
+        action: PairLegAction = "buy" if target_delta_coins > 0 else "sell"
+        fill = _fill_price(price, action, slippage_rate)
+        notional = abs(target_delta_coins) * fill
+        fee = notional * fee_rate
+        total_fees += fee
+        cash -= fee
+        if leg == "dominant":
+            dominant_position += target_delta_coins
+        else:
+            hedge_position += target_delta_coins
+        trades.append(PairTrade(timestamp, leg, action, fill, abs(target_delta_coins), fee))
+
+    def close_all(timestamp: int, close_d: float, close_h: float) -> None:
+        nonlocal dominant_position, hedge_position
+        if dominant_position > 0:
+            adjust_position(timestamp, "dominant", close_d, -dominant_position)
+        elif dominant_position < 0:
+            adjust_position(timestamp, "dominant", close_d, -dominant_position)
+        if hedge_position > 0:
+            adjust_position(timestamp, "hedge", close_h, -hedge_position)
+        elif hedge_position < 0:
+            adjust_position(timestamp, "hedge", close_h, -hedge_position)
+
+    for bar in aligned:
+        timestamp = int(bar["timestamp"])
+        close_d = float(bar["close"])
+        close_h = float(bar["hedge_close"])
+        dominant_history.append(close_d)
+        hedge_history.append(close_h)
+
+        snapshot = spread_z_score_from_closes(
+            np.asarray(dominant_history, dtype=float),
+            np.asarray(hedge_history, dtype=float),
+            lookback_period=algorithm.lookback_period,
+        )
+        if snapshot is not None:
+            spread_curve.append((timestamp, snapshot.spread_pct))
+            z_score_curve.append((timestamp, snapshot.z_score))
+
+        signal: PairSignal = algorithm.pair_signal(bar)
+        equity = equity_at(close_d, close_h)
+
+        if len(dominant_history) >= algorithm.lookback_period:
+            if signal == "long_spread" and spread_state == "flat":
+                notional_d = equity * position_fraction / (1.0 + hedge_ratio)
+                notional_h = equity * position_fraction * hedge_ratio / (1.0 + hedge_ratio)
+                adjust_position(timestamp, "dominant", close_d, notional_d / close_d)
+                adjust_position(timestamp, "hedge", close_h, -(notional_h / close_h))
+                spread_state = "long_spread"
+            elif signal == "short_spread" and spread_state == "flat":
+                notional_d = equity * position_fraction / (1.0 + hedge_ratio)
+                notional_h = equity * position_fraction * hedge_ratio / (1.0 + hedge_ratio)
+                adjust_position(timestamp, "dominant", close_d, -(notional_d / close_d))
+                adjust_position(timestamp, "hedge", close_h, notional_h / close_h)
+                spread_state = "short_spread"
+            elif signal == "close_spread" and spread_state != "flat":
+                close_all(timestamp, close_d, close_h)
+                spread_state = "flat"
+
+        equity_curve.append((timestamp, equity_at(close_d, close_h)))
+
+    final_equity = equity_curve[-1][1] if equity_curve else initial_cash
+    return PairBacktestResult(
+        initial_cash=initial_cash,
+        final_equity=final_equity,
+        trades=trades,
+        equity_curve=equity_curve,
+        spread_curve=spread_curve,
+        z_score_curve=z_score_curve,
+        fee_rate=fee_rate,
+        total_fees=total_fees,
+    )
+
+
+def run_pair_backtest_for_exchange(
+    exchange: str,
+    algorithm: PairTradingAlgorithm,
+    dominant_bars: list[dict[str, Any]],
+    hedge_bars: list[dict[str, Any]],
+    *,
+    fee_rate: float,
+    slippage_rate: float,
+    hedge_ratio: float = 1.0,
+    initial_cash: float = DEFAULT_BACKTEST_INITIAL_CASH,
+    **kwargs: Any,
+) -> PairBacktestResult:
+    from traderbot.markets.exchange import normalize_live_exchange
+
+    venue = normalize_live_exchange(exchange)
+    if venue == "hyperliquid":
+        return run_perp_pair_backtest(
+            algorithm,
+            dominant_bars,
+            hedge_bars,
+            initial_cash=initial_cash,
+            fee_rate=fee_rate,
+            slippage_rate=slippage_rate,
+            hedge_ratio=hedge_ratio,
+            **kwargs,
+        )
+    return run_pair_backtest(
+        algorithm,
+        dominant_bars,
+        hedge_bars,
+        initial_cash=initial_cash,
+        fee_rate=fee_rate,
+        slippage_rate=slippage_rate,
+        hedge_ratio=hedge_ratio,
+        **kwargs,
+    )

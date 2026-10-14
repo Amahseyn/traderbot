@@ -37,6 +37,8 @@ def default_strategy_namespace(**overrides: Any) -> argparse.Namespace:
         "pair_entry_threshold": 2.0,
         "pair_exit_threshold": 0.5,
         "pair_hedge_ratio": 1.0,
+        "mm_half_spread_pct": 0.0005,
+        "mm_inventory_skew": 0.0,
     }
     values.update(overrides)
     return argparse.Namespace(**values)
