@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from traderbot.risk.manager import RiskLimits, RiskManager
 
 
@@ -18,3 +20,14 @@ def test_risk_daily_loss_halts():
     assert manager.halted
     exit_verdict = manager.evaluate("sell", equity=940.0, mark_price=10.0)
     assert exit_verdict.allowed
+
+
+def test_risk_daily_loss_halt_clears_on_new_calendar_day():
+    manager = RiskManager(RiskLimits(daily_loss_limit_pct=5.0))
+    manager.reset_session(1000.0)
+    manager.evaluate("buy", equity=940.0, mark_price=10.0)
+    assert manager.halted
+    manager.session_date = date.today() - timedelta(days=1)
+    verdict = manager.evaluate("buy", equity=940.0, mark_price=10.0)
+    assert verdict.allowed
+    assert not manager.halted

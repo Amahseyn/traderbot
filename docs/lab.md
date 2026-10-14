@@ -96,8 +96,8 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 | `/experiments` | Lab — strategy test and compare, optimizer sweeps, pipelines, compare charts. Sections: Run, Pipelines (`#pipelines`), Compare results (`#compares`), Sweeps (`#sweeps`) |
 | `/actions` | Redirects to `/experiments` |
 | `/custom` | Custom end-to-end pipeline (export, multi-dataset, compare) |
-| `/live` | Terminal paper/live: once, UDF poll loop, CSV replay (job log + stop) |
-| `/settings` | Lab API token status, Nobitex login, API keys, Hyperliquid credentials |
+| `/live` | Terminal paper/live on **Hyperliquid** (default) or Nobitex: once, poll loop, CSV replay (job log + stop) |
+| `/settings` | Lab API token, **Hyperliquid** wallet/key, optional Nobitex API keys |
 
 ## API (UI-facing)
 
@@ -108,13 +108,13 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 | GET | `/api/datasets` | Catalog OHLC datasets. `label` includes horizon (when the file is under `horizons/<label>/`) and the CSV start and end dates. |
 | GET | `/api/datasets/{id}/download` | Download a catalog dataset file |
 | GET | `/api/data/markets?scope=&q=&limit=&offset=` | Search cloned market rows in SQLite |
-| POST | `/api/data/markets/sync?scope=` | Re-clone markets from Nobitex or jobs file into SQLite |
+| POST | `/api/data/markets/sync?scope=` | Re-clone markets (`hyperliquid_all`, `nobitex_all`, or jobs file) into SQLite |
 | GET | `/api/artifacts/list?out_dir=` | PNG paths under a run/solution directory |
 | GET | `/artifact?path=` | Download file (`results/`, `solutions/`, `data/`) |
 | GET | `/api/jobs`, `/api/jobs/{id}` | Background job status |
 | POST | `/api/jobs/{id}/stop` | Stop a queued or running in-process job |
-| GET | `/api/auth/status`, `/api/auth/profile`, `/api/auth/api-keys` | Nobitex credentials (`.env` on API host) |
-| POST | `/api/auth/login`, `/api/auth/api-keys` | Session login / create API key (writes `.env` when requested) |
+| GET | `/api/auth/status`, `/api/auth/profile`, `/api/auth/api-keys` | Auth status; `live_exchange_default` is `hyperliquid` |
+| POST | `/api/auth/login`, `/api/auth/api-keys` | Optional Nobitex session login / API key (writes `.env` when requested) |
 | GET | `/api/catalog/strategies`, `/api/catalog/strategy-params?strategy_id=`, `/api/catalog/optimized-strategy-params?strategy_id=&symbol=&resolution=&dataset_id=`, `/api/catalog/terminal` | Strategy and terminal catalogs |
 | POST | `/api/jobs/export`, `/api/jobs/strategy-test`, `/api/jobs/strategy-compare`, `/api/jobs/strategy-sweep`, `/api/jobs/pipeline-run`, `/api/jobs/pipeline-run-config`, `/api/jobs/custom-research`, `/api/jobs/terminal-once`, `/api/jobs/terminal-replay`, `/api/jobs/terminal-live` | In-process background jobs |
 

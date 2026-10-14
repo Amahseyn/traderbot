@@ -230,6 +230,114 @@ def main(argv: list[str] | None = None) -> None:
     sweep.add_argument("--out", type=Path, default=None, help="Write sweep_manifest.json")
     _add_param_flags(sweep)
 
+    validate = sub.add_parser(
+        "validate",
+        help="Train/validation/test split; select on validation, report test once",
+    )
+    validate.add_argument("csv", type=Path)
+    validate.add_argument("--strategy", choices=implemented_strategy_ids(), default="sma_cross")
+    validate.add_argument("--cash", type=float, default=10_000.0)
+    validate.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
+    _add_fill_flags(validate)
+    validate.add_argument(
+        "--param",
+        dest="params",
+        action="append",
+        default=[],
+        help="Repeatable: name=v1,v2[,v3] (max 2 --param flags)",
+    )
+    validate.add_argument("--train-fraction", type=float, default=0.6)
+    validate.add_argument("--validation-fraction", type=float, default=0.2)
+    validate.add_argument("--min-trades", type=int, default=1)
+    validate.add_argument("--max-combos", type=int, default=64)
+    validate.add_argument("--out", type=Path, default=None, help="Write validation_manifest.json")
+    _add_param_flags(validate)
+
+    leaderboard = sub.add_parser(
+        "leaderboard",
+        help="Fetch live 1m bars, tune on train, rank on validation, test top strategies on held-out tail",
+    )
+    leaderboard.add_argument("--src", default="arb", help="Base asset (Hyperliquid perp coin)")
+    leaderboard.add_argument(
+        "--resolution",
+        default="1",
+        help="Hyperliquid candle resolution (1 = 1m)",
+    )
+    leaderboard.add_argument("--max-bars", type=int, default=2500, help="History length to download")
+    leaderboard.add_argument("--cash", type=float, default=10.0)
+    leaderboard.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
+    _add_fill_flags(leaderboard)
+    leaderboard.add_argument("--test-tail-bars", type=int, default=100)
+    leaderboard.add_argument("--validation-fraction", type=float, default=0.25)
+    leaderboard.add_argument("--top", type=int, default=3, dest="top_n")
+    leaderboard.add_argument("--min-trades", type=int, default=0)
+    leaderboard.add_argument("--max-combos", type=int, default=64)
+    leaderboard.add_argument(
+        "--full-grid",
+        action="store_true",
+        help="Use expanded per-strategy optimizer grids (more param combos)",
+    )
+    leaderboard.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Write leaderboard_manifest.json and optional CSV under this directory",
+    )
+    _add_param_flags(leaderboard)
+
+    batch_lb = sub.add_parser(
+        "leaderboard-batch",
+        help="Leakage-safe leaderboard across many Hyperliquid markets and intervals",
+    )
+    batch_lb.add_argument(
+        "--top-markets",
+        type=int,
+        default=30,
+        help="Number of perp markets (liquid list first, then universe)",
+    )
+    batch_lb.add_argument(
+        "--market",
+        dest="markets",
+        action="append",
+        default=[],
+        help="Repeatable extra coin (e.g. arb); added to the batch set",
+    )
+    batch_lb.add_argument(
+        "--resolution",
+        dest="resolutions",
+        action="append",
+        default=[],
+        help="Repeatable interval (1,5,15,30,60,240,D); default all Hyperliquid intervals",
+    )
+    batch_lb.add_argument("--max-bars", type=int, default=2500)
+    batch_lb.add_argument("--cash", type=float, default=10.0)
+    batch_lb.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
+    _add_fill_flags(batch_lb)
+    batch_lb.add_argument("--test-tail-bars", type=int, default=100)
+    batch_lb.add_argument("--validation-fraction", type=float, default=0.25)
+    batch_lb.add_argument("--top", type=int, default=3, dest="top_n")
+    batch_lb.add_argument("--min-trades", type=int, default=0)
+    batch_lb.add_argument("--max-combos", type=int, default=128)
+    batch_lb.add_argument(
+        "--full-grid",
+        action="store_true",
+        default=True,
+        help="Use expanded optimizer grids (default: on)",
+    )
+    batch_lb.add_argument(
+        "--no-full-grid",
+        action="store_false",
+        dest="full_grid",
+        help="Use smaller built-in grids",
+    )
+    batch_lb.add_argument(
+        "--out",
+        type=Path,
+        default=Path("results/pipelines/leaderboard_batch"),
+        help="Batch output root (per market×interval subdirs + batch manifest)",
+    )
+    _add_param_flags(batch_lb)
+
     tune = sub.add_parser(
         "tune-defaults",
         help="Average sweeps across assets; write robust defaults + single-run best",
@@ -464,6 +572,149 @@ def main(argv: list[str] | None = None) -> None:
                 manifest_path=out_path,
             )
         print(json.dumps(payload, indent=2))
+        return
+
+    if args.command == "validate":
+        from traderbot.backtesting.sweep import parse_sweep_param
+        from traderbot.backtesting.validation import ValidationOptions, run_strategy_validation
+
+        if not args.params:
+            print("at least one --param name=v1,v2 is required", file=sys.stderr)
+            sys.exit(2)
+        param_grid: dict[str, Any] = {}
+        for spec in args.params:
+            try:
+                name, values = parse_sweep_param(spec)
+            except ValueError as exc:
+                print(str(exc), file=sys.stderr)
+                sys.exit(2)
+            if name in param_grid:
+                print(f"duplicate --param {name!r}", file=sys.stderr)
+                sys.exit(2)
+            param_grid[name] = values
+        try:
+            payload = run_strategy_validation(
+                ValidationOptions(
+                    csv_path=str(args.csv),
+                    strategy_id=args.strategy,
+                    param_grid=param_grid,
+                    cash=args.cash,
+                    fee=args.fee,
+                    slippage=args.slippage,
+                    execution=args.execution,
+                    train_fraction=args.train_fraction,
+                    validation_fraction=args.validation_fraction,
+                    min_trades=args.min_trades,
+                    max_combos=args.max_combos,
+                ),
+                base_namespace=args,
+            )
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            sys.exit(2)
+        if args.out is not None:
+            out_path = args.out / "validation_manifest.json" if args.out.is_dir() else args.out
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            payload["manifest"] = str(out_path)
+        print(json.dumps(payload, indent=2))
+        return
+
+    if args.command == "leaderboard":
+        from traderbot.backtesting.validation import LeaderboardOptions, run_leakage_safe_leaderboard
+        from traderbot.data.export import write_csv
+        from traderbot.hyperliquid.market_data import fetch_hyperliquid_recent_closed_bars
+
+        try:
+            bars = fetch_hyperliquid_recent_closed_bars(
+                src=args.src,
+                resolution=str(args.resolution),
+                max_bars=args.max_bars,
+            )
+        except Exception as exc:
+            print(f"failed to fetch Hyperliquid candles: {exc}", file=sys.stderr)
+            sys.exit(1)
+        if not bars:
+            print("no bars returned from Hyperliquid", file=sys.stderr)
+            sys.exit(1)
+        label = f"{args.src.upper()}_{args.resolution}m"
+        payload = run_leakage_safe_leaderboard(
+            LeaderboardOptions(
+                bars=bars,
+                test_tail_bars=args.test_tail_bars,
+                validation_fraction_of_pre_test=args.validation_fraction,
+                top_n=args.top_n,
+                cash=args.cash,
+                fee=args.fee,
+                slippage=args.slippage,
+                execution=args.execution,
+                min_trades=args.min_trades,
+                max_combos=args.max_combos,
+                full_grid=bool(getattr(args, "full_grid", False)),
+                market_label=label,
+            ),
+            base_namespace=args,
+        )
+        payload["source"] = {
+            "exchange": "hyperliquid",
+            "src": args.src,
+            "resolution": str(args.resolution),
+            "max_bars_requested": args.max_bars,
+            "bars_fetched": len(bars),
+        }
+        if args.out is not None:
+            args.out.mkdir(parents=True, exist_ok=True)
+            csv_path = args.out / f"{label}.csv"
+            write_csv(csv_path, bars)
+            manifest_path = args.out / "leaderboard_manifest.json"
+            manifest_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            payload["csv"] = str(csv_path)
+            payload["manifest"] = str(manifest_path)
+        print(json.dumps(payload, indent=2))
+        return
+
+    if args.command == "leaderboard-batch":
+        from traderbot.backtesting.leaderboard_batch import (
+            LeaderboardBatchOptions,
+            default_batch_resolutions,
+            resolve_batch_market_coins,
+            run_leaderboard_batch,
+        )
+
+        if args.markets:
+            coins = resolve_batch_market_coins(
+                limit=max(args.top_markets, len(args.markets)),
+                extra=args.markets,
+            )
+        else:
+            coins = resolve_batch_market_coins(limit=args.top_markets)
+        resolutions = args.resolutions or default_batch_resolutions()
+        print(
+            f"batch: {len(coins)} markets × {len(resolutions)} intervals "
+            f"({len(coins) * len(resolutions)} jobs), full_grid={args.full_grid}",
+            file=sys.stderr,
+            flush=True,
+        )
+        master = run_leaderboard_batch(
+            LeaderboardBatchOptions(
+                markets=coins,
+                resolutions=resolutions,
+                out_dir=args.out,
+                max_bars=args.max_bars,
+                cash=args.cash,
+                fee=args.fee,
+                slippage=args.slippage,
+                execution=args.execution,
+                test_tail_bars=args.test_tail_bars,
+                validation_fraction=args.validation_fraction,
+                top_n=args.top_n,
+                min_trades=args.min_trades,
+                max_combos=args.max_combos,
+                full_grid=args.full_grid,
+            ),
+            log=lambda message: print(message, file=sys.stderr, flush=True),
+        )
+        print(json.dumps(master, indent=2))
         return
 
     if args.command == "tune-defaults":

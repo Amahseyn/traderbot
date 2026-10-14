@@ -9,7 +9,13 @@ from traderbot.backtesting.engine import (
     normalize_bar,
     run_backtest,
 )
+from traderbot.backtesting.metrics import (
+    buy_and_hold_return_pct,
+    max_drawdown_pct,
+    split_chronological,
+)
 from traderbot.backtesting.report import backtest_summary_dict, save_backtest_result
+from traderbot.backtesting.validation import ValidationOptions, run_strategy_validation
 from traderbot.backtesting.robust_defaults import (
     TuneRobustOptions,
     compare_robust_strategies,
@@ -34,17 +40,22 @@ __all__ = [
     "Trade",
     "backtest_summary_dict",
     "bars_from_ohlc_rows",
+    "buy_and_hold_return_pct",
     "build_cash_flow_summary",
     "build_trade_log_entries",
     "compare_robust_strategies",
     "entry_exit_series",
     "infer_bar_freq",
     "load_bars_csv",
+    "max_drawdown_pct",
     "normalize_bar",
     "parse_sweep_param",
     "run_backtest",
     "run_strategy_sweep",
+    "run_strategy_validation",
     "save_backtest_result",
+    "split_chronological",
+    "ValidationOptions",
     "TuneRobustOptions",
     "tune_grid_for_strategy",
     "tune_robust_defaults",

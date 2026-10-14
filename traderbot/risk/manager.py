@@ -49,6 +49,16 @@ class RiskManager:
         self.halted = False
         self.halt_reason = ""
 
+    def _roll_session_if_new_day(self, equity: float) -> None:
+        today = date.today()
+        if today == self.session_date:
+            return
+        self.session_date = today
+        self.day_start_equity = equity
+        if self.halted and self.halt_reason == "daily_loss_limit":
+            self.halted = False
+            self.halt_reason = ""
+
     def update_mark(self, equity: float) -> None:
         self.last_equity = equity
         if self.peak_equity is None or equity > self.peak_equity:
@@ -66,6 +76,7 @@ class RiskManager:
         equity: float,
         mark_price: float,
     ) -> RiskVerdict:
+        self._roll_session_if_new_day(equity)
         if action != "sell":
             if self.limits.kill_switch:
                 return RiskVerdict(False, "kill_switch")

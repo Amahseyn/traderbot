@@ -1,25 +1,37 @@
 # Live trading operations
 
-Paper mode is the default. Use this checklist before enabling real orders (Nobitex spot or Hyperliquid perps via the terminal / Lab live jobs).
+Paper mode is the default. **Hyperliquid perps** are the primary live venue (terminal CLI and Lab **Live** tab). Nobitex spot remains available as an optional legacy path.
 
 ## Preconditions
 
-1. **Strategy validated** — Backtests use `next_open` execution by default; compare sweeps on train windows and treat holdout metrics as report-only (see `docs/lab.md`).
+1. **Strategy validated** — Backtests use `next_open` execution by default; use `strategy validate` or train-window sweeps and treat holdout metrics as report-only (see `docs/lab.md`).
 2. **Lab API secured** — Set `LAB_API_TOKEN` on the API host; mirror it in the UI as `NEXT_PUBLIC_LAB_API_TOKEN` (see Settings → Lab API access). Bind to `127.0.0.1` unless you intentionally expose the API on a trusted network.
-3. **Exchange credentials** — Hyperliquid: wallet + private key in `.env` on the API/terminal host. Nobitex: API keys and/or session token via Lab Settings or `.env`.
+3. **Hyperliquid credentials** — Wallet address + private key in `.env` on the API/terminal host (Settings → Hyperliquid). Required for live perp orders.
 4. **Capital cap** — Terminal `--live-quote-budget` or risk `capital_cap` limits bot spend separately from the full wallet.
 
-## Execution behavior (Nobitex algorithm trader)
+## Execution behavior (Hyperliquid — default)
 
 | Step | Behavior |
 |------|----------|
-| Buy | Market order → wait for fill → update `BotInventory` → place stop-loss if configured (failure aborts the flow) |
-| Sell | Read inventory → market order → wait for fill → then reduce inventory |
-| Each bar (live) | Reconcile inventory **down** if exchange base is lower than tracked (e.g. stop filled off-bot) |
+| Buy | Market open → update `BotInventory` (no exchange stop orders on HL path) |
+| Sell | Market close for tracked size → then reduce inventory |
+| Each bar (live) | Reconcile inventory **down** if exchange position is smaller than tracked |
 | Risk | Kill switch / daily loss / drawdown block **new buys**; **sells** still allowed to flatten |
-| Scope | Risk state is **per market symbol** in the terminal, not one global pool |
+| Scope | Risk state is **per market symbol**, not one global pool |
 
-Hyperliquid live uses the same inventory ordering; reconciliation reads perp position size from the exchange.
+Implementation: `HyperliquidTerminalTrader` in `traderbot/terminal/hyperliquid_trader.py`.
+
+## Optional: Nobitex spot
+
+Use `--exchange nobitex` (CLI) or select **Nobitex** in the Lab Live panel. Requires Nobitex API keys in Settings.
+
+| Step | Behavior |
+|------|----------|
+| Buy | Market order → wait for fill → update `BotInventory` → cancel any prior stop → place stop-loss if configured |
+| Sell | Cancel tracked stop (if any) → market order → wait for fill → then reduce inventory |
+| Each bar (live) | Reconcile inventory **down** if wallet base is lower than tracked (e.g. stop filled off-bot) |
+
+Implementation: `AlgorithmTrader` in `traderbot/traders/strategies/algorithm_trader.py`.
 
 ## Recommended startup sequence
 
@@ -35,7 +47,7 @@ export LAB_API_TOKEN="$(openssl rand -hex 24)"
 ./run-lab-ui.sh
 ```
 
-Confirm **Settings → Lab API access** shows the UI token as configured and exchange credentials as expected.
+Confirm **Settings → Lab API access** shows the UI token as configured and **Hyperliquid** credentials as expected.
 
 ## Terminal live (CLI)
 
@@ -47,8 +59,13 @@ python -m cli terminal run --exchange hyperliquid --src btc --dst usdt \
 
 - Omit `--execution live` for paper.
 - Use `--risk-kill-switch` only when you intend to block new entries (exits remain permitted).
+- Nobitex spot: add `--exchange nobitex --src btc --dst rls` (or `usdt` pairs).
 
 Lab **Live** tab runs the same stack via `POST /api/jobs/terminal-live` (requires Lab API token when auth is enabled).
+
+## Backtest fee defaults
+
+Shared defaults live in `traderbot/utils/trading_costs.py`: **0.045% fee** and **0.05% slippage** per fill (Hyperliquid-style taker). Override per run with CLI/Lab `fee` / `slippage`, or set `TRADERBOT_DEFAULT_FEE_RATE` / `TRADERBOT_DEFAULT_SLIPPAGE_RATE` in the environment.
 
 ## Monitoring and incident response
 

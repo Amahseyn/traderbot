@@ -65,6 +65,32 @@ def wait_for_order_fill(
     raise NobitexClientError(f"order {order_id} not filled within {timeout_sec}s", body=last)
 
 
+def cancel_open_order(
+    client: NobitexClient,
+    order_id: int | str,
+    *,
+    client_order_id: str | None = None,
+) -> Any:
+    """Cancel an open order via ``POST /market/orders/update-status``."""
+    body: dict[str, Any] = {"status": "canceled"}
+    if order_id is not None and str(order_id).strip() != "":
+        body["order"] = order_id
+    elif client_order_id:
+        body["clientOrderId"] = client_order_id
+    else:
+        raise NobitexClientError("cancel_open_order requires order_id or client_order_id")
+    return client.request("POST", "/market/orders/update-status", json_body=body)
+
+
+def order_id_from_response(response: Any) -> int | str | None:
+    if not isinstance(response, dict):
+        return None
+    order = response.get("order")
+    if isinstance(order, dict) and order.get("id") is not None:
+        return order.get("id")
+    return None
+
+
 def add_stop_loss_order(
     client: NobitexClient,
     *,

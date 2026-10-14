@@ -93,7 +93,7 @@ def run_live_tune_sweep(
     fee: float = DEFAULT_TRADE_FEE_RATE,
     initial_cash: float | None = None,
 ) -> dict[str, Any]:
-    """Small holdout sweep on recent Nobitex history; records winner per symbol × resolution."""
+    """Small holdout sweep on recent live-market history; records winner per symbol × resolution."""
     bar_src = (src or symbol).strip().lower()
     if bar_src.endswith("usdt"):
         bar_src = bar_src[:-4]

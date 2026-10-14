@@ -324,7 +324,7 @@ export const api = {
   datasets: (limit = 200) => fetchJson<DatasetRow[]>(`/api/datasets?limit=${limit}`),
   /** Same rows as datasets — catalog OHLC files under data/ (SQLite-backed). */
   dataCsvFiles: (limit = 200) => fetchJson<DatasetRow[]>(`/api/data/csv-files?limit=${limit}`),
-  dataMarketsCatalog: (scope: "default_jobs" | "nobitex_all" | "hyperliquid_all" = "nobitex_all") => {
+  dataMarketsCatalog: (scope: "default_jobs" | "nobitex_all" | "hyperliquid_all" = "hyperliquid_all") => {
     const params = new URLSearchParams({ scope, catalog: "true" });
     return fetchJson<MarketsCatalog>(`/api/data/markets?${params.toString()}`);
   },
@@ -334,7 +334,7 @@ export const api = {
     limit?: number;
     offset?: number;
   }) => {
-    const scope = options?.scope ?? "nobitex_all";
+    const scope = options?.scope ?? "hyperliquid_all";
     const params = new URLSearchParams({ scope });
     if (options?.q?.trim()) {
       params.set("q", options.q.trim());
@@ -347,7 +347,7 @@ export const api = {
     }
     return fetchJson<MarketsCatalog>(`/api/data/markets?${params.toString()}`);
   },
-  syncMarkets: async (scope: "default_jobs" | "nobitex_all" | "hyperliquid_all" = "nobitex_all") => {
+  syncMarkets: async (scope: "default_jobs" | "nobitex_all" | "hyperliquid_all" = "hyperliquid_all") => {
     const response = await fetch(
       `${API_BASE}/api/data/markets/sync?scope=${encodeURIComponent(scope)}`,
       withLabAuth({ method: "POST" }),

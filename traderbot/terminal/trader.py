@@ -37,6 +37,7 @@ class TerminalAlgorithmTrader(AlgorithmTrader):
             return
 
         self._last_mark_price = float(bar.get("close") or 0)
+        self.prepare_for_bar(bar)
         signal = self.algorithm.on_bar(bar)
         order_action = order_action_for_long_only(self.in_position, signal)
 

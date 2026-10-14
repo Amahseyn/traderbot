@@ -31,6 +31,25 @@ DEFAULT_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
     "breakout_atr": {"lookback_bars": [10, 20, 40], "atr_multiplier": [1.0, 1.5, 2.0]},
 }
 
+FULL_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
+    "sma_cross": {"fast": [3, 5, 8, 10, 12, 15, 20], "slow": [15, 20, 30, 50, 80, 100]},
+    "ema_cross": {"fast": [3, 5, 8, 10, 12, 15, 20], "slow": [15, 20, 30, 50, 80, 100]},
+    "rsi_threshold": {"period": [5, 7, 10, 14, 21], "oversold": [15, 20, 25, 30.0]},
+    "macd_cross": {"fast": [6, 8, 10, 12, 15], "slow": [18, 21, 26, 30, 34]},
+    "bollinger_mean_reversion": {
+        "period": [10, 14, 20, 30, 40],
+        "num_std": [1.25, 1.5, 2.0, 2.5, 3.0],
+    },
+    "chart_patterns": {
+        "swing_window_bars": [2, 3, 4, 5, 7],
+        "pattern_score_threshold": [0.2, 0.25, 0.35, 0.45, 0.55],
+    },
+    "breakout_atr": {
+        "lookback_bars": [8, 10, 15, 20, 30, 40],
+        "atr_multiplier": [0.75, 1.0, 1.25, 1.5, 2.0, 2.5],
+    },
+}
+
 
 @dataclass
 class TuneRobustOptions:
@@ -50,9 +69,10 @@ class TuneRobustOptions:
     min_bars: int = MIN_TUNE_BARS
 
 
-def tune_grid_for_strategy(strategy_id: str) -> dict[str, list[Any]]:
+def tune_grid_for_strategy(strategy_id: str, *, full: bool = False) -> dict[str, list[Any]]:
     """Built-in grid for one strategy (used when the caller passes no --param)."""
-    grid = DEFAULT_TUNE_GRIDS.get(strategy_id)
+    source = FULL_TUNE_GRIDS if full else DEFAULT_TUNE_GRIDS
+    grid = source.get(strategy_id)
     if grid is None:
         raise ValueError(f"no built-in tune grid for strategy_id={strategy_id!r}")
     return {name: list(values) for name, values in grid.items()}
@@ -241,8 +261,8 @@ def compare_robust_strategies(
     strategy_ids: list[str] | None = None,
     grids_by_strategy: dict[str, dict[str, list[Any]]] | None = None,
     cash: float = 10_000.0,
-    fee: float = 0.0,
-    slippage: float = 0.0,
+    fee: float = DEFAULT_TRADE_FEE_RATE,
+    slippage: float = DEFAULT_SLIPPAGE_RATE,
     execution: str = DEFAULT_BACKTEST_EXECUTION,
     holdout_fraction: float = DEFAULT_HOLDOUT_FRACTION,
     min_trades: int = DEFAULT_MIN_TRADES,

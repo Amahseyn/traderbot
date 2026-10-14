@@ -179,6 +179,36 @@ def test_terminal_trader_live_delegates_orders(keys, monkeypatch):
     assert calls == ["buy"]
 
 
+def test_terminal_trader_updates_bar_volatility_for_risk():
+    from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+    from traderbot.terminal.trader import TerminalAlgorithmTrader
+    from traderbot.traders.execution import ExecutionPolicy
+
+    class _HoldAlgo(Algorithm):
+        def on_bar(self, bar: Bar) -> SignalAction:
+            return "hold"
+
+    bar: Bar = {
+        "timestamp": 1,
+        "open": 100.0,
+        "high": 110.0,
+        "low": 90.0,
+        "close": 100.0,
+        "volume": 1.0,
+        "symbol": "BTCIRT",
+    }
+    trader = TerminalAlgorithmTrader(
+        None,
+        _HoldAlgo(),
+        bar_source=lambda: bar,
+        execution=ExecutionPolicy.paper_only(),
+        market_symbol="BTCIRT",
+    )
+    for _ in range(20):
+        trader.step()
+    assert trader.risk._atr.get("atr_value") is not None
+
+
 def test_terminal_trader_tick_on_no_new_bar(capsys):
     from traderbot.terminal.trader import TerminalAlgorithmTrader
     from traderbot.algorithms.base import Algorithm, Bar, SignalAction

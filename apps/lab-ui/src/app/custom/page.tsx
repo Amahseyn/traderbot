@@ -39,7 +39,7 @@ const INITIAL_DATA_STATE: PipelineDataSectionState = {
   catalogSearch: "",
   catalogSymbol: "",
   catalogResolution: "",
-  marketScope: "nobitex_all",
+  marketScope: "hyperliquid_all",
   marketSearch: "",
 };
 
