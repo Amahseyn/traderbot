@@ -47,6 +47,7 @@ def test_close_fill_applies_fee():
         bars,
         initial_cash=1000.0,
         fee_rate=0.01,
+        execution="close",
     )
     position = (1000.0 - 10.0) / 100.0
     proceeds = position * 120.0
@@ -63,6 +64,7 @@ def test_close_fill_applies_slippage_against_trader():
         bars,
         initial_cash=1000.0,
         slippage_rate=0.01,
+        execution="close",
     )
     buy_price, sell_price = (trade.price for trade in result.trades)
     assert buy_price == pytest.approx(101.0)
@@ -112,7 +114,10 @@ def test_close_execution_matches_next_open_on_flat_opens():
     prices = [100.0, 102.0, 101.0, 105.0]
     bars = _bars(prices, prices)
     close_result = run_backtest(
-        ScriptedAlgorithm(["buy", "hold", "hold", "sell"]), bars, initial_cash=1000.0
+        ScriptedAlgorithm(["buy", "hold", "hold", "sell"]),
+        bars,
+        initial_cash=1000.0,
+        execution="close",
     )
     assert close_result.final_equity == pytest.approx((1000.0 / 100.0) * 105.0)
 
