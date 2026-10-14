@@ -117,6 +117,7 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 | POST | `/api/auth/login`, `/api/auth/api-keys` | Optional Nobitex session login / API key (writes `.env` when requested) |
 | GET | `/api/catalog/strategies`, `/api/catalog/strategy-params?strategy_id=`, `/api/catalog/optimized-strategy-params?strategy_id=&symbol=&resolution=&dataset_id=`, `/api/catalog/terminal` | Strategy and terminal catalogs |
 | POST | `/api/jobs/export`, `/api/jobs/strategy-test`, `/api/jobs/strategy-compare`, `/api/jobs/strategy-sweep`, `/api/jobs/pipeline-run`, `/api/jobs/pipeline-run-config`, `/api/jobs/custom-research`, `/api/jobs/terminal-once`, `/api/jobs/terminal-replay`, `/api/jobs/terminal-live` | In-process background jobs |
+| POST | `/api/strategies/pair-backtest` | Synchronous two-CSV pair stat-arb backtest (equity, spread, z-score series for the Strategies UI) |
 
 `GET /api/pipelines` includes `full`, `steps`, and `inputs` for the Lab Pipelines tab. Full pipelines are the end-to-end jobs. The Pipelines tab keeps Active (run forms) separate from a library where you turn pipelines on or rename the label in this browser. `POST /api/jobs/pipeline-run` takes `pipeline_id` plus those inputs (`dataset_id`, `days`, `all_assets`, `horizon`, `fast`, `slow`). Saved configs use `pipeline-run-config`, which accepts the same `params` and per-step `step_params` the form shows.
 
