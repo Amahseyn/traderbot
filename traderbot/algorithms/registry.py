@@ -7,6 +7,8 @@ from typing import Any
 from traderbot.algorithms.base import Algorithm
 from traderbot.algorithms.strategies.bollinger import BollingerMeanReversionAlgorithm
 from traderbot.algorithms.strategies.breakout_atr import BreakoutAtrAlgorithm
+from traderbot.algorithms.strategies.pair_trading import PairTradingAlgorithm
+from traderbot.algorithms.strategies.spot_grid import SpotGridAlgorithm
 from traderbot.algorithms.strategies.chart_patterns import ChartPatternsAlgorithm
 from traderbot.algorithms.strategies.ema_cross import EmaCrossAlgorithm
 from traderbot.algorithms.strategies.macd import MacdCrossAlgorithm
@@ -76,6 +78,20 @@ STRATEGY_CATALOG: tuple[StrategyCatalogEntry, ...] = (
         style="breakout",
         implemented=True,
     ),
+    StrategyCatalogEntry(
+        id="spot_grid",
+        name="Spot grid",
+        summary="Long-only grid between price bounds; buy dips, take profit on bounces (Hummingbot-inspired).",
+        style="grid",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="pair_trading",
+        name="Pair trading (stat arb)",
+        summary="Two-asset spread z-score mean reversion; rebalance spot legs (Nobitex pairs).",
+        style="pair",
+        implemented=True,
+    ),
 )
 
 _IMPLEMENTED: dict[str, type[Algorithm]] = {
@@ -86,6 +102,7 @@ _IMPLEMENTED: dict[str, type[Algorithm]] = {
     "bollinger_mean_reversion": BollingerMeanReversionAlgorithm,
     "chart_patterns": ChartPatternsAlgorithm,
     "breakout_atr": BreakoutAtrAlgorithm,
+    "spot_grid": SpotGridAlgorithm,
 }
 
 _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
@@ -120,6 +137,12 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "atr_period": a.atr_period,
         "atr_multiplier": a.atr_multiplier,
     },
+    "spot_grid": lambda a: {
+        "start_price": a.grid_start_price,
+        "end_price": a.grid_end_price,
+        "grid_count": a.grid_count,
+        "take_profit_pct": a.grid_take_profit_pct,
+    },
 }
 
 
@@ -152,11 +175,22 @@ def strategy_ids_for_mode(mode: str | None) -> list[str]:
 
 
 def algorithm_for_id(strategy_id: str, **kwargs: Any) -> Algorithm:
+    if strategy_id == "pair_trading":
+        raise ValueError(
+            "pair_trading requires two aligned CSV series; use pair_algorithm_for_id() "
+            "and run_pair_backtest() instead of run_backtest().",
+        )
     cls = _IMPLEMENTED.get(strategy_id)
     if cls is None:
-        known = ", ".join(sorted(_IMPLEMENTED))
+        known = ", ".join(sorted(_IMPLEMENTED) + ["pair_trading"])
         raise ValueError(f"unsupported strategy_id={strategy_id!r}; implemented: {known}")
     return cls(**kwargs)
+
+
+def pair_algorithm_for_id(strategy_id: str, **kwargs: Any) -> PairTradingAlgorithm:
+    if strategy_id != "pair_trading":
+        raise ValueError(f"pair_algorithm_for_id only supports pair_trading, got {strategy_id!r}")
+    return PairTradingAlgorithm(**kwargs)
 
 
 def strategy_kwargs_from_namespace(strategy_id: str, namespace: Any) -> dict[str, Any]:

@@ -29,6 +29,14 @@ def default_strategy_namespace(**overrides: Any) -> argparse.Namespace:
         "pattern_score_threshold": 0.35,
         "no_auto_fine": False,
         "fine_csv": None,
+        "grid_start_price": 90.0,
+        "grid_end_price": 110.0,
+        "grid_count": 5,
+        "grid_take_profit_pct": 0.01,
+        "pair_lookback_period": 30,
+        "pair_entry_threshold": 2.0,
+        "pair_exit_threshold": 0.5,
+        "pair_hedge_ratio": 1.0,
     }
     values.update(overrides)
     return argparse.Namespace(**values)

@@ -458,8 +458,10 @@ def create_app(database_path: Path | None = None):
     register_auth_routes(app, get_connection)
     register_job_routes(app, get_connection)
     from lab.risk_routes import register_risk_routes
+    from lab.pair_routes import register_pair_routes
 
     register_risk_routes(app)
+    register_pair_routes(app, get_connection)
 
     return app
 

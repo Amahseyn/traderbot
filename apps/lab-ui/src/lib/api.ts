@@ -284,6 +284,26 @@ export type HealthResponse = {
   features: string[];
 };
 
+export type PairBacktestResult = {
+  initial_cash: number;
+  final_equity: number;
+  return_pct: number;
+  max_drawdown_pct: number;
+  total_fees: number;
+  trade_count: number;
+  equity_curve: [number, number][];
+  spread_curve: [number, number][];
+  z_score_curve: [number, number][];
+  trades: Array<{
+    timestamp: number;
+    leg: string;
+    action: string;
+    price: number;
+    size: number;
+    fee: number;
+  }>;
+};
+
 export const api = {
   health: () => fetchJson<HealthResponse>("/health"),
   stats: () => fetchJson<DashboardStats>("/api/stats"),
@@ -465,6 +485,12 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ enabled }),
+    }),
+  pairBacktest: (body: Record<string, unknown>) =>
+    fetchJson<PairBacktestResult>("/api/strategies/pair-backtest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     }),
   postJob: async (jobType: string, body: Record<string, unknown>) => {
     const response = await fetch(
