@@ -1,0 +1,28 @@
+{
+  "hummingbot_upstream_grid_tests": {
+    "status": "skipped",
+    "reason": "hummingbot clone not found at /tmp/hummingbot"
+  },
+  "traderbot_adoptions": {
+    "spot_grid": {
+      "return_pct": 6.103264210526316,
+      "trade_count": 2,
+      "final_equity": 10610.326421052632,
+      "suitability_nobitex": "moderate \u2014 works in ranging spot books; set bounds from recent range; mind taker fees."
+    },
+    "pair_trading": {
+      "return_pct": 4.175993925054033,
+      "max_drawdown_pct": -0.14992503748124664,
+      "trade_count": 2,
+      "final_equity": 10417.599392505403,
+      "suitability_nobitex": "good \u2014 correlated IRT/USDT legs (e.g. BTC-IRT vs ETH-IRT); spot rebalance only."
+    }
+  },
+  "rejected": {
+    "pure_market_making": "Needs sustained maker flow and tight spreads; Nobitex retail taker fees erode edge.",
+    "cross_exchange_market_making": "Requires multi-venue inventory and transfer latency; out of scope for Nobitex-only.",
+    "spot_perpetual_arbitrage": "No Nobitex perps in traderbot stack.",
+    "amm_arb": "DEX/CEX bridge not applicable to Nobitex spot.",
+    "avellaneda_market_making": "Inventory/risk model needs maker rebates and deep book \u2014 poor fit at retail fees."
+  }
+}
