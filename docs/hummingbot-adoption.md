@@ -16,11 +16,20 @@ Fee defaults: `traderbot/markets/execution_costs.py` (Nobitex taker ~0.35%, Hype
 
 ## Evaluation
 
+**Full matrix (recommended):** all strategies × liquid markets × six resolutions, 100 OOS windows on real data — `docs/strategy-matrix-evaluation.md`.
+
+```bash
+.venv/bin/python scripts/run_strategy_matrix_evaluation.py --samples 100 --months 6
+.venv/bin/python scripts/build_strategy_eval_report.py
+```
+
+**Quick smoke:**
+
 ```bash
 .venv/bin/python scripts/eval_hummingbot_strategies.py
 ```
 
-Writes `results/hummingbot_eval/summary.json` with synthetic Nobitex metrics and **live Hyperliquid public API** backtests when the network is available.
+Writes `results/hummingbot_eval/summary.json` with a shorter cross-check on live Hyperliquid candles.
 
 ## Lab UI
 
