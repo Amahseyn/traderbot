@@ -1,0 +1,226 @@
+{
+  "nobitex:BTCIRT:1": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:BTCIRT:5": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:BTCIRT:15": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:BTCIRT:60": {
+    "recommended": true,
+    "strategy_id": "pair_trading",
+    "median_return_pct": 21.1675,
+    "median_excess_vs_buy_hold_pct": 1.4337,
+    "pct_profitable_windows": 84.0,
+    "median_sharpe": 6.1101
+  },
+  "nobitex:BTCIRT:240": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:BTCIRT:D": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:ETHIRT:1": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:ETHIRT:5": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:ETHIRT:15": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:ETHIRT:60": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:ETHIRT:240": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:ETHIRT:D": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:BTCUSDT:1": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:BTCUSDT:5": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:BTCUSDT:15": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:BTCUSDT:60": {
+    "recommended": true,
+    "strategy_id": "pair_trading",
+    "median_return_pct": 4.6208,
+    "median_excess_vs_buy_hold_pct": 0.4404,
+    "pct_profitable_windows": 78.0,
+    "median_sharpe": 1.7839
+  },
+  "nobitex:BTCUSDT:240": {
+    "recommended": true,
+    "strategy_id": "pair_trading",
+    "median_return_pct": 4.0285,
+    "median_excess_vs_buy_hold_pct": 0.4177,
+    "pct_profitable_windows": 73.0,
+    "median_sharpe": 1.9155
+  },
+  "nobitex:BTCUSDT:D": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:ETHUSDT:1": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:ETHUSDT:5": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:ETHUSDT:15": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:ETHUSDT:60": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:ETHUSDT:240": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "nobitex:ETHUSDT:D": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:btc:1": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:btc:5": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:btc:15": {
+    "recommended": true,
+    "strategy_id": "rsi_threshold",
+    "median_return_pct": 0.9218,
+    "median_excess_vs_buy_hold_pct": 0.595,
+    "pct_profitable_windows": 76.0,
+    "median_sharpe": 2.804
+  },
+  "hyperliquid:btc:60": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:btc:240": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:btc:D": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:eth:1": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:eth:5": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:eth:15": {
+    "recommended": true,
+    "strategy_id": "rsi_threshold",
+    "median_return_pct": 2.0755,
+    "median_excess_vs_buy_hold_pct": 1.1492,
+    "pct_profitable_windows": 67.0,
+    "median_sharpe": 3.8654
+  },
+  "hyperliquid:eth:60": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:eth:240": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:eth:D": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:sol:1": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:sol:5": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:sol:15": {
+    "recommended": true,
+    "strategy_id": "rsi_threshold",
+    "median_return_pct": 2.3255,
+    "median_excess_vs_buy_hold_pct": 1.8392,
+    "pct_profitable_windows": 69.0,
+    "median_sharpe": 6.1758
+  },
+  "hyperliquid:sol:60": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:sol:240": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:sol:D": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:arb:1": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:arb:5": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:arb:15": {
+    "recommended": true,
+    "strategy_id": "bollinger_mean_reversion",
+    "median_return_pct": 7.4164,
+    "median_excess_vs_buy_hold_pct": 10.0512,
+    "pct_profitable_windows": 84.0,
+    "median_sharpe": 4.4509
+  },
+  "hyperliquid:arb:60": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  },
+  "hyperliquid:arb:240": {
+    "recommended": true,
+    "strategy_id": "chart_patterns",
+    "median_return_pct": 6.4046,
+    "median_excess_vs_buy_hold_pct": 0.2097,
+    "pct_profitable_windows": 63.64,
+    "median_sharpe": 1.8536
+  },
+  "hyperliquid:arb:D": {
+    "recommended": false,
+    "reason": "No strategy met OOS robustness thresholds."
+  }
+}

@@ -80,6 +80,58 @@ def fetch_hyperliquid_perp_coins() -> list[str]:
     return [str(entry["name"]) for entry in universe if isinstance(entry, dict) and entry.get("name")]
 
 
+HYPERLIQUID_CANDLE_REQUEST_DELAY_SECONDS = 0.2
+
+
+def fetch_hyperliquid_ohlc_range(
+    *,
+    src: str,
+    resolution: str,
+    history_from_unix_seconds: int,
+    history_to_unix_seconds: int,
+) -> list[dict[str, Any]]:
+    """Paginated closed candles (oldest first) between two unix timestamps."""
+    import time
+
+    coin = hyperliquid_coin_from_src(src)
+    interval = hyperliquid_interval(resolution)
+    bar_seconds = _bar_duration_seconds(resolution)
+    if history_to_unix_seconds <= history_from_unix_seconds:
+        return []
+
+    all_bars: list[dict[str, Any]] = []
+    end_ms = int(history_to_unix_seconds) * 1000
+    start_ms = int(history_from_unix_seconds) * 1000
+    chunk_bars = 400
+    chunk_ms = chunk_bars * bar_seconds * 1000
+    cursor_end = end_ms
+
+    while cursor_end > start_ms:
+        cursor_start = max(start_ms, cursor_end - chunk_ms)
+        candles = hyperliquid_info().candles_snapshot(coin, interval, cursor_start, cursor_end)
+        if not candles:
+            break
+        batch = [_normalize_candle(row, coin=coin, resolution=resolution) for row in candles]
+        all_bars.extend(batch)
+        earliest_open_ms = int(candles[0]["t"])
+        if earliest_open_ms <= start_ms:
+            break
+        cursor_end = earliest_open_ms - 1
+        time.sleep(HYPERLIQUID_CANDLE_REQUEST_DELAY_SECONDS)
+
+    all_bars.sort(key=lambda row: row["timestamp"])
+    deduped: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    for bar in all_bars:
+        timestamp = int(bar["timestamp"])
+        if timestamp in seen:
+            continue
+        seen.add(timestamp)
+        deduped.append(bar)
+    closed = trim_forming_candle(deduped)
+    return [bar for bar in closed if history_from_unix_seconds <= int(bar["timestamp"]) <= history_to_unix_seconds]
+
+
 def fetch_hyperliquid_recent_closed_bars(
     *,
     src: str,

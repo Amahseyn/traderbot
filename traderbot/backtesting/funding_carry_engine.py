@@ -44,7 +44,11 @@ def run_funding_carry_backtest(
     if not price_bars:
         raise ValueError("price_bars required")
     if not funding_events:
-        raise ValueError("funding_events required")
+        return FundingBacktestResult(
+            initial_cash=initial_cash,
+            final_equity=initial_cash,
+            equity_curve=[(int(price_bars[0]["timestamp"]), initial_cash)] if price_bars else [],
+        )
 
     algorithm.reset()
     cash = initial_cash

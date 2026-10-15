@@ -1,0 +1,6089 @@
+{
+  "config": {
+    "sample_count": 100,
+    "months": 6,
+    "seed": 42,
+    "resolutions": [
+      "1",
+      "5",
+      "15",
+      "60",
+      "240",
+      "D"
+    ]
+  },
+  "cells": {
+    "nobitex:BTCIRT:1:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.2174,
+        "median_return_pct": -1.0296,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -25.6507,
+        "median_sharpe": -18.6174,
+        "mean_max_drawdown_pct": -1.6212,
+        "median_excess_vs_buy_hold_pct": -0.7964
+      }
+    },
+    "nobitex:BTCIRT:1:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.2787,
+        "median_return_pct": -1.099,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -71.496,
+        "median_sharpe": -57.7593,
+        "mean_max_drawdown_pct": -2.2787,
+        "median_excess_vs_buy_hold_pct": -1.1938
+      }
+    },
+    "nobitex:BTCIRT:1:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.3747,
+        "median_return_pct": -2.9312,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -63.8758,
+        "median_sharpe": -64.6755,
+        "mean_max_drawdown_pct": -3.6989,
+        "median_excess_vs_buy_hold_pct": -2.7173
+      }
+    },
+    "nobitex:BTCIRT:1:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -4.9771,
+        "median_return_pct": -4.5284,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -80.8931,
+        "median_sharpe": -78.199,
+        "mean_max_drawdown_pct": -5.2959,
+        "median_excess_vs_buy_hold_pct": -4.3764
+      }
+    },
+    "nobitex:BTCIRT:1:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -18.4173,
+        "median_return_pct": -19.0707,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -241.7206,
+        "median_sharpe": -250.601,
+        "mean_max_drawdown_pct": -18.4549,
+        "median_excess_vs_buy_hold_pct": -18.7285
+      }
+    },
+    "nobitex:BTCIRT:1:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.3023,
+        "median_return_pct": -1.533,
+        "pct_profitable_windows": 3.0,
+        "mean_sharpe": -32.251,
+        "median_sharpe": -36.8304,
+        "mean_max_drawdown_pct": -1.4427,
+        "median_excess_vs_buy_hold_pct": -0.8579
+      }
+    },
+    "nobitex:BTCIRT:1:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.4644,
+        "median_return_pct": -2.1471,
+        "pct_profitable_windows": 3.0,
+        "mean_sharpe": -50.3186,
+        "median_sharpe": -50.521,
+        "mean_max_drawdown_pct": -2.7171,
+        "median_excess_vs_buy_hold_pct": -2.1144
+      }
+    },
+    "nobitex:BTCIRT:1:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5376,
+        "median_return_pct": -0.2634,
+        "pct_profitable_windows": 15.0,
+        "mean_sharpe": -9.2423,
+        "median_sharpe": -4.9114,
+        "mean_max_drawdown_pct": -0.9887,
+        "median_excess_vs_buy_hold_pct": 0.0164
+      }
+    },
+    "nobitex:BTCIRT+ETHIRT:1:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.9615,
+        "median_return_pct": -0.6675,
+        "pct_profitable_windows": 18.0,
+        "mean_sharpe": -17.9915,
+        "median_sharpe": -12.7174,
+        "mean_max_drawdown_pct": -1.7084,
+        "median_excess_vs_buy_hold_pct": -0.7124
+      }
+    },
+    "nobitex:BTCIRT:5:bollinger_mean_reversion": {
+      "samples": 98,
+      "aggregate": {
+        "sample_count": 98,
+        "mean_return_pct": -0.6019,
+        "median_return_pct": -0.4901,
+        "pct_profitable_windows": 16.33,
+        "mean_sharpe": -22.4145,
+        "median_sharpe": -22.6151,
+        "mean_max_drawdown_pct": -0.8216,
+        "median_excess_vs_buy_hold_pct": -0.2952
+      }
+    },
+    "nobitex:BTCIRT:5:breakout_atr": {
+      "samples": 54,
+      "aggregate": {
+        "sample_count": 54,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": 0.188
+      }
+    },
+    "nobitex:BTCIRT:5:chart_patterns": {
+      "samples": 95,
+      "aggregate": {
+        "sample_count": 95,
+        "mean_return_pct": -0.7022,
+        "median_return_pct": -0.1577,
+        "pct_profitable_windows": 7.37,
+        "mean_sharpe": -18.4532,
+        "median_sharpe": -5.1132,
+        "mean_max_drawdown_pct": -0.9779,
+        "median_excess_vs_buy_hold_pct": -0.1144
+      }
+    },
+    "nobitex:BTCIRT:5:ema_cross": {
+      "samples": 99,
+      "aggregate": {
+        "sample_count": 99,
+        "mean_return_pct": -2.1841,
+        "median_return_pct": -2.0827,
+        "pct_profitable_windows": 13.13,
+        "mean_sharpe": -52.6418,
+        "median_sharpe": -58.3653,
+        "mean_max_drawdown_pct": -2.6872,
+        "median_excess_vs_buy_hold_pct": -1.7658
+      }
+    },
+    "nobitex:BTCIRT:5:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -4.3969,
+        "median_return_pct": -4.4648,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -101.4901,
+        "median_sharpe": -104.3057,
+        "mean_max_drawdown_pct": -4.543,
+        "median_excess_vs_buy_hold_pct": -4.3901
+      }
+    },
+    "nobitex:BTCIRT:5:rsi_threshold": {
+      "samples": 30,
+      "aggregate": {
+        "sample_count": 30,
+        "mean_return_pct": -0.1581,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -4.5953,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.1993,
+        "median_excess_vs_buy_hold_pct": 0.121
+      }
+    },
+    "nobitex:BTCIRT:5:sma_cross": {
+      "samples": 98,
+      "aggregate": {
+        "sample_count": 98,
+        "mean_return_pct": -1.2477,
+        "median_return_pct": -0.2916,
+        "pct_profitable_windows": 3.06,
+        "mean_sharpe": -33.4434,
+        "median_sharpe": -9.3568,
+        "mean_max_drawdown_pct": -1.376,
+        "median_excess_vs_buy_hold_pct": -0.5793
+      }
+    },
+    "nobitex:BTCIRT:5:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.3309,
+        "median_return_pct": -0.1007,
+        "pct_profitable_windows": 21.0,
+        "mean_sharpe": -8.9486,
+        "median_sharpe": -1.7021,
+        "mean_max_drawdown_pct": -0.862,
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "nobitex:BTCIRT+ETHIRT:5:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5319,
+        "median_return_pct": -0.318,
+        "pct_profitable_windows": 12.0,
+        "mean_sharpe": -16.3425,
+        "median_sharpe": -14.4186,
+        "mean_max_drawdown_pct": -0.9817,
+        "median_excess_vs_buy_hold_pct": -0.3711
+      }
+    },
+    "nobitex:BTCIRT:15:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.385,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 32.0,
+        "mean_sharpe": -5.4866,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.5112,
+        "median_excess_vs_buy_hold_pct": 0.5621
+      }
+    },
+    "nobitex:BTCIRT:15:breakout_atr": {
+      "samples": 50,
+      "aggregate": {
+        "sample_count": 50,
+        "mean_return_pct": -0.2469,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -6.6424,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.2469,
+        "median_excess_vs_buy_hold_pct": 0.3004
+      }
+    },
+    "nobitex:BTCIRT:15:chart_patterns": {
+      "samples": 92,
+      "aggregate": {
+        "sample_count": 92,
+        "mean_return_pct": -0.5832,
+        "median_return_pct": -0.5511,
+        "pct_profitable_windows": 32.61,
+        "mean_sharpe": -9.9077,
+        "median_sharpe": -9.6849,
+        "mean_max_drawdown_pct": -1.3514,
+        "median_excess_vs_buy_hold_pct": 0.0543
+      }
+    },
+    "nobitex:BTCIRT:15:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.2952,
+        "median_return_pct": -2.1133,
+        "pct_profitable_windows": 11.0,
+        "mean_sharpe": -26.2736,
+        "median_sharpe": -25.0691,
+        "mean_max_drawdown_pct": -2.897,
+        "median_excess_vs_buy_hold_pct": -1.7398
+      }
+    },
+    "nobitex:BTCIRT:15:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.504,
+        "median_return_pct": -2.7873,
+        "pct_profitable_windows": 10.0,
+        "mean_sharpe": -26.8102,
+        "median_sharpe": -29.5133,
+        "mean_max_drawdown_pct": -3.2083,
+        "median_excess_vs_buy_hold_pct": -2.2646
+      }
+    },
+    "nobitex:BTCIRT:15:rsi_threshold": {
+      "samples": 98,
+      "aggregate": {
+        "sample_count": 98,
+        "mean_return_pct": -0.5175,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 16.33,
+        "mean_sharpe": -5.8093,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.417,
+        "median_excess_vs_buy_hold_pct": 0.4554
+      }
+    },
+    "nobitex:BTCIRT:15:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.7393,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 12.0,
+        "mean_sharpe": -11.0976,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.0562,
+        "median_excess_vs_buy_hold_pct": -0.1996
+      }
+    },
+    "nobitex:BTCIRT:15:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.3507,
+        "median_return_pct": -0.7975,
+        "pct_profitable_windows": 3.0,
+        "mean_sharpe": -11.7043,
+        "median_sharpe": -8.6967,
+        "mean_max_drawdown_pct": -2.3595,
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "nobitex:BTCIRT+ETHIRT:15:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5131,
+        "median_return_pct": -0.3418,
+        "pct_profitable_windows": 26.0,
+        "mean_sharpe": -6.7991,
+        "median_sharpe": -4.054,
+        "mean_max_drawdown_pct": -1.7681,
+        "median_excess_vs_buy_hold_pct": 0.042
+      }
+    },
+    "nobitex:BTCIRT:60:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.5943,
+        "median_return_pct": -0.1187,
+        "pct_profitable_windows": 48.0,
+        "mean_sharpe": 0.2953,
+        "median_sharpe": 0.0218,
+        "mean_max_drawdown_pct": -5.5514,
+        "median_excess_vs_buy_hold_pct": -13.3934
+      }
+    },
+    "nobitex:BTCIRT:60:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 7.5472,
+        "median_return_pct": 0.119,
+        "pct_profitable_windows": 50.0,
+        "mean_sharpe": 1.864,
+        "median_sharpe": 0.553,
+        "mean_max_drawdown_pct": -3.4253,
+        "median_excess_vs_buy_hold_pct": -14.3126
+      }
+    },
+    "nobitex:BTCIRT:60:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 9.9193,
+        "median_return_pct": 5.8678,
+        "pct_profitable_windows": 65.0,
+        "mean_sharpe": 2.4142,
+        "median_sharpe": 2.706,
+        "mean_max_drawdown_pct": -10.0164,
+        "median_excess_vs_buy_hold_pct": -9.3558
+      }
+    },
+    "nobitex:BTCIRT:60:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 12.5257,
+        "median_return_pct": 10.2845,
+        "pct_profitable_windows": 69.0,
+        "mean_sharpe": 2.5663,
+        "median_sharpe": 4.3054,
+        "mean_max_drawdown_pct": -8.7569,
+        "median_excess_vs_buy_hold_pct": -8.0088
+      }
+    },
+    "nobitex:BTCIRT:60:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -21.6395,
+        "median_return_pct": -22.2608,
+        "pct_profitable_windows": 2.0,
+        "mean_sharpe": -9.6144,
+        "median_sharpe": -8.9381,
+        "mean_max_drawdown_pct": -24.9746,
+        "median_excess_vs_buy_hold_pct": -41.8496
+      }
+    },
+    "nobitex:BTCIRT:60:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.0528,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 44.0,
+        "mean_sharpe": 0.4009,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -4.1041,
+        "median_excess_vs_buy_hold_pct": -18.0723
+      }
+    },
+    "nobitex:BTCIRT:60:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 12.3985,
+        "median_return_pct": 8.8674,
+        "pct_profitable_windows": 66.0,
+        "mean_sharpe": 2.7603,
+        "median_sharpe": 3.9424,
+        "mean_max_drawdown_pct": -7.281,
+        "median_excess_vs_buy_hold_pct": -8.9101
+      }
+    },
+    "nobitex:BTCIRT:60:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.0359,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 8.0,
+        "mean_sharpe": -0.6836,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.2209,
+        "median_excess_vs_buy_hold_pct": -21.6038
+      }
+    },
+    "nobitex:BTCIRT+ETHIRT:60:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 22.1648,
+        "median_return_pct": 21.1675,
+        "pct_profitable_windows": 84.0,
+        "mean_sharpe": 5.0879,
+        "median_sharpe": 6.1101,
+        "mean_max_drawdown_pct": -8.7792,
+        "median_excess_vs_buy_hold_pct": 1.4337
+      }
+    },
+    "nobitex:BTCIRT:240:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.151,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 48.0,
+        "mean_sharpe": 0.4241,
+        "median_sharpe": 0.0447,
+        "mean_max_drawdown_pct": -4.8777,
+        "median_excess_vs_buy_hold_pct": -13.1286
+      }
+    },
+    "nobitex:BTCIRT:240:breakout_atr": {
+      "samples": 78,
+      "aggregate": {
+        "sample_count": 78,
+        "mean_return_pct": 9.5137,
+        "median_return_pct": 5.6718,
+        "pct_profitable_windows": 56.41,
+        "mean_sharpe": 2.7503,
+        "median_sharpe": 2.8094,
+        "mean_max_drawdown_pct": -2.7273,
+        "median_excess_vs_buy_hold_pct": -13.5722
+      }
+    },
+    "nobitex:BTCIRT:240:chart_patterns": {
+      "samples": 98,
+      "aggregate": {
+        "sample_count": 98,
+        "mean_return_pct": 15.8492,
+        "median_return_pct": 11.4819,
+        "pct_profitable_windows": 88.78,
+        "mean_sharpe": 4.7559,
+        "median_sharpe": 5.2531,
+        "mean_max_drawdown_pct": -4.3712,
+        "median_excess_vs_buy_hold_pct": -2.9984
+      }
+    },
+    "nobitex:BTCIRT:240:ema_cross": {
+      "samples": 99,
+      "aggregate": {
+        "sample_count": 99,
+        "mean_return_pct": 17.6174,
+        "median_return_pct": 12.9352,
+        "pct_profitable_windows": 85.86,
+        "mean_sharpe": 4.5192,
+        "median_sharpe": 5.1178,
+        "mean_max_drawdown_pct": -6.0685,
+        "median_excess_vs_buy_hold_pct": -2.3264
+      }
+    },
+    "nobitex:BTCIRT:240:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 3.7483,
+        "median_return_pct": 4.2101,
+        "pct_profitable_windows": 62.0,
+        "mean_sharpe": 0.8294,
+        "median_sharpe": 2.2501,
+        "mean_max_drawdown_pct": -8.6527,
+        "median_excess_vs_buy_hold_pct": -16.5419
+      }
+    },
+    "nobitex:BTCIRT:240:rsi_threshold": {
+      "samples": 94,
+      "aggregate": {
+        "sample_count": 94,
+        "mean_return_pct": -1.6103,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 10.64,
+        "mean_sharpe": -0.5981,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -3.0711,
+        "median_excess_vs_buy_hold_pct": -23.065
+      }
+    },
+    "nobitex:BTCIRT:240:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 9.2858,
+        "median_return_pct": 4.6585,
+        "pct_profitable_windows": 63.0,
+        "mean_sharpe": 2.6765,
+        "median_sharpe": 2.5259,
+        "mean_max_drawdown_pct": -3.9531,
+        "median_excess_vs_buy_hold_pct": -8.6253
+      }
+    },
+    "nobitex:BTCIRT:240:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.2539,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 10.0,
+        "mean_sharpe": -0.9386,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.1032,
+        "median_excess_vs_buy_hold_pct": -18.6042
+      }
+    },
+    "nobitex:BTCIRT+ETHIRT:240:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 15.9366,
+        "median_return_pct": 12.1768,
+        "pct_profitable_windows": 77.0,
+        "mean_sharpe": 4.1542,
+        "median_sharpe": 5.0567,
+        "mean_max_drawdown_pct": -5.7247,
+        "median_excess_vs_buy_hold_pct": -3.6637
+      }
+    },
+    "nobitex:BTCIRT:D:bollinger_mean_reversion": {
+      "samples": 87,
+      "aggregate": {
+        "sample_count": 87,
+        "mean_return_pct": 0.2692,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 3.45,
+        "mean_sharpe": 0.1226,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.0157,
+        "median_excess_vs_buy_hold_pct": -41.334
+      }
+    },
+    "nobitex:BTCIRT:D:breakout_atr": {
+      "samples": 4,
+      "aggregate": {
+        "sample_count": 4,
+        "mean_return_pct": -0.5658,
+        "median_return_pct": -0.7621,
+        "pct_profitable_windows": 25.0,
+        "mean_sharpe": -0.113,
+        "median_sharpe": -0.1875,
+        "mean_max_drawdown_pct": -7.0581,
+        "median_excess_vs_buy_hold_pct": -15.2242
+      }
+    },
+    "nobitex:BTCIRT:D:chart_patterns": {
+      "samples": 21,
+      "aggregate": {
+        "sample_count": 21,
+        "mean_return_pct": 10.1248,
+        "median_return_pct": 9.1567,
+        "pct_profitable_windows": 100.0,
+        "mean_sharpe": 3.4248,
+        "median_sharpe": 3.2237,
+        "mean_max_drawdown_pct": -4.418,
+        "median_excess_vs_buy_hold_pct": -41.7907
+      }
+    },
+    "nobitex:BTCIRT:D:ema_cross": {
+      "samples": 67,
+      "aggregate": {
+        "sample_count": 67,
+        "mean_return_pct": 37.3884,
+        "median_return_pct": 32.3535,
+        "pct_profitable_windows": 100.0,
+        "mean_sharpe": 6.1164,
+        "median_sharpe": 5.5365,
+        "mean_max_drawdown_pct": -5.2465,
+        "median_excess_vs_buy_hold_pct": -4.4276
+      }
+    },
+    "nobitex:BTCIRT:D:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 15.5213,
+        "median_return_pct": 13.2252,
+        "pct_profitable_windows": 87.0,
+        "mean_sharpe": 3.9218,
+        "median_sharpe": 4.1003,
+        "mean_max_drawdown_pct": -2.7084,
+        "median_excess_vs_buy_hold_pct": -21.0267
+      }
+    },
+    "nobitex:BTCIRT:D:rsi_threshold": {
+      "samples": 88,
+      "aggregate": {
+        "sample_count": 88,
+        "mean_return_pct": 0.5035,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 5.68,
+        "mean_sharpe": 0.2112,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.0234,
+        "median_excess_vs_buy_hold_pct": -43.9235
+      }
+    },
+    "nobitex:BTCIRT:D:sma_cross": {
+      "samples": 32,
+      "aggregate": {
+        "sample_count": 32,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -63.3102
+      }
+    },
+    "nobitex:BTCIRT:D:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.3813,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 11.0,
+        "mean_sharpe": 0.1828,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.1932,
+        "median_excess_vs_buy_hold_pct": -42.4794
+      }
+    },
+    "nobitex:BTCIRT+ETHIRT:D:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 3.3755,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 48.0,
+        "mean_sharpe": 1.2693,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.8241,
+        "median_excess_vs_buy_hold_pct": -44.5125
+      }
+    },
+    "nobitex:ETHIRT:1:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.8469,
+        "median_return_pct": -1.921,
+        "pct_profitable_windows": 5.0,
+        "mean_sharpe": -30.3632,
+        "median_sharpe": -32.8687,
+        "mean_max_drawdown_pct": -2.3499,
+        "median_excess_vs_buy_hold_pct": -1.5865
+      }
+    },
+    "nobitex:ETHIRT:1:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.1061,
+        "median_return_pct": -3.0437,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -84.3126,
+        "median_sharpe": -90.9887,
+        "mean_max_drawdown_pct": -3.1757,
+        "median_excess_vs_buy_hold_pct": -2.2613
+      }
+    },
+    "nobitex:ETHIRT:1:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -5.0298,
+        "median_return_pct": -5.2626,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -78.1632,
+        "median_sharpe": -80.7344,
+        "mean_max_drawdown_pct": -5.327,
+        "median_excess_vs_buy_hold_pct": -3.9998
+      }
+    },
+    "nobitex:ETHIRT:1:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -6.619,
+        "median_return_pct": -5.7627,
+        "pct_profitable_windows": 2.0,
+        "mean_sharpe": -103.4804,
+        "median_sharpe": -93.6574,
+        "mean_max_drawdown_pct": -6.9459,
+        "median_excess_vs_buy_hold_pct": -4.4688
+      }
+    },
+    "nobitex:ETHIRT:1:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -15.7462,
+        "median_return_pct": -15.0033,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -202.4708,
+        "median_sharpe": -203.7566,
+        "mean_max_drawdown_pct": -15.8692,
+        "median_excess_vs_buy_hold_pct": -14.1915
+      }
+    },
+    "nobitex:ETHIRT:1:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.9026,
+        "median_return_pct": -0.4545,
+        "pct_profitable_windows": 3.0,
+        "mean_sharpe": -16.9339,
+        "median_sharpe": -12.1049,
+        "mean_max_drawdown_pct": -1.2123,
+        "median_excess_vs_buy_hold_pct": -0.1855
+      }
+    },
+    "nobitex:ETHIRT:1:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.3116,
+        "median_return_pct": -2.7236,
+        "pct_profitable_windows": 8.0,
+        "mean_sharpe": -59.7676,
+        "median_sharpe": -51.9258,
+        "mean_max_drawdown_pct": -3.7124,
+        "median_excess_vs_buy_hold_pct": -1.8433
+      }
+    },
+    "nobitex:ETHIRT:1:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.7593,
+        "median_return_pct": -0.2907,
+        "pct_profitable_windows": 12.0,
+        "mean_sharpe": -12.1753,
+        "median_sharpe": -3.0362,
+        "mean_max_drawdown_pct": -1.5247,
+        "median_excess_vs_buy_hold_pct": -0.2871
+      }
+    },
+    "nobitex:ETHIRT+BTCIRT:1:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.8501,
+        "median_return_pct": -0.703,
+        "pct_profitable_windows": 21.0,
+        "mean_sharpe": -15.8192,
+        "median_sharpe": -15.9725,
+        "mean_max_drawdown_pct": -1.6384,
+        "median_excess_vs_buy_hold_pct": -0.312
+      }
+    },
+    "nobitex:ETHIRT:5:bollinger_mean_reversion": {
+      "samples": 95,
+      "aggregate": {
+        "sample_count": 95,
+        "mean_return_pct": -0.3965,
+        "median_return_pct": -0.161,
+        "pct_profitable_windows": 3.16,
+        "mean_sharpe": -10.5563,
+        "median_sharpe": -7.6313,
+        "mean_max_drawdown_pct": -0.7786,
+        "median_excess_vs_buy_hold_pct": -0.1041
+      }
+    },
+    "nobitex:ETHIRT:5:breakout_atr": {
+      "samples": 81,
+      "aggregate": {
+        "sample_count": 81,
+        "mean_return_pct": -1.0352,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -28.9885,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.0354,
+        "median_excess_vs_buy_hold_pct": -0.4383
+      }
+    },
+    "nobitex:ETHIRT:5:chart_patterns": {
+      "samples": 85,
+      "aggregate": {
+        "sample_count": 85,
+        "mean_return_pct": -0.7882,
+        "median_return_pct": -0.7721,
+        "pct_profitable_windows": 8.24,
+        "mean_sharpe": -19.3127,
+        "median_sharpe": -22.169,
+        "mean_max_drawdown_pct": -1.1675,
+        "median_excess_vs_buy_hold_pct": -0.113
+      }
+    },
+    "nobitex:ETHIRT:5:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.24,
+        "median_return_pct": -1.9605,
+        "pct_profitable_windows": 12.0,
+        "mean_sharpe": -50.8404,
+        "median_sharpe": -48.5617,
+        "mean_max_drawdown_pct": -2.733,
+        "median_excess_vs_buy_hold_pct": -1.5587
+      }
+    },
+    "nobitex:ETHIRT:5:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.6211,
+        "median_return_pct": -2.3921,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -63.3916,
+        "median_sharpe": -67.5951,
+        "mean_max_drawdown_pct": -2.8833,
+        "median_excess_vs_buy_hold_pct": -2.2745
+      }
+    },
+    "nobitex:ETHIRT:5:rsi_threshold": {
+      "samples": 75,
+      "aggregate": {
+        "sample_count": 75,
+        "mean_return_pct": -0.7669,
+        "median_return_pct": -0.4433,
+        "pct_profitable_windows": 2.67,
+        "mean_sharpe": -14.1279,
+        "median_sharpe": -13.4925,
+        "mean_max_drawdown_pct": -1.2017,
+        "median_excess_vs_buy_hold_pct": -0.2974
+      }
+    },
+    "nobitex:ETHIRT:5:sma_cross": {
+      "samples": 94,
+      "aggregate": {
+        "sample_count": 94,
+        "mean_return_pct": -0.7114,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 10.64,
+        "mean_sharpe": -21.8959,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.8796,
+        "median_excess_vs_buy_hold_pct": -0.1715
+      }
+    },
+    "nobitex:ETHIRT:5:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.9138,
+        "median_return_pct": -0.6518,
+        "pct_profitable_windows": 7.0,
+        "mean_sharpe": -17.0284,
+        "median_sharpe": -13.781,
+        "mean_max_drawdown_pct": -1.5563,
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "nobitex:ETHIRT+BTCIRT:5:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5167,
+        "median_return_pct": -0.2474,
+        "pct_profitable_windows": 10.0,
+        "mean_sharpe": -14.7968,
+        "median_sharpe": -8.0219,
+        "mean_max_drawdown_pct": -0.9531,
+        "median_excess_vs_buy_hold_pct": -0.1915
+      }
+    },
+    "nobitex:ETHIRT:15:bollinger_mean_reversion": {
+      "samples": 97,
+      "aggregate": {
+        "sample_count": 97,
+        "mean_return_pct": -0.55,
+        "median_return_pct": -0.065,
+        "pct_profitable_windows": 12.37,
+        "mean_sharpe": -5.5705,
+        "median_sharpe": -1.257,
+        "mean_max_drawdown_pct": -1.0964,
+        "median_excess_vs_buy_hold_pct": 0.2354
+      }
+    },
+    "nobitex:ETHIRT:15:breakout_atr": {
+      "samples": 49,
+      "aggregate": {
+        "sample_count": 49,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": 0.9822
+      }
+    },
+    "nobitex:ETHIRT:15:chart_patterns": {
+      "samples": 99,
+      "aggregate": {
+        "sample_count": 99,
+        "mean_return_pct": -1.4273,
+        "median_return_pct": -1.3273,
+        "pct_profitable_windows": 5.05,
+        "mean_sharpe": -17.2127,
+        "median_sharpe": -16.0943,
+        "mean_max_drawdown_pct": -2.1827,
+        "median_excess_vs_buy_hold_pct": -0.6522
+      }
+    },
+    "nobitex:ETHIRT:15:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.2315,
+        "median_return_pct": -2.1507,
+        "pct_profitable_windows": 9.0,
+        "mean_sharpe": -22.9274,
+        "median_sharpe": -21.9538,
+        "mean_max_drawdown_pct": -3.0272,
+        "median_excess_vs_buy_hold_pct": -1.6385
+      }
+    },
+    "nobitex:ETHIRT:15:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.5259,
+        "median_return_pct": -2.8456,
+        "pct_profitable_windows": 17.0,
+        "mean_sharpe": -26.1215,
+        "median_sharpe": -28.8761,
+        "mean_max_drawdown_pct": -3.8149,
+        "median_excess_vs_buy_hold_pct": -1.8522
+      }
+    },
+    "nobitex:ETHIRT:15:rsi_threshold": {
+      "samples": 81,
+      "aggregate": {
+        "sample_count": 81,
+        "mean_return_pct": -0.8265,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 17.28,
+        "mean_sharpe": -6.7787,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.9826,
+        "median_excess_vs_buy_hold_pct": 0.1974
+      }
+    },
+    "nobitex:ETHIRT:15:sma_cross": {
+      "samples": 99,
+      "aggregate": {
+        "sample_count": 99,
+        "mean_return_pct": -1.2811,
+        "median_return_pct": -0.7463,
+        "pct_profitable_windows": 6.06,
+        "mean_sharpe": -14.6388,
+        "median_sharpe": -8.551,
+        "mean_max_drawdown_pct": -1.6866,
+        "median_excess_vs_buy_hold_pct": -0.4151
+      }
+    },
+    "nobitex:ETHIRT:15:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.4044,
+        "median_return_pct": -0.7897,
+        "pct_profitable_windows": 15.0,
+        "mean_sharpe": -9.6964,
+        "median_sharpe": -8.0021,
+        "mean_max_drawdown_pct": -2.798,
+        "median_excess_vs_buy_hold_pct": -0.1599
+      }
+    },
+    "nobitex:ETHIRT+BTCIRT:15:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5964,
+        "median_return_pct": -0.4221,
+        "pct_profitable_windows": 26.0,
+        "mean_sharpe": -7.5374,
+        "median_sharpe": -5.8247,
+        "mean_max_drawdown_pct": -1.9278,
+        "median_excess_vs_buy_hold_pct": -0.4835
+      }
+    },
+    "nobitex:ETHIRT:60:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.5894,
+        "median_return_pct": 2.2987,
+        "pct_profitable_windows": 67.0,
+        "mean_sharpe": 0.5185,
+        "median_sharpe": 0.9326,
+        "mean_max_drawdown_pct": -7.332,
+        "median_excess_vs_buy_hold_pct": -24.5337
+      }
+    },
+    "nobitex:ETHIRT:60:breakout_atr": {
+      "samples": 99,
+      "aggregate": {
+        "sample_count": 99,
+        "mean_return_pct": -1.1478,
+        "median_return_pct": -3.2773,
+        "pct_profitable_windows": 17.17,
+        "mean_sharpe": -4.3618,
+        "median_sharpe": -6.078,
+        "mean_max_drawdown_pct": -4.3291,
+        "median_excess_vs_buy_hold_pct": -23.8141
+      }
+    },
+    "nobitex:ETHIRT:60:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 9.3571,
+        "median_return_pct": 3.6578,
+        "pct_profitable_windows": 66.0,
+        "mean_sharpe": 1.8732,
+        "median_sharpe": 1.4134,
+        "mean_max_drawdown_pct": -10.8095,
+        "median_excess_vs_buy_hold_pct": -17.7692
+      }
+    },
+    "nobitex:ETHIRT:60:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 17.9072,
+        "median_return_pct": 17.0914,
+        "pct_profitable_windows": 85.0,
+        "mean_sharpe": 3.2384,
+        "median_sharpe": 3.9651,
+        "mean_max_drawdown_pct": -10.3063,
+        "median_excess_vs_buy_hold_pct": -7.8005
+      }
+    },
+    "nobitex:ETHIRT:60:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -19.7109,
+        "median_return_pct": -20.6309,
+        "pct_profitable_windows": 6.0,
+        "mean_sharpe": -7.7115,
+        "median_sharpe": -7.6624,
+        "mean_max_drawdown_pct": -24.6967,
+        "median_excess_vs_buy_hold_pct": -43.9166
+      }
+    },
+    "nobitex:ETHIRT:60:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.3049,
+        "median_return_pct": 1.0022,
+        "pct_profitable_windows": 60.0,
+        "mean_sharpe": 0.6236,
+        "median_sharpe": 0.9911,
+        "mean_max_drawdown_pct": -5.6928,
+        "median_excess_vs_buy_hold_pct": -19.484
+      }
+    },
+    "nobitex:ETHIRT:60:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 12.0864,
+        "median_return_pct": 9.2068,
+        "pct_profitable_windows": 70.0,
+        "mean_sharpe": 2.5202,
+        "median_sharpe": 3.1913,
+        "mean_max_drawdown_pct": -8.4212,
+        "median_excess_vs_buy_hold_pct": -9.5863
+      }
+    },
+    "nobitex:ETHIRT:60:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.526,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -1.218,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.1123,
+        "median_excess_vs_buy_hold_pct": -25.1025
+      }
+    },
+    "nobitex:ETHIRT+BTCIRT:60:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 19.1043,
+        "median_return_pct": 22.1215,
+        "pct_profitable_windows": 81.0,
+        "mean_sharpe": 4.5444,
+        "median_sharpe": 5.5269,
+        "mean_max_drawdown_pct": -8.8366,
+        "median_excess_vs_buy_hold_pct": -5.9042
+      }
+    },
+    "nobitex:ETHIRT:240:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.6966,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 46.0,
+        "mean_sharpe": 0.4996,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.9251,
+        "median_excess_vs_buy_hold_pct": -25.9246
+      }
+    },
+    "nobitex:ETHIRT:240:breakout_atr": {
+      "samples": 81,
+      "aggregate": {
+        "sample_count": 81,
+        "mean_return_pct": 5.5036,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 45.68,
+        "mean_sharpe": 0.4659,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -3.9373,
+        "median_excess_vs_buy_hold_pct": -15.0145
+      }
+    },
+    "nobitex:ETHIRT:240:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 14.3574,
+        "median_return_pct": 14.7011,
+        "pct_profitable_windows": 68.0,
+        "mean_sharpe": 3.0334,
+        "median_sharpe": 4.5734,
+        "mean_max_drawdown_pct": -6.0919,
+        "median_excess_vs_buy_hold_pct": -9.1422
+      }
+    },
+    "nobitex:ETHIRT:240:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 20.3156,
+        "median_return_pct": 20.8453,
+        "pct_profitable_windows": 85.0,
+        "mean_sharpe": 4.2228,
+        "median_sharpe": 5.2645,
+        "mean_max_drawdown_pct": -7.3923,
+        "median_excess_vs_buy_hold_pct": -3.7585
+      }
+    },
+    "nobitex:ETHIRT:240:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.2125,
+        "median_return_pct": 0.6028,
+        "pct_profitable_windows": 52.0,
+        "mean_sharpe": 0.3331,
+        "median_sharpe": 0.3543,
+        "mean_max_drawdown_pct": -10.307,
+        "median_excess_vs_buy_hold_pct": -18.8644
+      }
+    },
+    "nobitex:ETHIRT:240:rsi_threshold": {
+      "samples": 97,
+      "aggregate": {
+        "sample_count": 97,
+        "mean_return_pct": -0.1363,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 24.74,
+        "mean_sharpe": 0.1294,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.6082,
+        "median_excess_vs_buy_hold_pct": -28.507
+      }
+    },
+    "nobitex:ETHIRT:240:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 13.6797,
+        "median_return_pct": 9.5428,
+        "pct_profitable_windows": 60.0,
+        "mean_sharpe": 2.8518,
+        "median_sharpe": 3.7772,
+        "mean_max_drawdown_pct": -4.3905,
+        "median_excess_vs_buy_hold_pct": -9.9822
+      }
+    },
+    "nobitex:ETHIRT:240:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.1839,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 7.0,
+        "mean_sharpe": -1.6694,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.7476,
+        "median_excess_vs_buy_hold_pct": -26.0054
+      }
+    },
+    "nobitex:ETHIRT+BTCIRT:240:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 14.6418,
+        "median_return_pct": 12.3277,
+        "pct_profitable_windows": 78.0,
+        "mean_sharpe": 4.233,
+        "median_sharpe": 5.1341,
+        "mean_max_drawdown_pct": -6.253,
+        "median_excess_vs_buy_hold_pct": -9.9555
+      }
+    },
+    "nobitex:ETHIRT:D:bollinger_mean_reversion": {
+      "samples": 90,
+      "aggregate": {
+        "sample_count": 90,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -54.9219
+      }
+    },
+    "nobitex:ETHIRT:D:breakout_atr": {
+      "samples": 2,
+      "aggregate": {
+        "sample_count": 2,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -99.6437
+      }
+    },
+    "nobitex:ETHIRT:D:chart_patterns": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "nobitex:ETHIRT:D:ema_cross": {
+      "samples": 76,
+      "aggregate": {
+        "sample_count": 76,
+        "mean_return_pct": 45.3542,
+        "median_return_pct": 35.6953,
+        "pct_profitable_windows": 100.0,
+        "mean_sharpe": 6.016,
+        "median_sharpe": 5.1995,
+        "mean_max_drawdown_pct": -7.2837,
+        "median_excess_vs_buy_hold_pct": -5.5276
+      }
+    },
+    "nobitex:ETHIRT:D:macd_cross": {
+      "samples": 69,
+      "aggregate": {
+        "sample_count": 69,
+        "mean_return_pct": 13.5864,
+        "median_return_pct": 5.689,
+        "pct_profitable_windows": 75.36,
+        "mean_sharpe": 2.1429,
+        "median_sharpe": 1.7356,
+        "mean_max_drawdown_pct": -6.1342,
+        "median_excess_vs_buy_hold_pct": -37.4879
+      }
+    },
+    "nobitex:ETHIRT:D:rsi_threshold": {
+      "samples": 89,
+      "aggregate": {
+        "sample_count": 89,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -55.4951
+      }
+    },
+    "nobitex:ETHIRT:D:sma_cross": {
+      "samples": 31,
+      "aggregate": {
+        "sample_count": 31,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -74.935
+      }
+    },
+    "nobitex:ETHIRT:D:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.4835,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 7.0,
+        "mean_sharpe": 0.0788,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.3974,
+        "median_excess_vs_buy_hold_pct": -50.5333
+      }
+    },
+    "nobitex:ETHIRT+BTCIRT:D:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 3.9215,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 47.0,
+        "mean_sharpe": 1.4634,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.7166,
+        "median_excess_vs_buy_hold_pct": -53.2602
+      }
+    },
+    "nobitex:BTCUSDT:1:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.3776,
+        "median_return_pct": -2.4161,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -55.7686,
+        "median_sharpe": -53.5446,
+        "mean_max_drawdown_pct": -2.419,
+        "median_excess_vs_buy_hold_pct": -1.0394
+      }
+    },
+    "nobitex:BTCUSDT:1:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.6845,
+        "median_return_pct": -1.0694,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -57.6134,
+        "median_sharpe": -59.9929,
+        "mean_max_drawdown_pct": -1.6955,
+        "median_excess_vs_buy_hold_pct": -0.6375
+      }
+    },
+    "nobitex:BTCUSDT:1:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -5.5314,
+        "median_return_pct": -5.3824,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -119.0187,
+        "median_sharpe": -118.9136,
+        "mean_max_drawdown_pct": -5.5895,
+        "median_excess_vs_buy_hold_pct": -4.9957
+      }
+    },
+    "nobitex:BTCUSDT:1:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -4.8448,
+        "median_return_pct": -4.4455,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -104.8672,
+        "median_sharpe": -105.3091,
+        "mean_max_drawdown_pct": -4.8997,
+        "median_excess_vs_buy_hold_pct": -3.6275
+      }
+    },
+    "nobitex:BTCUSDT:1:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -16.0076,
+        "median_return_pct": -16.4264,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -230.0804,
+        "median_sharpe": -226.3916,
+        "mean_max_drawdown_pct": -16.0422,
+        "median_excess_vs_buy_hold_pct": -15.5597
+      }
+    },
+    "nobitex:BTCUSDT:1:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.2611,
+        "median_return_pct": -1.207,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -31.1311,
+        "median_sharpe": -29.4201,
+        "mean_max_drawdown_pct": -1.3868,
+        "median_excess_vs_buy_hold_pct": 0.2778
+      }
+    },
+    "nobitex:BTCUSDT:1:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.9704,
+        "median_return_pct": -2.9989,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -78.6774,
+        "median_sharpe": -83.3094,
+        "mean_max_drawdown_pct": -3.0231,
+        "median_excess_vs_buy_hold_pct": -2.0098
+      }
+    },
+    "nobitex:BTCUSDT:1:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.6677,
+        "median_return_pct": -0.4416,
+        "pct_profitable_windows": 5.0,
+        "mean_sharpe": -14.5846,
+        "median_sharpe": -10.6689,
+        "mean_max_drawdown_pct": -0.9214,
+        "median_excess_vs_buy_hold_pct": 0.1729
+      }
+    },
+    "nobitex:BTCUSDT+ETHUSDT:1:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.3068,
+        "median_return_pct": -1.0194,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -33.9978,
+        "median_sharpe": -32.0585,
+        "mean_max_drawdown_pct": -1.626,
+        "median_excess_vs_buy_hold_pct": -0.5282
+      }
+    },
+    "nobitex:BTCUSDT:5:bollinger_mean_reversion": {
+      "samples": 99,
+      "aggregate": {
+        "sample_count": 99,
+        "mean_return_pct": -0.4013,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -16.8468,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.4459,
+        "median_excess_vs_buy_hold_pct": 0.3528
+      }
+    },
+    "nobitex:BTCUSDT:5:breakout_atr": {
+      "samples": 66,
+      "aggregate": {
+        "sample_count": 66,
+        "mean_return_pct": -0.3986,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -21.0747,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.4033,
+        "median_excess_vs_buy_hold_pct": 0.7554
+      }
+    },
+    "nobitex:BTCUSDT:5:chart_patterns": {
+      "samples": 97,
+      "aggregate": {
+        "sample_count": 97,
+        "mean_return_pct": -1.4348,
+        "median_return_pct": -1.2638,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -48.7835,
+        "median_sharpe": -48.4988,
+        "mean_max_drawdown_pct": -1.5343,
+        "median_excess_vs_buy_hold_pct": -0.5324
+      }
+    },
+    "nobitex:BTCUSDT:5:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.4183,
+        "median_return_pct": -2.277,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -69.9432,
+        "median_sharpe": -71.6837,
+        "mean_max_drawdown_pct": -2.4652,
+        "median_excess_vs_buy_hold_pct": -1.2803
+      }
+    },
+    "nobitex:BTCUSDT:5:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.4762,
+        "median_return_pct": -3.1848,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -93.9353,
+        "median_sharpe": -94.6548,
+        "mean_max_drawdown_pct": -3.5612,
+        "median_excess_vs_buy_hold_pct": -2.058
+      }
+    },
+    "nobitex:BTCUSDT:5:rsi_threshold": {
+      "samples": 92,
+      "aggregate": {
+        "sample_count": 92,
+        "mean_return_pct": -0.7332,
+        "median_return_pct": -0.6774,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -24.8578,
+        "median_sharpe": -28.4639,
+        "mean_max_drawdown_pct": -0.8257,
+        "median_excess_vs_buy_hold_pct": 0.1829
+      }
+    },
+    "nobitex:BTCUSDT:5:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5889,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -25.0649,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.6251,
+        "median_excess_vs_buy_hold_pct": 0.2293
+      }
+    },
+    "nobitex:BTCUSDT:5:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.7477,
+        "median_return_pct": -0.5317,
+        "pct_profitable_windows": 4.0,
+        "mean_sharpe": -19.1052,
+        "median_sharpe": -17.4391,
+        "mean_max_drawdown_pct": -0.9818,
+        "median_excess_vs_buy_hold_pct": 0.0862
+      }
+    },
+    "nobitex:BTCUSDT+ETHUSDT:5:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5316,
+        "median_return_pct": -0.3925,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -20.2227,
+        "median_sharpe": -16.7756,
+        "mean_max_drawdown_pct": -0.7086,
+        "median_excess_vs_buy_hold_pct": 0.0621
+      }
+    },
+    "nobitex:BTCUSDT:15:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.1619,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 17.0,
+        "mean_sharpe": -3.3972,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.6871,
+        "median_excess_vs_buy_hold_pct": 0.1311
+      }
+    },
+    "nobitex:BTCUSDT:15:breakout_atr": {
+      "samples": 80,
+      "aggregate": {
+        "sample_count": 80,
+        "mean_return_pct": -0.4809,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -10.0317,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.4828,
+        "median_excess_vs_buy_hold_pct": -0.1327
+      }
+    },
+    "nobitex:BTCUSDT:15:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.0828,
+        "median_return_pct": -2.0133,
+        "pct_profitable_windows": 6.0,
+        "mean_sharpe": -28.4594,
+        "median_sharpe": -30.1531,
+        "mean_max_drawdown_pct": -2.407,
+        "median_excess_vs_buy_hold_pct": -1.5088
+      }
+    },
+    "nobitex:BTCUSDT:15:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.4408,
+        "median_return_pct": -1.8935,
+        "pct_profitable_windows": 8.0,
+        "mean_sharpe": -29.6459,
+        "median_sharpe": -29.007,
+        "mean_max_drawdown_pct": -2.9006,
+        "median_excess_vs_buy_hold_pct": -2.1888
+      }
+    },
+    "nobitex:BTCUSDT:15:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -4.2083,
+        "median_return_pct": -4.1086,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -49.5391,
+        "median_sharpe": -54.4705,
+        "mean_max_drawdown_pct": -4.5134,
+        "median_excess_vs_buy_hold_pct": -4.0943
+      }
+    },
+    "nobitex:BTCUSDT:15:rsi_threshold": {
+      "samples": 84,
+      "aggregate": {
+        "sample_count": 84,
+        "mean_return_pct": -0.504,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 2.38,
+        "mean_sharpe": -5.9416,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.8124,
+        "median_excess_vs_buy_hold_pct": -0.1095
+      }
+    },
+    "nobitex:BTCUSDT:15:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.6239,
+        "median_return_pct": -0.0403,
+        "pct_profitable_windows": 7.0,
+        "mean_sharpe": -11.0726,
+        "median_sharpe": -1.3438,
+        "mean_max_drawdown_pct": -0.7402,
+        "median_excess_vs_buy_hold_pct": -0.4214
+      }
+    },
+    "nobitex:BTCUSDT:15:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5214,
+        "median_return_pct": -0.1831,
+        "pct_profitable_windows": 14.0,
+        "mean_sharpe": -6.0297,
+        "median_sharpe": -2.6122,
+        "mean_max_drawdown_pct": -1.1556,
+        "median_excess_vs_buy_hold_pct": 0.0103
+      }
+    },
+    "nobitex:BTCUSDT+ETHUSDT:15:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.7715,
+        "median_return_pct": -0.4641,
+        "pct_profitable_windows": 16.0,
+        "mean_sharpe": -9.3255,
+        "median_sharpe": -9.7279,
+        "mean_max_drawdown_pct": -1.5717,
+        "median_excess_vs_buy_hold_pct": -0.4394
+      }
+    },
+    "nobitex:BTCUSDT:60:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.4142,
+        "median_return_pct": 0.5883,
+        "pct_profitable_windows": 55.0,
+        "mean_sharpe": 0.3151,
+        "median_sharpe": 0.5007,
+        "mean_max_drawdown_pct": -5.0223,
+        "median_excess_vs_buy_hold_pct": -2.3652
+      }
+    },
+    "nobitex:BTCUSDT:60:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.7557,
+        "median_return_pct": -0.6336,
+        "pct_profitable_windows": 36.0,
+        "mean_sharpe": -0.6427,
+        "median_sharpe": -0.4426,
+        "mean_max_drawdown_pct": -3.6532,
+        "median_excess_vs_buy_hold_pct": -4.3911
+      }
+    },
+    "nobitex:BTCUSDT:60:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -8.6848,
+        "median_return_pct": -8.9425,
+        "pct_profitable_windows": 9.0,
+        "mean_sharpe": -4.76,
+        "median_sharpe": -4.6338,
+        "mean_max_drawdown_pct": -13.5201,
+        "median_excess_vs_buy_hold_pct": -15.3663
+      }
+    },
+    "nobitex:BTCUSDT:60:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.3323,
+        "median_return_pct": -6.1064,
+        "pct_profitable_windows": 28.0,
+        "mean_sharpe": -1.7421,
+        "median_sharpe": -3.1462,
+        "mean_max_drawdown_pct": -11.2,
+        "median_excess_vs_buy_hold_pct": -10.8361
+      }
+    },
+    "nobitex:BTCUSDT:60:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -18.4832,
+        "median_return_pct": -18.863,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -8.7112,
+        "median_sharpe": -7.5832,
+        "mean_max_drawdown_pct": -21.5851,
+        "median_excess_vs_buy_hold_pct": -21.6954
+      }
+    },
+    "nobitex:BTCUSDT:60:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.1405,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 34.0,
+        "mean_sharpe": -0.3192,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -4.2797,
+        "median_excess_vs_buy_hold_pct": -3.7752
+      }
+    },
+    "nobitex:BTCUSDT:60:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.2635,
+        "median_return_pct": -2.775,
+        "pct_profitable_windows": 44.0,
+        "mean_sharpe": -0.6149,
+        "median_sharpe": -0.9352,
+        "mean_max_drawdown_pct": -9.2476,
+        "median_excess_vs_buy_hold_pct": -8.4436
+      }
+    },
+    "nobitex:BTCUSDT:60:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.0905,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 20.0,
+        "mean_sharpe": -0.4867,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.4847,
+        "median_excess_vs_buy_hold_pct": -4.5865
+      }
+    },
+    "nobitex:BTCUSDT+ETHUSDT:60:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 7.8369,
+        "median_return_pct": 4.6208,
+        "pct_profitable_windows": 78.0,
+        "mean_sharpe": 2.3447,
+        "median_sharpe": 1.7839,
+        "mean_max_drawdown_pct": -7.925,
+        "median_excess_vs_buy_hold_pct": 0.4404
+      }
+    },
+    "nobitex:BTCUSDT:240:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.2144,
+        "median_return_pct": -0.5635,
+        "pct_profitable_windows": 33.0,
+        "mean_sharpe": -0.1941,
+        "median_sharpe": -0.6131,
+        "mean_max_drawdown_pct": -3.8114,
+        "median_excess_vs_buy_hold_pct": -4.3309
+      }
+    },
+    "nobitex:BTCUSDT:240:breakout_atr": {
+      "samples": 69,
+      "aggregate": {
+        "sample_count": 69,
+        "mean_return_pct": 0.9963,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 30.43,
+        "mean_sharpe": 0.0189,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.6626,
+        "median_excess_vs_buy_hold_pct": -2.6483
+      }
+    },
+    "nobitex:BTCUSDT:240:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.349,
+        "median_return_pct": -2.8002,
+        "pct_profitable_windows": 34.0,
+        "mean_sharpe": -1.6997,
+        "median_sharpe": -2.5379,
+        "mean_max_drawdown_pct": -5.6071,
+        "median_excess_vs_buy_hold_pct": -4.4754
+      }
+    },
+    "nobitex:BTCUSDT:240:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.9669,
+        "median_return_pct": -2.9086,
+        "pct_profitable_windows": 41.0,
+        "mean_sharpe": -0.9391,
+        "median_sharpe": -1.1957,
+        "mean_max_drawdown_pct": -7.1542,
+        "median_excess_vs_buy_hold_pct": -4.9816
+      }
+    },
+    "nobitex:BTCUSDT:240:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.6099,
+        "median_return_pct": -4.237,
+        "pct_profitable_windows": 33.0,
+        "mean_sharpe": -2.0528,
+        "median_sharpe": -2.0662,
+        "mean_max_drawdown_pct": -8.4523,
+        "median_excess_vs_buy_hold_pct": -7.6446
+      }
+    },
+    "nobitex:BTCUSDT:240:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5399,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 32.0,
+        "mean_sharpe": -0.0145,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -3.0337,
+        "median_excess_vs_buy_hold_pct": -3.7603
+      }
+    },
+    "nobitex:BTCUSDT:240:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.6143,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 44.0,
+        "mean_sharpe": 0.2804,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -3.672,
+        "median_excess_vs_buy_hold_pct": -1.9503
+      }
+    },
+    "nobitex:BTCUSDT:240:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.7137,
+        "median_return_pct": -0.0449,
+        "pct_profitable_windows": 22.0,
+        "mean_sharpe": -1.1872,
+        "median_sharpe": -0.0331,
+        "mean_max_drawdown_pct": -2.5034,
+        "median_excess_vs_buy_hold_pct": -8.8188
+      }
+    },
+    "nobitex:BTCUSDT+ETHUSDT:240:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 8.3083,
+        "median_return_pct": 4.0285,
+        "pct_profitable_windows": 73.0,
+        "mean_sharpe": 2.494,
+        "median_sharpe": 1.9155,
+        "mean_max_drawdown_pct": -5.7084,
+        "median_excess_vs_buy_hold_pct": 0.4177
+      }
+    },
+    "nobitex:BTCUSDT:D:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 3.2254,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 45.0,
+        "mean_sharpe": 1.1699,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.4652,
+        "median_excess_vs_buy_hold_pct": -17.876
+      }
+    },
+    "nobitex:BTCUSDT:D:breakout_atr": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "nobitex:BTCUSDT:D:chart_patterns": {
+      "samples": 62,
+      "aggregate": {
+        "sample_count": 62,
+        "mean_return_pct": -0.7415,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 3.23,
+        "mean_sharpe": -0.6454,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.9421,
+        "median_excess_vs_buy_hold_pct": -28.9371
+      }
+    },
+    "nobitex:BTCUSDT:D:ema_cross": {
+      "samples": 92,
+      "aggregate": {
+        "sample_count": 92,
+        "mean_return_pct": 9.6188,
+        "median_return_pct": 6.7087,
+        "pct_profitable_windows": 72.83,
+        "mean_sharpe": 1.7338,
+        "median_sharpe": 1.8358,
+        "mean_max_drawdown_pct": -7.6122,
+        "median_excess_vs_buy_hold_pct": -8.5532
+      }
+    },
+    "nobitex:BTCUSDT:D:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 6.5862,
+        "median_return_pct": 3.4847,
+        "pct_profitable_windows": 81.0,
+        "mean_sharpe": 1.2919,
+        "median_sharpe": 1.3295,
+        "mean_max_drawdown_pct": -3.7538,
+        "median_excess_vs_buy_hold_pct": -10.0692
+      }
+    },
+    "nobitex:BTCUSDT:D:rsi_threshold": {
+      "samples": 65,
+      "aggregate": {
+        "sample_count": 65,
+        "mean_return_pct": 0.4791,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 6.15,
+        "mean_sharpe": 0.1991,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.0277,
+        "median_excess_vs_buy_hold_pct": -20.4691
+      }
+    },
+    "nobitex:BTCUSDT:D:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.4573,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 48.0,
+        "mean_sharpe": -0.7447,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -3.7742,
+        "median_excess_vs_buy_hold_pct": -12.1065
+      }
+    },
+    "nobitex:BTCUSDT:D:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.5335,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 23.0,
+        "mean_sharpe": 0.1898,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.6133,
+        "median_excess_vs_buy_hold_pct": -20.4691
+      }
+    },
+    "nobitex:BTCUSDT+ETHUSDT:D:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.0641,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 32.0,
+        "mean_sharpe": 0.2111,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.9905,
+        "median_excess_vs_buy_hold_pct": -21.0543
+      }
+    },
+    "nobitex:ETHUSDT:1:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.9929,
+        "median_return_pct": -2.0418,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -46.0103,
+        "median_sharpe": -47.9978,
+        "mean_max_drawdown_pct": -2.2433,
+        "median_excess_vs_buy_hold_pct": -0.3083
+      }
+    },
+    "nobitex:ETHUSDT:1:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.9775,
+        "median_return_pct": -2.9993,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -79.0391,
+        "median_sharpe": -80.9837,
+        "mean_max_drawdown_pct": -3.0236,
+        "median_excess_vs_buy_hold_pct": -1.9748
+      }
+    },
+    "nobitex:ETHUSDT:1:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.9833,
+        "median_return_pct": -3.7963,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -92.637,
+        "median_sharpe": -89.218,
+        "mean_max_drawdown_pct": -4.0818,
+        "median_excess_vs_buy_hold_pct": -2.4546
+      }
+    },
+    "nobitex:ETHUSDT:1:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -5.4294,
+        "median_return_pct": -5.5008,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -110.89,
+        "median_sharpe": -113.8341,
+        "mean_max_drawdown_pct": -5.5013,
+        "median_excess_vs_buy_hold_pct": -4.2916
+      }
+    },
+    "nobitex:ETHUSDT:1:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -13.3499,
+        "median_return_pct": -12.6363,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -197.6574,
+        "median_sharpe": -196.2509,
+        "mean_max_drawdown_pct": -13.3906,
+        "median_excess_vs_buy_hold_pct": -11.5855
+      }
+    },
+    "nobitex:ETHUSDT:1:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.814,
+        "median_return_pct": -0.8247,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -25.3782,
+        "median_sharpe": -29.1589,
+        "mean_max_drawdown_pct": -0.9979,
+        "median_excess_vs_buy_hold_pct": 0.1519
+      }
+    },
+    "nobitex:ETHUSDT:1:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.37,
+        "median_return_pct": -3.439,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -80.1808,
+        "median_sharpe": -76.6647,
+        "mean_max_drawdown_pct": -3.4824,
+        "median_excess_vs_buy_hold_pct": -1.98
+      }
+    },
+    "nobitex:ETHUSDT:1:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.9245,
+        "median_return_pct": -0.4602,
+        "pct_profitable_windows": 6.0,
+        "mean_sharpe": -16.9014,
+        "median_sharpe": -13.2237,
+        "mean_max_drawdown_pct": -1.4497,
+        "median_excess_vs_buy_hold_pct": 0.2363
+      }
+    },
+    "nobitex:ETHUSDT+BTCUSDT:1:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.521,
+        "median_return_pct": -1.0749,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -36.7796,
+        "median_sharpe": -36.5052,
+        "mean_max_drawdown_pct": -1.85,
+        "median_excess_vs_buy_hold_pct": -0.1517
+      }
+    },
+    "nobitex:ETHUSDT:5:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.6368,
+        "median_return_pct": -0.2916,
+        "pct_profitable_windows": 7.0,
+        "mean_sharpe": -19.9034,
+        "median_sharpe": -15.1144,
+        "mean_max_drawdown_pct": -0.8558,
+        "median_excess_vs_buy_hold_pct": 0.5598
+      }
+    },
+    "nobitex:ETHUSDT:5:breakout_atr": {
+      "samples": 96,
+      "aggregate": {
+        "sample_count": 96,
+        "mean_return_pct": -0.7012,
+        "median_return_pct": -0.9893,
+        "pct_profitable_windows": 1.04,
+        "mean_sharpe": -33.6127,
+        "median_sharpe": -41.1323,
+        "mean_max_drawdown_pct": -0.7555,
+        "median_excess_vs_buy_hold_pct": 0.1839
+      }
+    },
+    "nobitex:ETHUSDT:5:chart_patterns": {
+      "samples": 96,
+      "aggregate": {
+        "sample_count": 96,
+        "mean_return_pct": -1.5393,
+        "median_return_pct": -1.472,
+        "pct_profitable_windows": 1.04,
+        "mean_sharpe": -44.1374,
+        "median_sharpe": -46.9145,
+        "mean_max_drawdown_pct": -1.6912,
+        "median_excess_vs_buy_hold_pct": 0.0222
+      }
+    },
+    "nobitex:ETHUSDT:5:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.212,
+        "median_return_pct": -2.0482,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -67.5863,
+        "median_sharpe": -69.1371,
+        "mean_max_drawdown_pct": -2.3046,
+        "median_excess_vs_buy_hold_pct": -0.8637
+      }
+    },
+    "nobitex:ETHUSDT:5:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.5338,
+        "median_return_pct": -3.4889,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -84.1415,
+        "median_sharpe": -82.6967,
+        "mean_max_drawdown_pct": -3.6907,
+        "median_excess_vs_buy_hold_pct": -1.8424
+      }
+    },
+    "nobitex:ETHUSDT:5:rsi_threshold": {
+      "samples": 88,
+      "aggregate": {
+        "sample_count": 88,
+        "mean_return_pct": -0.9113,
+        "median_return_pct": -0.5934,
+        "pct_profitable_windows": 4.55,
+        "mean_sharpe": -19.7501,
+        "median_sharpe": -17.6453,
+        "mean_max_drawdown_pct": -1.2226,
+        "median_excess_vs_buy_hold_pct": 0.4587
+      }
+    },
+    "nobitex:ETHUSDT:5:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.4967,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -21.8665,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.5184,
+        "median_excess_vs_buy_hold_pct": 0.4129
+      }
+    },
+    "nobitex:ETHUSDT:5:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.0868,
+        "median_return_pct": -0.5233,
+        "pct_profitable_windows": 2.0,
+        "mean_sharpe": -21.6362,
+        "median_sharpe": -19.1608,
+        "mean_max_drawdown_pct": -1.4894,
+        "median_excess_vs_buy_hold_pct": 0.1493
+      }
+    },
+    "nobitex:ETHUSDT+BTCUSDT:5:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.4898,
+        "median_return_pct": -0.0726,
+        "pct_profitable_windows": 2.0,
+        "mean_sharpe": -17.3675,
+        "median_sharpe": -3.2111,
+        "mean_max_drawdown_pct": -0.621,
+        "median_excess_vs_buy_hold_pct": 0.4276
+      }
+    },
+    "nobitex:ETHUSDT:15:bollinger_mean_reversion": {
+      "samples": 99,
+      "aggregate": {
+        "sample_count": 99,
+        "mean_return_pct": -0.9025,
+        "median_return_pct": -0.5154,
+        "pct_profitable_windows": 5.05,
+        "mean_sharpe": -9.4378,
+        "median_sharpe": -8.5741,
+        "mean_max_drawdown_pct": -1.7386,
+        "median_excess_vs_buy_hold_pct": -0.2199
+      }
+    },
+    "nobitex:ETHUSDT:15:breakout_atr": {
+      "samples": 69,
+      "aggregate": {
+        "sample_count": 69,
+        "mean_return_pct": -0.5083,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -11.6898,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.5083,
+        "median_excess_vs_buy_hold_pct": 0.6106
+      }
+    },
+    "nobitex:ETHUSDT:15:chart_patterns": {
+      "samples": 99,
+      "aggregate": {
+        "sample_count": 99,
+        "mean_return_pct": -1.3946,
+        "median_return_pct": -1.3026,
+        "pct_profitable_windows": 3.03,
+        "mean_sharpe": -19.3408,
+        "median_sharpe": -15.1879,
+        "mean_max_drawdown_pct": -1.6586,
+        "median_excess_vs_buy_hold_pct": -0.7008
+      }
+    },
+    "nobitex:ETHUSDT:15:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.9532,
+        "median_return_pct": -2.0771,
+        "pct_profitable_windows": 12.0,
+        "mean_sharpe": -25.9048,
+        "median_sharpe": -19.5695,
+        "mean_max_drawdown_pct": -3.8926,
+        "median_excess_vs_buy_hold_pct": -2.1323
+      }
+    },
+    "nobitex:ETHUSDT:15:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.6022,
+        "median_return_pct": -3.2276,
+        "pct_profitable_windows": 6.0,
+        "mean_sharpe": -34.9774,
+        "median_sharpe": -33.7544,
+        "mean_max_drawdown_pct": -4.578,
+        "median_excess_vs_buy_hold_pct": -2.951
+      }
+    },
+    "nobitex:ETHUSDT:15:rsi_threshold": {
+      "samples": 86,
+      "aggregate": {
+        "sample_count": 86,
+        "mean_return_pct": -0.9667,
+        "median_return_pct": -0.3609,
+        "pct_profitable_windows": 3.49,
+        "mean_sharpe": -8.4414,
+        "median_sharpe": -6.9851,
+        "mean_max_drawdown_pct": -1.5309,
+        "median_excess_vs_buy_hold_pct": -0.4161
+      }
+    },
+    "nobitex:ETHUSDT:15:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.4272,
+        "median_return_pct": -1.1296,
+        "pct_profitable_windows": 8.0,
+        "mean_sharpe": -18.6106,
+        "median_sharpe": -17.914,
+        "mean_max_drawdown_pct": -1.8692,
+        "median_excess_vs_buy_hold_pct": -1.1755
+      }
+    },
+    "nobitex:ETHUSDT:15:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.845,
+        "median_return_pct": -0.4116,
+        "pct_profitable_windows": 20.0,
+        "mean_sharpe": -7.557,
+        "median_sharpe": -3.7407,
+        "mean_max_drawdown_pct": -1.8721,
+        "median_excess_vs_buy_hold_pct": -0.1489
+      }
+    },
+    "nobitex:ETHUSDT+BTCUSDT:15:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5882,
+        "median_return_pct": -0.5184,
+        "pct_profitable_windows": 21.0,
+        "mean_sharpe": -7.8691,
+        "median_sharpe": -8.8326,
+        "mean_max_drawdown_pct": -1.5107,
+        "median_excess_vs_buy_hold_pct": -0.2901
+      }
+    },
+    "nobitex:ETHUSDT:60:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.0501,
+        "median_return_pct": -1.5222,
+        "pct_profitable_windows": 38.0,
+        "mean_sharpe": 0.1915,
+        "median_sharpe": -0.7013,
+        "mean_max_drawdown_pct": -7.9888,
+        "median_excess_vs_buy_hold_pct": -10.0764
+      }
+    },
+    "nobitex:ETHUSDT:60:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.9869,
+        "median_return_pct": -3.1356,
+        "pct_profitable_windows": 34.0,
+        "mean_sharpe": -2.528,
+        "median_sharpe": -2.818,
+        "mean_max_drawdown_pct": -6.6153,
+        "median_excess_vs_buy_hold_pct": -10.8796
+      }
+    },
+    "nobitex:ETHUSDT:60:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.2468,
+        "median_return_pct": -0.3727,
+        "pct_profitable_windows": 48.0,
+        "mean_sharpe": 0.2348,
+        "median_sharpe": 0.0831,
+        "mean_max_drawdown_pct": -10.8101,
+        "median_excess_vs_buy_hold_pct": -11.9823
+      }
+    },
+    "nobitex:ETHUSDT:60:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.98,
+        "median_return_pct": -6.1281,
+        "pct_profitable_windows": 35.0,
+        "mean_sharpe": -2.0316,
+        "median_sharpe": -2.265,
+        "mean_max_drawdown_pct": -14.1496,
+        "median_excess_vs_buy_hold_pct": -15.946
+      }
+    },
+    "nobitex:ETHUSDT:60:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -19.2766,
+        "median_return_pct": -19.1408,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -7.5821,
+        "median_sharpe": -7.3464,
+        "mean_max_drawdown_pct": -23.5169,
+        "median_excess_vs_buy_hold_pct": -32.6491
+      }
+    },
+    "nobitex:ETHUSDT:60:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.8614,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 40.0,
+        "mean_sharpe": 0.5573,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -3.7179,
+        "median_excess_vs_buy_hold_pct": -11.1302
+      }
+    },
+    "nobitex:ETHUSDT:60:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.4201,
+        "median_return_pct": -3.8207,
+        "pct_profitable_windows": 32.0,
+        "mean_sharpe": -1.828,
+        "median_sharpe": -1.2575,
+        "mean_max_drawdown_pct": -12.0028,
+        "median_excess_vs_buy_hold_pct": -14.7485
+      }
+    },
+    "nobitex:ETHUSDT:60:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5329,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 15.0,
+        "mean_sharpe": -0.379,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.3182,
+        "median_excess_vs_buy_hold_pct": -8.4375
+      }
+    },
+    "nobitex:ETHUSDT+BTCUSDT:60:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 8.3476,
+        "median_return_pct": 5.1792,
+        "pct_profitable_windows": 77.0,
+        "mean_sharpe": 2.1785,
+        "median_sharpe": 1.8028,
+        "mean_max_drawdown_pct": -8.0818,
+        "median_excess_vs_buy_hold_pct": -4.9297
+      }
+    },
+    "nobitex:ETHUSDT:240:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 4.3109,
+        "median_return_pct": 3.3781,
+        "pct_profitable_windows": 86.0,
+        "mean_sharpe": 2.2134,
+        "median_sharpe": 1.9118,
+        "mean_max_drawdown_pct": -4.7164,
+        "median_excess_vs_buy_hold_pct": -3.137
+      }
+    },
+    "nobitex:ETHUSDT:240:breakout_atr": {
+      "samples": 98,
+      "aggregate": {
+        "sample_count": 98,
+        "mean_return_pct": -1.0112,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 2.04,
+        "mean_sharpe": -1.5984,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.7169,
+        "median_excess_vs_buy_hold_pct": -8.901
+      }
+    },
+    "nobitex:ETHUSDT:240:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 7.0748,
+        "median_return_pct": 2.1945,
+        "pct_profitable_windows": 55.0,
+        "mean_sharpe": 1.4968,
+        "median_sharpe": 0.8777,
+        "mean_max_drawdown_pct": -6.0204,
+        "median_excess_vs_buy_hold_pct": -5.7458
+      }
+    },
+    "nobitex:ETHUSDT:240:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 6.492,
+        "median_return_pct": 3.1053,
+        "pct_profitable_windows": 61.0,
+        "mean_sharpe": 1.0429,
+        "median_sharpe": 1.2666,
+        "mean_max_drawdown_pct": -9.303,
+        "median_excess_vs_buy_hold_pct": -8.7782
+      }
+    },
+    "nobitex:ETHUSDT:240:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.9734,
+        "median_return_pct": 3.2942,
+        "pct_profitable_windows": 59.0,
+        "mean_sharpe": 0.2349,
+        "median_sharpe": 1.4591,
+        "mean_max_drawdown_pct": -10.2994,
+        "median_excess_vs_buy_hold_pct": -10.4607
+      }
+    },
+    "nobitex:ETHUSDT:240:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.6046,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 41.0,
+        "mean_sharpe": 1.2182,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.0789,
+        "median_excess_vs_buy_hold_pct": -8.5246
+      }
+    },
+    "nobitex:ETHUSDT:240:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 4.4569,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 47.0,
+        "mean_sharpe": 0.3878,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -5.2493,
+        "median_excess_vs_buy_hold_pct": -5.9754
+      }
+    },
+    "nobitex:ETHUSDT:240:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.0971,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 11.0,
+        "mean_sharpe": 0.0028,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.047,
+        "median_excess_vs_buy_hold_pct": -8.2032
+      }
+    },
+    "nobitex:ETHUSDT+BTCUSDT:240:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 3.1918,
+        "median_return_pct": 1.928,
+        "pct_profitable_windows": 63.0,
+        "mean_sharpe": 0.995,
+        "median_sharpe": 1.0796,
+        "mean_max_drawdown_pct": -6.6648,
+        "median_excess_vs_buy_hold_pct": -3.1212
+      }
+    },
+    "nobitex:ETHUSDT:D:bollinger_mean_reversion": {
+      "samples": 92,
+      "aggregate": {
+        "sample_count": 92,
+        "mean_return_pct": 1.0563,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 18.48,
+        "mean_sharpe": 0.2573,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.6929,
+        "median_excess_vs_buy_hold_pct": -36.3992
+      }
+    },
+    "nobitex:ETHUSDT:D:breakout_atr": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "nobitex:ETHUSDT:D:chart_patterns": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "nobitex:ETHUSDT:D:ema_cross": {
+      "samples": 80,
+      "aggregate": {
+        "sample_count": 80,
+        "mean_return_pct": 20.5472,
+        "median_return_pct": 22.6318,
+        "pct_profitable_windows": 90.0,
+        "mean_sharpe": 2.9342,
+        "median_sharpe": 3.4786,
+        "mean_max_drawdown_pct": -7.6555,
+        "median_excess_vs_buy_hold_pct": -10.9922
+      }
+    },
+    "nobitex:ETHUSDT:D:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 4.717,
+        "median_return_pct": 1.0267,
+        "pct_profitable_windows": 53.0,
+        "mean_sharpe": 0.3157,
+        "median_sharpe": 0.5849,
+        "mean_max_drawdown_pct": -3.8065,
+        "median_excess_vs_buy_hold_pct": -27.4067
+      }
+    },
+    "nobitex:ETHUSDT:D:rsi_threshold": {
+      "samples": 82,
+      "aggregate": {
+        "sample_count": 82,
+        "mean_return_pct": 0.1191,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 2.44,
+        "mean_sharpe": -0.0272,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.1825,
+        "median_excess_vs_buy_hold_pct": -32.4758
+      }
+    },
+    "nobitex:ETHUSDT:D:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 10.6632,
+        "median_return_pct": 5.6826,
+        "pct_profitable_windows": 63.0,
+        "mean_sharpe": 1.5214,
+        "median_sharpe": 1.397,
+        "mean_max_drawdown_pct": -3.4162,
+        "median_excess_vs_buy_hold_pct": -12.8285
+      }
+    },
+    "nobitex:ETHUSDT:D:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.2822,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 11.0,
+        "mean_sharpe": 0.0496,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.3306,
+        "median_excess_vs_buy_hold_pct": -30.7091
+      }
+    },
+    "nobitex:ETHUSDT+BTCUSDT:D:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.148,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 22.0,
+        "mean_sharpe": -0.0112,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.4348,
+        "median_excess_vs_buy_hold_pct": -33.0264
+      }
+    },
+    "hyperliquid:btc:1:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.9138,
+        "median_return_pct": -0.8437,
+        "pct_profitable_windows": 4.0,
+        "mean_sharpe": -21.0146,
+        "median_sharpe": -20.7683,
+        "mean_max_drawdown_pct": -1.5662,
+        "median_excess_vs_buy_hold_pct": -0.3316
+      }
+    },
+    "hyperliquid:btc:1:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.1474,
+        "median_return_pct": -1.3098,
+        "pct_profitable_windows": 4.0,
+        "mean_sharpe": -51.6373,
+        "median_sharpe": -49.45,
+        "mean_max_drawdown_pct": -1.3102,
+        "median_excess_vs_buy_hold_pct": -0.3392
+      }
+    },
+    "hyperliquid:btc:1:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.389,
+        "median_return_pct": -2.4325,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -59.1091,
+        "median_sharpe": -62.9034,
+        "mean_max_drawdown_pct": -2.7982,
+        "median_excess_vs_buy_hold_pct": -2.0448
+      }
+    },
+    "hyperliquid:btc:1:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.3344,
+        "median_return_pct": -1.8188,
+        "pct_profitable_windows": 26.0,
+        "mean_sharpe": -32.2866,
+        "median_sharpe": -41.4549,
+        "mean_max_drawdown_pct": -2.1115,
+        "median_excess_vs_buy_hold_pct": -0.9361
+      }
+    },
+    "hyperliquid:btc:1:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -7.4892,
+        "median_return_pct": -7.5686,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -144.8763,
+        "median_sharpe": -142.2982,
+        "mean_max_drawdown_pct": -7.6219,
+        "median_excess_vs_buy_hold_pct": -7.2986
+      }
+    },
+    "hyperliquid:btc:1:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -11.9806,
+        "median_return_pct": -12.0047,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -214.8268,
+        "median_sharpe": -225.0532,
+        "mean_max_drawdown_pct": -12.0739,
+        "median_excess_vs_buy_hold_pct": -11.8792
+      }
+    },
+    "hyperliquid:btc:1:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.4838,
+        "median_return_pct": -0.0913,
+        "pct_profitable_windows": 5.0,
+        "mean_sharpe": -10.8002,
+        "median_sharpe": -5.6547,
+        "mean_max_drawdown_pct": -0.8929,
+        "median_excess_vs_buy_hold_pct": -0.1777
+      }
+    },
+    "hyperliquid:btc:1:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.129,
+        "median_return_pct": -1.5032,
+        "pct_profitable_windows": 19.0,
+        "mean_sharpe": -29.9783,
+        "median_sharpe": -39.1653,
+        "mean_max_drawdown_pct": -1.7301,
+        "median_excess_vs_buy_hold_pct": -0.57
+      }
+    },
+    "hyperliquid:btc:1:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.3123,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 47.0,
+        "mean_sharpe": -2.6767,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.4752,
+        "median_excess_vs_buy_hold_pct": 0.2175
+      }
+    },
+    "hyperliquid:btc+eth:1:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.464,
+        "median_return_pct": -0.4492,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -61.6608,
+        "median_sharpe": -57.521,
+        "mean_max_drawdown_pct": -0.4926,
+        "median_excess_vs_buy_hold_pct": -0.3143
+      }
+    },
+    "hyperliquid:btc:1:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:btc:5:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.4051,
+        "median_return_pct": -1.3634,
+        "pct_profitable_windows": 23.0,
+        "mean_sharpe": -6.9364,
+        "median_sharpe": -7.5085,
+        "mean_max_drawdown_pct": -2.6687,
+        "median_excess_vs_buy_hold_pct": -0.482
+      }
+    },
+    "hyperliquid:btc:5:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.6254,
+        "median_return_pct": -0.385,
+        "pct_profitable_windows": 7.0,
+        "mean_sharpe": -11.2244,
+        "median_sharpe": -14.193,
+        "mean_max_drawdown_pct": -1.0192,
+        "median_excess_vs_buy_hold_pct": -0.8871
+      }
+    },
+    "hyperliquid:btc:5:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.2095,
+        "median_return_pct": -2.7768,
+        "pct_profitable_windows": 2.0,
+        "mean_sharpe": -22.0612,
+        "median_sharpe": -19.3229,
+        "mean_max_drawdown_pct": -3.8715,
+        "median_excess_vs_buy_hold_pct": -2.6795
+      }
+    },
+    "hyperliquid:btc:5:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.9013,
+        "median_return_pct": -1.6357,
+        "pct_profitable_windows": 6.0,
+        "mean_sharpe": -12.8412,
+        "median_sharpe": -11.6416,
+        "mean_max_drawdown_pct": -2.9649,
+        "median_excess_vs_buy_hold_pct": -1.5354
+      }
+    },
+    "hyperliquid:btc:5:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -7.8926,
+        "median_return_pct": -7.9488,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -47.145,
+        "median_sharpe": -46.6292,
+        "mean_max_drawdown_pct": -8.4617,
+        "median_excess_vs_buy_hold_pct": -6.8958
+      }
+    },
+    "hyperliquid:btc:5:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -25.1975,
+        "median_return_pct": -25.3938,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -156.2498,
+        "median_sharpe": -155.1783,
+        "mean_max_drawdown_pct": -25.2463,
+        "median_excess_vs_buy_hold_pct": -25.2989
+      }
+    },
+    "hyperliquid:btc:5:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.0322,
+        "median_return_pct": -0.2645,
+        "pct_profitable_windows": 29.0,
+        "mean_sharpe": -3.4579,
+        "median_sharpe": -4.3008,
+        "mean_max_drawdown_pct": -2.3434,
+        "median_excess_vs_buy_hold_pct": -0.0108
+      }
+    },
+    "hyperliquid:btc:5:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.8911,
+        "median_return_pct": -1.8127,
+        "pct_profitable_windows": 10.0,
+        "mean_sharpe": -13.6593,
+        "median_sharpe": -13.3815,
+        "mean_max_drawdown_pct": -2.8296,
+        "median_excess_vs_buy_hold_pct": -1.2807
+      }
+    },
+    "hyperliquid:btc:5:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.6471,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 38.0,
+        "mean_sharpe": -1.3217,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.2616,
+        "median_excess_vs_buy_hold_pct": 0.3064
+      }
+    },
+    "hyperliquid:btc+eth:5:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.3758,
+        "median_return_pct": -0.3598,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -12.89,
+        "median_sharpe": -12.4884,
+        "mean_max_drawdown_pct": -0.6048,
+        "median_excess_vs_buy_hold_pct": -0.4056
+      }
+    },
+    "hyperliquid:btc:5:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:btc:15:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.401,
+        "median_return_pct": 0.7872,
+        "pct_profitable_windows": 62.0,
+        "mean_sharpe": 1.0692,
+        "median_sharpe": 1.659,
+        "mean_max_drawdown_pct": -3.2853,
+        "median_excess_vs_buy_hold_pct": -1.2958
+      }
+    },
+    "hyperliquid:btc:15:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.0965,
+        "median_return_pct": -0.1647,
+        "pct_profitable_windows": 36.0,
+        "mean_sharpe": -3.5871,
+        "median_sharpe": -1.8661,
+        "mean_max_drawdown_pct": -2.3448,
+        "median_excess_vs_buy_hold_pct": -2.2234
+      }
+    },
+    "hyperliquid:btc:15:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.9893,
+        "median_return_pct": -0.987,
+        "pct_profitable_windows": 34.0,
+        "mean_sharpe": -2.4999,
+        "median_sharpe": -2.3136,
+        "mean_max_drawdown_pct": -5.2376,
+        "median_excess_vs_buy_hold_pct": -2.746
+      }
+    },
+    "hyperliquid:btc:15:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.7045,
+        "median_return_pct": -2.7348,
+        "pct_profitable_windows": 33.0,
+        "mean_sharpe": -3.5941,
+        "median_sharpe": -6.3649,
+        "mean_max_drawdown_pct": -5.1961,
+        "median_excess_vs_buy_hold_pct": -2.0293
+      }
+    },
+    "hyperliquid:btc:15:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -7.1165,
+        "median_return_pct": -7.4496,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -13.6084,
+        "median_sharpe": -14.3946,
+        "mean_max_drawdown_pct": -8.8905,
+        "median_excess_vs_buy_hold_pct": -7.8813
+      }
+    },
+    "hyperliquid:btc:15:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -37.6675,
+        "median_return_pct": -38.3445,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -81.7754,
+        "median_sharpe": -81.7332,
+        "mean_max_drawdown_pct": -37.8006,
+        "median_excess_vs_buy_hold_pct": -39.2449
+      }
+    },
+    "hyperliquid:btc:15:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.3985,
+        "median_return_pct": 0.9218,
+        "pct_profitable_windows": 76.0,
+        "mean_sharpe": 3.2165,
+        "median_sharpe": 2.804,
+        "mean_max_drawdown_pct": -1.924,
+        "median_excess_vs_buy_hold_pct": 0.595
+      }
+    },
+    "hyperliquid:btc:15:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.3561,
+        "median_return_pct": -1.4908,
+        "pct_profitable_windows": 31.0,
+        "mean_sharpe": -0.747,
+        "median_sharpe": -3.5686,
+        "mean_max_drawdown_pct": -3.8206,
+        "median_excess_vs_buy_hold_pct": -1.7123
+      }
+    },
+    "hyperliquid:btc:15:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.2479,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 49.0,
+        "mean_sharpe": 0.7555,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.6333,
+        "median_excess_vs_buy_hold_pct": 0.7763
+      }
+    },
+    "hyperliquid:btc+eth:15:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.4872,
+        "median_return_pct": -0.4894,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -5.154,
+        "median_sharpe": -4.7145,
+        "mean_max_drawdown_pct": -0.7846,
+        "median_excess_vs_buy_hold_pct": -1.1254
+      }
+    },
+    "hyperliquid:btc:15:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:btc:60:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.729,
+        "median_return_pct": 1.704,
+        "pct_profitable_windows": 60.0,
+        "mean_sharpe": 0.8615,
+        "median_sharpe": 0.8729,
+        "mean_max_drawdown_pct": -6.1837,
+        "median_excess_vs_buy_hold_pct": -3.0137
+      }
+    },
+    "hyperliquid:btc:60:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 5.6771,
+        "median_return_pct": -0.0315,
+        "pct_profitable_windows": 43.0,
+        "mean_sharpe": 0.1071,
+        "median_sharpe": -0.0447,
+        "mean_max_drawdown_pct": -3.2767,
+        "median_excess_vs_buy_hold_pct": -2.745
+      }
+    },
+    "hyperliquid:btc:60:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 3.8625,
+        "median_return_pct": 2.9542,
+        "pct_profitable_windows": 63.0,
+        "mean_sharpe": 1.1838,
+        "median_sharpe": 1.9214,
+        "mean_max_drawdown_pct": -6.8537,
+        "median_excess_vs_buy_hold_pct": -3.4198
+      }
+    },
+    "hyperliquid:btc:60:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.666,
+        "median_return_pct": -1.7228,
+        "pct_profitable_windows": 40.0,
+        "mean_sharpe": 0.124,
+        "median_sharpe": -0.7635,
+        "mean_max_drawdown_pct": -8.4095,
+        "median_excess_vs_buy_hold_pct": -6.6927
+      }
+    },
+    "hyperliquid:btc:60:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.1523,
+        "median_return_pct": 3.1707,
+        "pct_profitable_windows": 67.0,
+        "mean_sharpe": 0.455,
+        "median_sharpe": 1.813,
+        "mean_max_drawdown_pct": -8.7774,
+        "median_excess_vs_buy_hold_pct": -7.5843
+      }
+    },
+    "hyperliquid:btc:60:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -41.8954,
+        "median_return_pct": -43.4103,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -27.4674,
+        "median_sharpe": -25.3488,
+        "mean_max_drawdown_pct": -42.427,
+        "median_excess_vs_buy_hold_pct": -48.719
+      }
+    },
+    "hyperliquid:btc:60:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 3.0734,
+        "median_return_pct": 4.347,
+        "pct_profitable_windows": 73.0,
+        "mean_sharpe": 2.5481,
+        "median_sharpe": 3.602,
+        "mean_max_drawdown_pct": -3.5034,
+        "median_excess_vs_buy_hold_pct": -2.2728
+      }
+    },
+    "hyperliquid:btc:60:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.2293,
+        "median_return_pct": -1.085,
+        "pct_profitable_windows": 46.0,
+        "mean_sharpe": -0.0756,
+        "median_sharpe": -0.3488,
+        "mean_max_drawdown_pct": -7.6416,
+        "median_excess_vs_buy_hold_pct": -5.9885
+      }
+    },
+    "hyperliquid:btc:60:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.71,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 47.0,
+        "mean_sharpe": 1.1771,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.6334,
+        "median_excess_vs_buy_hold_pct": -6.8413
+      }
+    },
+    "hyperliquid:btc+eth:60:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.4334,
+        "median_return_pct": -0.4071,
+        "pct_profitable_windows": 3.0,
+        "mean_sharpe": -1.0352,
+        "median_sharpe": -0.9546,
+        "mean_max_drawdown_pct": -1.6317,
+        "median_excess_vs_buy_hold_pct": -5.5298
+      }
+    },
+    "hyperliquid:btc:60:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:btc:240:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.3183,
+        "median_return_pct": 1.0185,
+        "pct_profitable_windows": 61.0,
+        "mean_sharpe": 0.9426,
+        "median_sharpe": 1.0206,
+        "mean_max_drawdown_pct": -4.382,
+        "median_excess_vs_buy_hold_pct": -3.2606
+      }
+    },
+    "hyperliquid:btc:240:breakout_atr": {
+      "samples": 84,
+      "aggregate": {
+        "sample_count": 84,
+        "mean_return_pct": 6.317,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 40.48,
+        "mean_sharpe": 0.4469,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.3806,
+        "median_excess_vs_buy_hold_pct": -1.5458
+      }
+    },
+    "hyperliquid:btc:240:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 3.7417,
+        "median_return_pct": 1.6087,
+        "pct_profitable_windows": 60.0,
+        "mean_sharpe": 0.6474,
+        "median_sharpe": 1.2934,
+        "mean_max_drawdown_pct": -5.4065,
+        "median_excess_vs_buy_hold_pct": -4.0294
+      }
+    },
+    "hyperliquid:btc:240:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 4.9702,
+        "median_return_pct": 1.6081,
+        "pct_profitable_windows": 59.0,
+        "mean_sharpe": 1.0943,
+        "median_sharpe": 0.8745,
+        "mean_max_drawdown_pct": -6.0736,
+        "median_excess_vs_buy_hold_pct": -3.9323
+      }
+    },
+    "hyperliquid:btc:240:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 5.0407,
+        "median_return_pct": 1.5371,
+        "pct_profitable_windows": 58.0,
+        "mean_sharpe": 1.6321,
+        "median_sharpe": 0.9475,
+        "mean_max_drawdown_pct": -4.8995,
+        "median_excess_vs_buy_hold_pct": -2.4529
+      }
+    },
+    "hyperliquid:btc:240:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -11.2253,
+        "median_return_pct": -11.534,
+        "pct_profitable_windows": 2.0,
+        "mean_sharpe": -6.6746,
+        "median_sharpe": -7.2524,
+        "mean_max_drawdown_pct": -14.2046,
+        "median_excess_vs_buy_hold_pct": -19.5007
+      }
+    },
+    "hyperliquid:btc:240:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.0408,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 46.0,
+        "mean_sharpe": 0.8016,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -3.2351,
+        "median_excess_vs_buy_hold_pct": -2.5644
+      }
+    },
+    "hyperliquid:btc:240:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 4.6717,
+        "median_return_pct": 0.2878,
+        "pct_profitable_windows": 53.0,
+        "mean_sharpe": 1.1773,
+        "median_sharpe": 0.3128,
+        "mean_max_drawdown_pct": -3.9252,
+        "median_excess_vs_buy_hold_pct": -2.6768
+      }
+    },
+    "hyperliquid:btc:240:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.3499,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 39.0,
+        "mean_sharpe": 0.6302,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.3782,
+        "median_excess_vs_buy_hold_pct": -4.5118
+      }
+    },
+    "hyperliquid:btc+eth:240:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.1658,
+        "median_return_pct": -0.0467,
+        "pct_profitable_windows": 6.0,
+        "mean_sharpe": -0.6229,
+        "median_sharpe": -0.1661,
+        "mean_max_drawdown_pct": -0.9676,
+        "median_excess_vs_buy_hold_pct": -5.3425
+      }
+    },
+    "hyperliquid:btc:240:funding_carry": {
+      "samples": 51,
+      "aggregate": {
+        "sample_count": 51,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -2.4352
+      }
+    },
+    "hyperliquid:btc:D:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 3.6814,
+        "median_return_pct": 1.701,
+        "pct_profitable_windows": 56.0,
+        "mean_sharpe": 1.3977,
+        "median_sharpe": 1.4574,
+        "mean_max_drawdown_pct": -1.8425,
+        "median_excess_vs_buy_hold_pct": -17.9507
+      }
+    },
+    "hyperliquid:btc:D:breakout_atr": {
+      "samples": 3,
+      "aggregate": {
+        "sample_count": 3,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -4.8058
+      }
+    },
+    "hyperliquid:btc:D:chart_patterns": {
+      "samples": 44,
+      "aggregate": {
+        "sample_count": 44,
+        "mean_return_pct": 2.6633,
+        "median_return_pct": 3.585,
+        "pct_profitable_windows": 84.09,
+        "mean_sharpe": 1.3732,
+        "median_sharpe": 1.723,
+        "mean_max_drawdown_pct": -3.0801,
+        "median_excess_vs_buy_hold_pct": -26.7065
+      }
+    },
+    "hyperliquid:btc:D:ema_cross": {
+      "samples": 95,
+      "aggregate": {
+        "sample_count": 95,
+        "mean_return_pct": 12.1758,
+        "median_return_pct": 14.2793,
+        "pct_profitable_windows": 84.21,
+        "mean_sharpe": 2.2259,
+        "median_sharpe": 2.9025,
+        "mean_max_drawdown_pct": -7.1241,
+        "median_excess_vs_buy_hold_pct": -7.1886
+      }
+    },
+    "hyperliquid:btc:D:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 8.9374,
+        "median_return_pct": 5.8047,
+        "pct_profitable_windows": 89.0,
+        "mean_sharpe": 2.0408,
+        "median_sharpe": 2.1429,
+        "mean_max_drawdown_pct": -3.146,
+        "median_excess_vs_buy_hold_pct": -7.8729
+      }
+    },
+    "hyperliquid:btc:D:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.6732,
+        "median_return_pct": -3.2544,
+        "pct_profitable_windows": 47.0,
+        "mean_sharpe": 0.1471,
+        "median_sharpe": -0.7152,
+        "mean_max_drawdown_pct": -7.8458,
+        "median_excess_vs_buy_hold_pct": -14.7308
+      }
+    },
+    "hyperliquid:btc:D:rsi_threshold": {
+      "samples": 65,
+      "aggregate": {
+        "sample_count": 65,
+        "mean_return_pct": 1.2128,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 12.31,
+        "mean_sharpe": 0.4442,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.0334,
+        "median_excess_vs_buy_hold_pct": -21.9561
+      }
+    },
+    "hyperliquid:btc:D:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 4.8541,
+        "median_return_pct": 4.9679,
+        "pct_profitable_windows": 58.0,
+        "mean_sharpe": 0.5945,
+        "median_sharpe": 2.0431,
+        "mean_max_drawdown_pct": -3.2245,
+        "median_excess_vs_buy_hold_pct": -11.4277
+      }
+    },
+    "hyperliquid:btc:D:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.2829,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 40.0,
+        "mean_sharpe": 0.8344,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.6355,
+        "median_excess_vs_buy_hold_pct": -20.0762
+      }
+    },
+    "hyperliquid:btc+eth:D:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.0217,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 3.0,
+        "mean_sharpe": -0.2568,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.036,
+        "median_excess_vs_buy_hold_pct": -21.9771
+      }
+    },
+    "hyperliquid:btc:D:funding_carry": {
+      "samples": 14,
+      "aggregate": {
+        "sample_count": 14,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -11.6254
+      }
+    },
+    "hyperliquid:eth:1:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.6918,
+        "median_return_pct": -1.6215,
+        "pct_profitable_windows": 8.0,
+        "mean_sharpe": -25.8023,
+        "median_sharpe": -26.4207,
+        "mean_max_drawdown_pct": -2.5525,
+        "median_excess_vs_buy_hold_pct": -0.2151
+      }
+    },
+    "hyperliquid:eth:1:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.8937,
+        "median_return_pct": -1.0499,
+        "pct_profitable_windows": 6.0,
+        "mean_sharpe": -44.3548,
+        "median_sharpe": -53.5626,
+        "mean_max_drawdown_pct": -1.1349,
+        "median_excess_vs_buy_hold_pct": -0.6357
+      }
+    },
+    "hyperliquid:eth:1:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.2429,
+        "median_return_pct": -3.1127,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -57.1104,
+        "median_sharpe": -58.1701,
+        "mean_max_drawdown_pct": -3.872,
+        "median_excess_vs_buy_hold_pct": -2.4465
+      }
+    },
+    "hyperliquid:eth:1:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.4356,
+        "median_return_pct": -2.6497,
+        "pct_profitable_windows": 15.0,
+        "mean_sharpe": -51.5553,
+        "median_sharpe": -56.2013,
+        "mean_max_drawdown_pct": -3.3545,
+        "median_excess_vs_buy_hold_pct": -1.6526
+      }
+    },
+    "hyperliquid:eth:1:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -6.6737,
+        "median_return_pct": -6.6046,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -114.9964,
+        "median_sharpe": -108.874,
+        "mean_max_drawdown_pct": -6.9401,
+        "median_excess_vs_buy_hold_pct": -5.6653
+      }
+    },
+    "hyperliquid:eth:1:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -17.5497,
+        "median_return_pct": -17.913,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -255.6683,
+        "median_sharpe": -262.8291,
+        "mean_max_drawdown_pct": -17.6244,
+        "median_excess_vs_buy_hold_pct": -16.0517
+      }
+    },
+    "hyperliquid:eth:1:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5385,
+        "median_return_pct": -0.0077,
+        "pct_profitable_windows": 15.0,
+        "mean_sharpe": -8.4875,
+        "median_sharpe": -0.992,
+        "mean_max_drawdown_pct": -1.1428,
+        "median_excess_vs_buy_hold_pct": 0.2462
+      }
+    },
+    "hyperliquid:eth:1:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.8847,
+        "median_return_pct": -2.3843,
+        "pct_profitable_windows": 16.0,
+        "mean_sharpe": -43.5769,
+        "median_sharpe": -51.5273,
+        "mean_max_drawdown_pct": -2.6575,
+        "median_excess_vs_buy_hold_pct": -0.909
+      }
+    },
+    "hyperliquid:eth:1:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.7046,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 35.0,
+        "mean_sharpe": -6.4632,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.0996,
+        "median_excess_vs_buy_hold_pct": 0.2974
+      }
+    },
+    "hyperliquid:eth+btc:1:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.3593,
+        "median_return_pct": -0.3595,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -55.4155,
+        "median_sharpe": -56.4826,
+        "mean_max_drawdown_pct": -0.3887,
+        "median_excess_vs_buy_hold_pct": 0.2675
+      }
+    },
+    "hyperliquid:eth:1:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:eth:5:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.5156,
+        "median_return_pct": -1.4605,
+        "pct_profitable_windows": 29.0,
+        "mean_sharpe": -8.6885,
+        "median_sharpe": -7.53,
+        "mean_max_drawdown_pct": -4.5593,
+        "median_excess_vs_buy_hold_pct": -0.4649
+      }
+    },
+    "hyperliquid:eth:5:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.8617,
+        "median_return_pct": -0.9187,
+        "pct_profitable_windows": 5.0,
+        "mean_sharpe": -18.5307,
+        "median_sharpe": -21.474,
+        "mean_max_drawdown_pct": -1.1383,
+        "median_excess_vs_buy_hold_pct": 0.3148
+      }
+    },
+    "hyperliquid:eth:5:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.9196,
+        "median_return_pct": -4.0975,
+        "pct_profitable_windows": 8.0,
+        "mean_sharpe": -22.76,
+        "median_sharpe": -26.8976,
+        "mean_max_drawdown_pct": -4.8808,
+        "median_excess_vs_buy_hold_pct": -1.447
+      }
+    },
+    "hyperliquid:eth:5:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.5784,
+        "median_return_pct": -1.3823,
+        "pct_profitable_windows": 11.0,
+        "mean_sharpe": -9.8881,
+        "median_sharpe": -9.494,
+        "mean_max_drawdown_pct": -2.5697,
+        "median_excess_vs_buy_hold_pct": 0.3417
+      }
+    },
+    "hyperliquid:eth:5:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -7.2703,
+        "median_return_pct": -7.3798,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -39.7682,
+        "median_sharpe": -39.977,
+        "mean_max_drawdown_pct": -7.9613,
+        "median_excess_vs_buy_hold_pct": -5.7069
+      }
+    },
+    "hyperliquid:eth:5:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -29.1604,
+        "median_return_pct": -28.7621,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -155.8165,
+        "median_sharpe": -155.8443,
+        "mean_max_drawdown_pct": -29.2353,
+        "median_excess_vs_buy_hold_pct": -27.1808
+      }
+    },
+    "hyperliquid:eth:5:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.0415,
+        "median_return_pct": -0.1763,
+        "pct_profitable_windows": 23.0,
+        "mean_sharpe": -2.1163,
+        "median_sharpe": -1.5846,
+        "mean_max_drawdown_pct": -2.5609,
+        "median_excess_vs_buy_hold_pct": -0.1157
+      }
+    },
+    "hyperliquid:eth:5:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.2502,
+        "median_return_pct": -0.7833,
+        "pct_profitable_windows": 20.0,
+        "mean_sharpe": -7.5398,
+        "median_sharpe": -5.7612,
+        "mean_max_drawdown_pct": -2.383,
+        "median_excess_vs_buy_hold_pct": 0.5942
+      }
+    },
+    "hyperliquid:eth:5:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.8469,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 15.0,
+        "mean_sharpe": -5.2286,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -3.3319,
+        "median_excess_vs_buy_hold_pct": 0.2859
+      }
+    },
+    "hyperliquid:eth+btc:5:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.4178,
+        "median_return_pct": -0.4042,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -14.8869,
+        "median_sharpe": -13.8982,
+        "mean_max_drawdown_pct": -0.5251,
+        "median_excess_vs_buy_hold_pct": 0.9424
+      }
+    },
+    "hyperliquid:eth:5:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:eth:15:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.8307,
+        "median_return_pct": 0.0467,
+        "pct_profitable_windows": 52.0,
+        "mean_sharpe": -0.468,
+        "median_sharpe": 0.2035,
+        "mean_max_drawdown_pct": -4.7292,
+        "median_excess_vs_buy_hold_pct": 0.3578
+      }
+    },
+    "hyperliquid:eth:15:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5343,
+        "median_return_pct": -1.6124,
+        "pct_profitable_windows": 24.0,
+        "mean_sharpe": -4.6035,
+        "median_sharpe": -6.5495,
+        "mean_max_drawdown_pct": -3.376,
+        "median_excess_vs_buy_hold_pct": -1.2279
+      }
+    },
+    "hyperliquid:eth:15:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -4.1204,
+        "median_return_pct": -3.2087,
+        "pct_profitable_windows": 7.0,
+        "mean_sharpe": -6.2064,
+        "median_sharpe": -5.8202,
+        "mean_max_drawdown_pct": -7.2565,
+        "median_excess_vs_buy_hold_pct": -4.9444
+      }
+    },
+    "hyperliquid:eth:15:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.5461,
+        "median_return_pct": -3.4308,
+        "pct_profitable_windows": 29.0,
+        "mean_sharpe": -3.6876,
+        "median_sharpe": -4.0923,
+        "mean_max_drawdown_pct": -6.7727,
+        "median_excess_vs_buy_hold_pct": -2.1363
+      }
+    },
+    "hyperliquid:eth:15:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -6.3268,
+        "median_return_pct": -6.5451,
+        "pct_profitable_windows": 3.0,
+        "mean_sharpe": -9.7768,
+        "median_sharpe": -8.6962,
+        "mean_max_drawdown_pct": -8.8115,
+        "median_excess_vs_buy_hold_pct": -7.8415
+      }
+    },
+    "hyperliquid:eth:15:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -41.5806,
+        "median_return_pct": -41.7649,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -77.0878,
+        "median_sharpe": -78.4879,
+        "mean_max_drawdown_pct": -41.792,
+        "median_excess_vs_buy_hold_pct": -42.1217
+      }
+    },
+    "hyperliquid:eth:15:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.9698,
+        "median_return_pct": 2.0755,
+        "pct_profitable_windows": 67.0,
+        "mean_sharpe": 2.826,
+        "median_sharpe": 3.8654,
+        "mean_max_drawdown_pct": -3.9093,
+        "median_excess_vs_buy_hold_pct": 1.1492
+      }
+    },
+    "hyperliquid:eth:15:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.3696,
+        "median_return_pct": -1.5383,
+        "pct_profitable_windows": 35.0,
+        "mean_sharpe": -0.8888,
+        "median_sharpe": -2.9535,
+        "mean_max_drawdown_pct": -4.833,
+        "median_excess_vs_buy_hold_pct": -0.1402
+      }
+    },
+    "hyperliquid:eth:15:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.0527,
+        "median_return_pct": 0.3363,
+        "pct_profitable_windows": 58.0,
+        "mean_sharpe": 1.1313,
+        "median_sharpe": 2.1159,
+        "mean_max_drawdown_pct": -3.7442,
+        "median_excess_vs_buy_hold_pct": 0.5594
+      }
+    },
+    "hyperliquid:eth+btc:15:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.3951,
+        "median_return_pct": -0.4036,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -4.8623,
+        "median_sharpe": -4.5238,
+        "mean_max_drawdown_pct": -0.6873,
+        "median_excess_vs_buy_hold_pct": -0.8111
+      }
+    },
+    "hyperliquid:eth:15:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:eth:60:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.1042,
+        "median_return_pct": 3.1977,
+        "pct_profitable_windows": 72.0,
+        "mean_sharpe": 1.3336,
+        "median_sharpe": 1.589,
+        "mean_max_drawdown_pct": -7.2547,
+        "median_excess_vs_buy_hold_pct": -7.3816
+      }
+    },
+    "hyperliquid:eth:60:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 4.5015,
+        "median_return_pct": -1.3214,
+        "pct_profitable_windows": 35.0,
+        "mean_sharpe": -0.3692,
+        "median_sharpe": -1.3203,
+        "mean_max_drawdown_pct": -5.2893,
+        "median_excess_vs_buy_hold_pct": -6.2227
+      }
+    },
+    "hyperliquid:eth:60:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 5.7971,
+        "median_return_pct": 2.4743,
+        "pct_profitable_windows": 69.0,
+        "mean_sharpe": 1.3303,
+        "median_sharpe": 1.1765,
+        "mean_max_drawdown_pct": -8.5895,
+        "median_excess_vs_buy_hold_pct": -8.4738
+      }
+    },
+    "hyperliquid:eth:60:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.7383,
+        "median_return_pct": -2.9188,
+        "pct_profitable_windows": 40.0,
+        "mean_sharpe": -0.4747,
+        "median_sharpe": -0.8352,
+        "mean_max_drawdown_pct": -11.6939,
+        "median_excess_vs_buy_hold_pct": -11.9523
+      }
+    },
+    "hyperliquid:eth:60:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.3633,
+        "median_return_pct": -1.8943,
+        "pct_profitable_windows": 38.0,
+        "mean_sharpe": -1.4402,
+        "median_sharpe": -0.601,
+        "mean_max_drawdown_pct": -12.2358,
+        "median_excess_vs_buy_hold_pct": -12.2097
+      }
+    },
+    "hyperliquid:eth:60:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -44.7452,
+        "median_return_pct": -45.2932,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -21.4423,
+        "median_sharpe": -21.6041,
+        "mean_max_drawdown_pct": -45.6362,
+        "median_excess_vs_buy_hold_pct": -58.5537
+      }
+    },
+    "hyperliquid:eth:60:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 3.5259,
+        "median_return_pct": 3.5515,
+        "pct_profitable_windows": 62.0,
+        "mean_sharpe": 1.9102,
+        "median_sharpe": 2.0166,
+        "mean_max_drawdown_pct": -6.5348,
+        "median_excess_vs_buy_hold_pct": -5.4233
+      }
+    },
+    "hyperliquid:eth:60:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.9167,
+        "median_return_pct": 0.8084,
+        "pct_profitable_windows": 55.0,
+        "mean_sharpe": 0.3436,
+        "median_sharpe": 0.4528,
+        "mean_max_drawdown_pct": -10.3031,
+        "median_excess_vs_buy_hold_pct": -8.7285
+      }
+    },
+    "hyperliquid:eth:60:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.2547,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 30.0,
+        "mean_sharpe": 0.6432,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.6342,
+        "median_excess_vs_buy_hold_pct": -7.5246
+      }
+    },
+    "hyperliquid:eth+btc:60:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.3808,
+        "median_return_pct": -0.3622,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -1.1332,
+        "median_sharpe": -1.0322,
+        "mean_max_drawdown_pct": -1.2851,
+        "median_excess_vs_buy_hold_pct": -8.1495
+      }
+    },
+    "hyperliquid:eth:60:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:eth:240:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 4.8754,
+        "median_return_pct": 3.8651,
+        "pct_profitable_windows": 85.0,
+        "mean_sharpe": 2.5377,
+        "median_sharpe": 2.3042,
+        "mean_max_drawdown_pct": -4.0116,
+        "median_excess_vs_buy_hold_pct": -6.2349
+      }
+    },
+    "hyperliquid:eth:240:breakout_atr": {
+      "samples": 90,
+      "aggregate": {
+        "sample_count": 90,
+        "mean_return_pct": 4.4147,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 44.44,
+        "mean_sharpe": 0.9545,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.967,
+        "median_excess_vs_buy_hold_pct": -9.7262
+      }
+    },
+    "hyperliquid:eth:240:chart_patterns": {
+      "samples": 98,
+      "aggregate": {
+        "sample_count": 98,
+        "mean_return_pct": 5.3739,
+        "median_return_pct": 0.7836,
+        "pct_profitable_windows": 53.06,
+        "mean_sharpe": 1.1522,
+        "median_sharpe": 0.6974,
+        "mean_max_drawdown_pct": -7.2814,
+        "median_excess_vs_buy_hold_pct": -8.3687
+      }
+    },
+    "hyperliquid:eth:240:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 5.1305,
+        "median_return_pct": 2.4532,
+        "pct_profitable_windows": 58.0,
+        "mean_sharpe": 0.8168,
+        "median_sharpe": 1.0747,
+        "mean_max_drawdown_pct": -8.3831,
+        "median_excess_vs_buy_hold_pct": -6.5067
+      }
+    },
+    "hyperliquid:eth:240:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 3.7902,
+        "median_return_pct": 3.158,
+        "pct_profitable_windows": 65.0,
+        "mean_sharpe": 0.7231,
+        "median_sharpe": 1.6549,
+        "mean_max_drawdown_pct": -8.3246,
+        "median_excess_vs_buy_hold_pct": -6.377
+      }
+    },
+    "hyperliquid:eth:240:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -12.7692,
+        "median_return_pct": -12.4304,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -6.0787,
+        "median_sharpe": -6.0878,
+        "mean_max_drawdown_pct": -15.5857,
+        "median_excess_vs_buy_hold_pct": -26.597
+      }
+    },
+    "hyperliquid:eth:240:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.2123,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 38.0,
+        "mean_sharpe": 1.087,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.9104,
+        "median_excess_vs_buy_hold_pct": -7.6971
+      }
+    },
+    "hyperliquid:eth:240:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 4.437,
+        "median_return_pct": 0.6665,
+        "pct_profitable_windows": 53.0,
+        "mean_sharpe": 1.1135,
+        "median_sharpe": 0.5877,
+        "mean_max_drawdown_pct": -5.2938,
+        "median_excess_vs_buy_hold_pct": -5.6174
+      }
+    },
+    "hyperliquid:eth:240:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.0033,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 34.0,
+        "mean_sharpe": 1.0649,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.7788,
+        "median_excess_vs_buy_hold_pct": -8.9704
+      }
+    },
+    "hyperliquid:eth+btc:240:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.0562,
+        "median_return_pct": -0.0449,
+        "pct_profitable_windows": 13.0,
+        "mean_sharpe": -0.146,
+        "median_sharpe": -0.1837,
+        "mean_max_drawdown_pct": -0.6089,
+        "median_excess_vs_buy_hold_pct": -9.1718
+      }
+    },
+    "hyperliquid:eth:240:funding_carry": {
+      "samples": 48,
+      "aggregate": {
+        "sample_count": 48,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -14.5228
+      }
+    },
+    "hyperliquid:eth:D:bollinger_mean_reversion": {
+      "samples": 93,
+      "aggregate": {
+        "sample_count": 93,
+        "mean_return_pct": 0.9044,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 18.28,
+        "mean_sharpe": 0.4537,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.4519,
+        "median_excess_vs_buy_hold_pct": -33.3863
+      }
+    },
+    "hyperliquid:eth:D:breakout_atr": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:eth:D:chart_patterns": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:eth:D:ema_cross": {
+      "samples": 89,
+      "aggregate": {
+        "sample_count": 89,
+        "mean_return_pct": 17.7808,
+        "median_return_pct": 17.6424,
+        "pct_profitable_windows": 85.39,
+        "mean_sharpe": 2.1165,
+        "median_sharpe": 2.8653,
+        "mean_max_drawdown_pct": -7.3211,
+        "median_excess_vs_buy_hold_pct": -9.3226
+      }
+    },
+    "hyperliquid:eth:D:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 9.0839,
+        "median_return_pct": 1.9258,
+        "pct_profitable_windows": 66.0,
+        "mean_sharpe": 1.2058,
+        "median_sharpe": 1.0164,
+        "mean_max_drawdown_pct": -3.3097,
+        "median_excess_vs_buy_hold_pct": -19.6317
+      }
+    },
+    "hyperliquid:eth:D:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 6.3185,
+        "median_return_pct": -3.4346,
+        "pct_profitable_windows": 40.0,
+        "mean_sharpe": 0.188,
+        "median_sharpe": -0.661,
+        "mean_max_drawdown_pct": -8.4756,
+        "median_excess_vs_buy_hold_pct": -24.6178
+      }
+    },
+    "hyperliquid:eth:D:rsi_threshold": {
+      "samples": 85,
+      "aggregate": {
+        "sample_count": 85,
+        "mean_return_pct": -0.2203,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -0.1496,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.3263,
+        "median_excess_vs_buy_hold_pct": -32.5439
+      }
+    },
+    "hyperliquid:eth:D:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 10.8852,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 49.0,
+        "mean_sharpe": 1.3132,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.1357,
+        "median_excess_vs_buy_hold_pct": -15.1731
+      }
+    },
+    "hyperliquid:eth:D:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.4922,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 20.0,
+        "mean_sharpe": 0.5813,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.0753,
+        "median_excess_vs_buy_hold_pct": -30.239
+      }
+    },
+    "hyperliquid:eth+btc:D:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.0012,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 2.0,
+        "mean_sharpe": -0.0159,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.0138,
+        "median_excess_vs_buy_hold_pct": -31.9276
+      }
+    },
+    "hyperliquid:eth:D:funding_carry": {
+      "samples": 20,
+      "aggregate": {
+        "sample_count": 20,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -40.3288
+      }
+    },
+    "hyperliquid:sol:1:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.6477,
+        "median_return_pct": -1.3779,
+        "pct_profitable_windows": 18.0,
+        "mean_sharpe": -16.6397,
+        "median_sharpe": -14.8569,
+        "mean_max_drawdown_pct": -3.3829,
+        "median_excess_vs_buy_hold_pct": 0.2532
+      }
+    },
+    "hyperliquid:sol:1:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5879,
+        "median_return_pct": -0.4988,
+        "pct_profitable_windows": 12.0,
+        "mean_sharpe": -31.5014,
+        "median_sharpe": -36.1933,
+        "mean_max_drawdown_pct": -0.8917,
+        "median_excess_vs_buy_hold_pct": -0.0258
+      }
+    },
+    "hyperliquid:sol:1:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.4023,
+        "median_return_pct": -2.6937,
+        "pct_profitable_windows": 15.0,
+        "mean_sharpe": -41.4521,
+        "median_sharpe": -49.88,
+        "mean_max_drawdown_pct": -3.8316,
+        "median_excess_vs_buy_hold_pct": -1.7066
+      }
+    },
+    "hyperliquid:sol:1:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.6287,
+        "median_return_pct": -2.1537,
+        "pct_profitable_windows": 20.0,
+        "mean_sharpe": -24.0978,
+        "median_sharpe": -31.0079,
+        "mean_max_drawdown_pct": -2.7867,
+        "median_excess_vs_buy_hold_pct": -1.2853
+      }
+    },
+    "hyperliquid:sol:1:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -7.0579,
+        "median_return_pct": -7.1498,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -91.2515,
+        "median_sharpe": -84.7399,
+        "mean_max_drawdown_pct": -7.5335,
+        "median_excess_vs_buy_hold_pct": -5.508
+      }
+    },
+    "hyperliquid:sol:1:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -24.0757,
+        "median_return_pct": -24.5958,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -291.1774,
+        "median_sharpe": -294.981,
+        "mean_max_drawdown_pct": -24.1764,
+        "median_excess_vs_buy_hold_pct": -22.3935
+      }
+    },
+    "hyperliquid:sol:1:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.3801,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 13.0,
+        "mean_sharpe": -3.391,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.4492,
+        "median_excess_vs_buy_hold_pct": 0.3771
+      }
+    },
+    "hyperliquid:sol:1:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.5523,
+        "median_return_pct": -1.9175,
+        "pct_profitable_windows": 21.0,
+        "mean_sharpe": -23.7551,
+        "median_sharpe": -33.6488,
+        "mean_max_drawdown_pct": -2.803,
+        "median_excess_vs_buy_hold_pct": -0.7171
+      }
+    },
+    "hyperliquid:sol:1:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.4298,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 43.0,
+        "mean_sharpe": 1.6237,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.819,
+        "median_excess_vs_buy_hold_pct": 0.6481
+      }
+    },
+    "hyperliquid:sol+btc:1:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.3996,
+        "median_return_pct": -0.4037,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -36.33,
+        "median_sharpe": -36.9132,
+        "mean_max_drawdown_pct": -0.4582,
+        "median_excess_vs_buy_hold_pct": 0.3233
+      }
+    },
+    "hyperliquid:sol:1:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:sol:5:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.1302,
+        "median_return_pct": -1.698,
+        "pct_profitable_windows": 19.0,
+        "mean_sharpe": -5.9397,
+        "median_sharpe": -5.0333,
+        "mean_max_drawdown_pct": -5.4489,
+        "median_excess_vs_buy_hold_pct": 1.1626
+      }
+    },
+    "hyperliquid:sol:5:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.8201,
+        "median_return_pct": -0.6745,
+        "pct_profitable_windows": 2.0,
+        "mean_sharpe": -11.2146,
+        "median_sharpe": -12.9802,
+        "mean_max_drawdown_pct": -1.4425,
+        "median_excess_vs_buy_hold_pct": 1.4829
+      }
+    },
+    "hyperliquid:sol:5:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.362,
+        "median_return_pct": -2.5834,
+        "pct_profitable_windows": 14.0,
+        "mean_sharpe": -12.3928,
+        "median_sharpe": -14.277,
+        "mean_max_drawdown_pct": -3.7727,
+        "median_excess_vs_buy_hold_pct": -0.0221
+      }
+    },
+    "hyperliquid:sol:5:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.0133,
+        "median_return_pct": -2.8679,
+        "pct_profitable_windows": 6.0,
+        "mean_sharpe": -14.843,
+        "median_sharpe": -15.7165,
+        "mean_max_drawdown_pct": -4.336,
+        "median_excess_vs_buy_hold_pct": 0.1587
+      }
+    },
+    "hyperliquid:sol:5:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -6.0232,
+        "median_return_pct": -5.3638,
+        "pct_profitable_windows": 2.0,
+        "mean_sharpe": -25.9732,
+        "median_sharpe": -26.3102,
+        "mean_max_drawdown_pct": -7.0634,
+        "median_excess_vs_buy_hold_pct": -3.962
+      }
+    },
+    "hyperliquid:sol:5:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -36.3242,
+        "median_return_pct": -36.6067,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -164.7222,
+        "median_sharpe": -159.7715,
+        "mean_max_drawdown_pct": -36.3966,
+        "median_excess_vs_buy_hold_pct": -33.4274
+      }
+    },
+    "hyperliquid:sol:5:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.1795,
+        "median_return_pct": -1.5433,
+        "pct_profitable_windows": 22.0,
+        "mean_sharpe": -4.3208,
+        "median_sharpe": -5.8049,
+        "mean_max_drawdown_pct": -5.7235,
+        "median_excess_vs_buy_hold_pct": 1.0056
+      }
+    },
+    "hyperliquid:sol:5:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.8675,
+        "median_return_pct": -1.7665,
+        "pct_profitable_windows": 17.0,
+        "mean_sharpe": -9.2186,
+        "median_sharpe": -9.3688,
+        "mean_max_drawdown_pct": -3.3754,
+        "median_excess_vs_buy_hold_pct": 0.9203
+      }
+    },
+    "hyperliquid:sol:5:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.1459,
+        "median_return_pct": -1.0098,
+        "pct_profitable_windows": 27.0,
+        "mean_sharpe": -3.7942,
+        "median_sharpe": -3.5714,
+        "mean_max_drawdown_pct": -4.3425,
+        "median_excess_vs_buy_hold_pct": 0.7752
+      }
+    },
+    "hyperliquid:sol+btc:5:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.4166,
+        "median_return_pct": -0.404,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -9.3498,
+        "median_sharpe": -8.0823,
+        "mean_max_drawdown_pct": -0.6636,
+        "median_excess_vs_buy_hold_pct": 2.7618
+      }
+    },
+    "hyperliquid:sol:5:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:sol:15:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.4619,
+        "median_return_pct": -1.6884,
+        "pct_profitable_windows": 31.0,
+        "mean_sharpe": -1.5024,
+        "median_sharpe": -1.7103,
+        "mean_max_drawdown_pct": -6.066,
+        "median_excess_vs_buy_hold_pct": -2.4183
+      }
+    },
+    "hyperliquid:sol:15:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.9753,
+        "median_return_pct": -1.8721,
+        "pct_profitable_windows": 10.0,
+        "mean_sharpe": -6.9544,
+        "median_sharpe": -8.628,
+        "mean_max_drawdown_pct": -3.7269,
+        "median_excess_vs_buy_hold_pct": -3.2935
+      }
+    },
+    "hyperliquid:sol:15:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.3821,
+        "median_return_pct": -4.9802,
+        "pct_profitable_windows": 30.0,
+        "mean_sharpe": -2.9572,
+        "median_sharpe": -5.7569,
+        "mean_max_drawdown_pct": -8.0089,
+        "median_excess_vs_buy_hold_pct": -2.8851
+      }
+    },
+    "hyperliquid:sol:15:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.048,
+        "median_return_pct": -4.2718,
+        "pct_profitable_windows": 32.0,
+        "mean_sharpe": -2.7944,
+        "median_sharpe": -6.0934,
+        "mean_max_drawdown_pct": -7.2479,
+        "median_excess_vs_buy_hold_pct": -1.4283
+      }
+    },
+    "hyperliquid:sol:15:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -6.5427,
+        "median_return_pct": -7.0315,
+        "pct_profitable_windows": 4.0,
+        "mean_sharpe": -7.5593,
+        "median_sharpe": -7.8327,
+        "mean_max_drawdown_pct": -10.0747,
+        "median_excess_vs_buy_hold_pct": -9.4918
+      }
+    },
+    "hyperliquid:sol:15:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -41.0388,
+        "median_return_pct": -40.3293,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -61.9369,
+        "median_sharpe": -57.8802,
+        "mean_max_drawdown_pct": -41.2863,
+        "median_excess_vs_buy_hold_pct": -43.2837
+      }
+    },
+    "hyperliquid:sol:15:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.9122,
+        "median_return_pct": 2.3255,
+        "pct_profitable_windows": 69.0,
+        "mean_sharpe": 4.4953,
+        "median_sharpe": 6.1758,
+        "mean_max_drawdown_pct": -3.3701,
+        "median_excess_vs_buy_hold_pct": 1.8392
+      }
+    },
+    "hyperliquid:sol:15:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.5495,
+        "median_return_pct": -2.2946,
+        "pct_profitable_windows": 38.0,
+        "mean_sharpe": -0.7644,
+        "median_sharpe": -2.975,
+        "mean_max_drawdown_pct": -6.4627,
+        "median_excess_vs_buy_hold_pct": -0.9363
+      }
+    },
+    "hyperliquid:sol:15:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.137,
+        "median_return_pct": 0.0721,
+        "pct_profitable_windows": 50.0,
+        "mean_sharpe": 1.0765,
+        "median_sharpe": 0.2061,
+        "mean_max_drawdown_pct": -3.6163,
+        "median_excess_vs_buy_hold_pct": -0.1153
+      }
+    },
+    "hyperliquid:sol+btc:15:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.4194,
+        "median_return_pct": -0.4304,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -3.1447,
+        "median_sharpe": -3.067,
+        "mean_max_drawdown_pct": -0.8665,
+        "median_excess_vs_buy_hold_pct": -3.2785
+      }
+    },
+    "hyperliquid:sol:15:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:sol:60:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.8231,
+        "median_return_pct": 3.8186,
+        "pct_profitable_windows": 69.0,
+        "mean_sharpe": 1.292,
+        "median_sharpe": 1.5777,
+        "mean_max_drawdown_pct": -8.8083,
+        "median_excess_vs_buy_hold_pct": -8.2392
+      }
+    },
+    "hyperliquid:sol:60:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 5.5106,
+        "median_return_pct": -0.8718,
+        "pct_profitable_windows": 30.0,
+        "mean_sharpe": -0.6244,
+        "median_sharpe": -1.7861,
+        "mean_max_drawdown_pct": -4.9318,
+        "median_excess_vs_buy_hold_pct": -9.2798
+      }
+    },
+    "hyperliquid:sol:60:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 6.4802,
+        "median_return_pct": 1.7544,
+        "pct_profitable_windows": 54.0,
+        "mean_sharpe": 1.2722,
+        "median_sharpe": 0.7214,
+        "mean_max_drawdown_pct": -10.4907,
+        "median_excess_vs_buy_hold_pct": -8.0299
+      }
+    },
+    "hyperliquid:sol:60:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 6.2063,
+        "median_return_pct": 4.8203,
+        "pct_profitable_windows": 67.0,
+        "mean_sharpe": 1.186,
+        "median_sharpe": 1.7768,
+        "mean_max_drawdown_pct": -10.7525,
+        "median_excess_vs_buy_hold_pct": -6.9601
+      }
+    },
+    "hyperliquid:sol:60:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 7.6091,
+        "median_return_pct": 6.4985,
+        "pct_profitable_windows": 61.0,
+        "mean_sharpe": 1.3935,
+        "median_sharpe": 1.7622,
+        "mean_max_drawdown_pct": -10.8478,
+        "median_excess_vs_buy_hold_pct": -11.3877
+      }
+    },
+    "hyperliquid:sol:60:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -41.7694,
+        "median_return_pct": -42.8336,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -19.3036,
+        "median_sharpe": -17.2138,
+        "mean_max_drawdown_pct": -42.4943,
+        "median_excess_vs_buy_hold_pct": -52.2621
+      }
+    },
+    "hyperliquid:sol:60:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 4.7479,
+        "median_return_pct": 1.5943,
+        "pct_profitable_windows": 58.0,
+        "mean_sharpe": 1.703,
+        "median_sharpe": 1.1982,
+        "mean_max_drawdown_pct": -7.2044,
+        "median_excess_vs_buy_hold_pct": -3.9503
+      }
+    },
+    "hyperliquid:sol:60:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 5.0907,
+        "median_return_pct": 3.4369,
+        "pct_profitable_windows": 61.0,
+        "mean_sharpe": 1.1664,
+        "median_sharpe": 1.221,
+        "mean_max_drawdown_pct": -9.1444,
+        "median_excess_vs_buy_hold_pct": -4.7268
+      }
+    },
+    "hyperliquid:sol:60:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.4035,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 47.0,
+        "mean_sharpe": 0.9296,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -3.3149,
+        "median_excess_vs_buy_hold_pct": -7.257
+      }
+    },
+    "hyperliquid:sol+btc:60:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5023,
+        "median_return_pct": -0.4482,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -1.0564,
+        "median_sharpe": -0.7472,
+        "mean_max_drawdown_pct": -1.8131,
+        "median_excess_vs_buy_hold_pct": -11.6775
+      }
+    },
+    "hyperliquid:sol:60:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:sol:240:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.706,
+        "median_return_pct": 3.1659,
+        "pct_profitable_windows": 71.0,
+        "mean_sharpe": 1.4703,
+        "median_sharpe": 2.0922,
+        "mean_max_drawdown_pct": -6.2765,
+        "median_excess_vs_buy_hold_pct": -11.6873
+      }
+    },
+    "hyperliquid:sol:240:breakout_atr": {
+      "samples": 74,
+      "aggregate": {
+        "sample_count": 74,
+        "mean_return_pct": 8.003,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 37.84,
+        "mean_sharpe": 0.7367,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -4.2052,
+        "median_excess_vs_buy_hold_pct": -5.4078
+      }
+    },
+    "hyperliquid:sol:240:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 9.4458,
+        "median_return_pct": 8.5809,
+        "pct_profitable_windows": 73.0,
+        "mean_sharpe": 2.1628,
+        "median_sharpe": 2.9031,
+        "mean_max_drawdown_pct": -7.1478,
+        "median_excess_vs_buy_hold_pct": -4.2691
+      }
+    },
+    "hyperliquid:sol:240:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 7.4536,
+        "median_return_pct": 4.4138,
+        "pct_profitable_windows": 65.0,
+        "mean_sharpe": 1.0276,
+        "median_sharpe": 1.3758,
+        "mean_max_drawdown_pct": -9.3025,
+        "median_excess_vs_buy_hold_pct": -4.5359
+      }
+    },
+    "hyperliquid:sol:240:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 6.934,
+        "median_return_pct": 5.0443,
+        "pct_profitable_windows": 73.0,
+        "mean_sharpe": 1.8877,
+        "median_sharpe": 2.0463,
+        "mean_max_drawdown_pct": -7.0381,
+        "median_excess_vs_buy_hold_pct": -5.6154
+      }
+    },
+    "hyperliquid:sol:240:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -8.8592,
+        "median_return_pct": -9.1679,
+        "pct_profitable_windows": 19.0,
+        "mean_sharpe": -3.7666,
+        "median_sharpe": -2.7183,
+        "mean_max_drawdown_pct": -16.4658,
+        "median_excess_vs_buy_hold_pct": -21.7555
+      }
+    },
+    "hyperliquid:sol:240:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.454,
+        "median_return_pct": 1.9043,
+        "pct_profitable_windows": 54.0,
+        "mean_sharpe": 1.5872,
+        "median_sharpe": 1.1649,
+        "mean_max_drawdown_pct": -4.7871,
+        "median_excess_vs_buy_hold_pct": -7.8157
+      }
+    },
+    "hyperliquid:sol:240:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.4562,
+        "median_return_pct": -0.7895,
+        "pct_profitable_windows": 40.0,
+        "mean_sharpe": -0.2245,
+        "median_sharpe": -0.4032,
+        "mean_max_drawdown_pct": -7.0734,
+        "median_excess_vs_buy_hold_pct": -8.378
+      }
+    },
+    "hyperliquid:sol:240:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.2833,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 43.0,
+        "mean_sharpe": 0.4336,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.8146,
+        "median_excess_vs_buy_hold_pct": -7.5848
+      }
+    },
+    "hyperliquid:sol+btc:240:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.1433,
+        "median_return_pct": -0.0896,
+        "pct_profitable_windows": 3.0,
+        "mean_sharpe": -0.4773,
+        "median_sharpe": -0.2323,
+        "mean_max_drawdown_pct": -1.0366,
+        "median_excess_vs_buy_hold_pct": -10.4674
+      }
+    },
+    "hyperliquid:sol:240:funding_carry": {
+      "samples": 36,
+      "aggregate": {
+        "sample_count": 36,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -7.5712
+      }
+    },
+    "hyperliquid:sol:D:bollinger_mean_reversion": {
+      "samples": 94,
+      "aggregate": {
+        "sample_count": 94,
+        "mean_return_pct": 3.5942,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 34.04,
+        "mean_sharpe": 0.8922,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.4858,
+        "median_excess_vs_buy_hold_pct": -32.6127
+      }
+    },
+    "hyperliquid:sol:D:breakout_atr": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:sol:D:chart_patterns": {
+      "samples": 1,
+      "aggregate": {
+        "sample_count": 1,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -8.0972
+      }
+    },
+    "hyperliquid:sol:D:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 26.9995,
+        "median_return_pct": 31.5475,
+        "pct_profitable_windows": 86.0,
+        "mean_sharpe": 3.3971,
+        "median_sharpe": 4.4024,
+        "mean_max_drawdown_pct": -9.6494,
+        "median_excess_vs_buy_hold_pct": -5.5859
+      }
+    },
+    "hyperliquid:sol:D:macd_cross": {
+      "samples": 88,
+      "aggregate": {
+        "sample_count": 88,
+        "mean_return_pct": 13.5282,
+        "median_return_pct": 4.5112,
+        "pct_profitable_windows": 86.36,
+        "mean_sharpe": 2.2156,
+        "median_sharpe": 1.4219,
+        "mean_max_drawdown_pct": -5.7379,
+        "median_excess_vs_buy_hold_pct": -10.6644
+      }
+    },
+    "hyperliquid:sol:D:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 10.6622,
+        "median_return_pct": 8.5709,
+        "pct_profitable_windows": 64.0,
+        "mean_sharpe": 1.2756,
+        "median_sharpe": 1.8677,
+        "mean_max_drawdown_pct": -9.1856,
+        "median_excess_vs_buy_hold_pct": -19.5088
+      }
+    },
+    "hyperliquid:sol:D:rsi_threshold": {
+      "samples": 75,
+      "aggregate": {
+        "sample_count": 75,
+        "mean_return_pct": 1.2938,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 12.0,
+        "mean_sharpe": 0.2218,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.0884,
+        "median_excess_vs_buy_hold_pct": -35.2643
+      }
+    },
+    "hyperliquid:sol:D:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 10.6584,
+        "median_return_pct": 5.0359,
+        "pct_profitable_windows": 56.0,
+        "mean_sharpe": 1.8463,
+        "median_sharpe": 1.5689,
+        "mean_max_drawdown_pct": -2.3764,
+        "median_excess_vs_buy_hold_pct": -20.164
+      }
+    },
+    "hyperliquid:sol:D:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.7181,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 48.0,
+        "mean_sharpe": 0.7358,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.8518,
+        "median_excess_vs_buy_hold_pct": -35.1457
+      }
+    },
+    "hyperliquid:sol+btc:D:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -35.3332
+      }
+    },
+    "hyperliquid:sol:D:funding_carry": {
+      "samples": 21,
+      "aggregate": {
+        "sample_count": 21,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -15.1756
+      }
+    },
+    "hyperliquid:arb:1:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.7985,
+        "median_return_pct": -2.1266,
+        "pct_profitable_windows": 31.0,
+        "mean_sharpe": -13.0185,
+        "median_sharpe": -15.9143,
+        "mean_max_drawdown_pct": -4.2801,
+        "median_excess_vs_buy_hold_pct": -0.1579
+      }
+    },
+    "hyperliquid:arb:1:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.7492,
+        "median_return_pct": -0.8469,
+        "pct_profitable_windows": 4.0,
+        "mean_sharpe": -38.1379,
+        "median_sharpe": -41.2785,
+        "mean_max_drawdown_pct": -2.1847,
+        "median_excess_vs_buy_hold_pct": 0.5014
+      }
+    },
+    "hyperliquid:arb:1:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -4.0559,
+        "median_return_pct": -4.8948,
+        "pct_profitable_windows": 14.0,
+        "mean_sharpe": -37.5398,
+        "median_sharpe": -47.1767,
+        "mean_max_drawdown_pct": -5.5386,
+        "median_excess_vs_buy_hold_pct": -2.3094
+      }
+    },
+    "hyperliquid:arb:1:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.4199,
+        "median_return_pct": -1.7267,
+        "pct_profitable_windows": 18.0,
+        "mean_sharpe": -13.3739,
+        "median_sharpe": -14.2563,
+        "mean_max_drawdown_pct": -3.5695,
+        "median_excess_vs_buy_hold_pct": -0.8038
+      }
+    },
+    "hyperliquid:arb:1:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -8.2317,
+        "median_return_pct": -7.7371,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -71.4289,
+        "median_sharpe": -72.4564,
+        "mean_max_drawdown_pct": -8.9706,
+        "median_excess_vs_buy_hold_pct": -7.1134
+      }
+    },
+    "hyperliquid:arb:1:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -27.5818,
+        "median_return_pct": -27.7473,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -243.2104,
+        "median_sharpe": -237.1378,
+        "mean_max_drawdown_pct": -27.7146,
+        "median_excess_vs_buy_hold_pct": -26.6362
+      }
+    },
+    "hyperliquid:arb:1:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.4836,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 26.0,
+        "mean_sharpe": -4.1625,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.3325,
+        "median_excess_vs_buy_hold_pct": 1.053
+      }
+    },
+    "hyperliquid:arb:1:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.6867,
+        "median_return_pct": -1.4714,
+        "pct_profitable_windows": 30.0,
+        "mean_sharpe": -7.2054,
+        "median_sharpe": -14.9096,
+        "mean_max_drawdown_pct": -2.9794,
+        "median_excess_vs_buy_hold_pct": 0.6414
+      }
+    },
+    "hyperliquid:arb:1:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.3414,
+        "median_return_pct": -0.4569,
+        "pct_profitable_windows": 27.0,
+        "mean_sharpe": -7.2122,
+        "median_sharpe": -2.8808,
+        "mean_max_drawdown_pct": -3.7058,
+        "median_excess_vs_buy_hold_pct": 0.6649
+      }
+    },
+    "hyperliquid:arb+btc:1:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.3652,
+        "median_return_pct": -0.3427,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -18.9038,
+        "median_sharpe": -18.3662,
+        "mean_max_drawdown_pct": -0.5512,
+        "median_excess_vs_buy_hold_pct": 0.4328
+      }
+    },
+    "hyperliquid:arb:1:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:arb:5:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.4353,
+        "median_return_pct": -0.5741,
+        "pct_profitable_windows": 45.0,
+        "mean_sharpe": -0.9143,
+        "median_sharpe": -0.5174,
+        "mean_max_drawdown_pct": -8.9288,
+        "median_excess_vs_buy_hold_pct": 0.4872
+      }
+    },
+    "hyperliquid:arb:5:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.5821,
+        "median_return_pct": -1.2112,
+        "pct_profitable_windows": 1.0,
+        "mean_sharpe": -10.7628,
+        "median_sharpe": -11.1192,
+        "mean_max_drawdown_pct": -2.2115,
+        "median_excess_vs_buy_hold_pct": -0.9517
+      }
+    },
+    "hyperliquid:arb:5:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.4541,
+        "median_return_pct": -0.7601,
+        "pct_profitable_windows": 44.0,
+        "mean_sharpe": -3.358,
+        "median_sharpe": -1.7075,
+        "mean_max_drawdown_pct": -6.294,
+        "median_excess_vs_buy_hold_pct": 0.0203
+      }
+    },
+    "hyperliquid:arb:5:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.6522,
+        "median_return_pct": -1.1911,
+        "pct_profitable_windows": 42.0,
+        "mean_sharpe": -2.5551,
+        "median_sharpe": -3.1967,
+        "mean_max_drawdown_pct": -5.5009,
+        "median_excess_vs_buy_hold_pct": 1.7563
+      }
+    },
+    "hyperliquid:arb:5:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -3.9252,
+        "median_return_pct": -4.0865,
+        "pct_profitable_windows": 25.0,
+        "mean_sharpe": -8.8292,
+        "median_sharpe": -9.657,
+        "mean_max_drawdown_pct": -8.1152,
+        "median_excess_vs_buy_hold_pct": -1.3052
+      }
+    },
+    "hyperliquid:arb:5:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -46.2187,
+        "median_return_pct": -45.09,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -109.0431,
+        "median_sharpe": -105.4583,
+        "mean_max_drawdown_pct": -46.3622,
+        "median_excess_vs_buy_hold_pct": -43.4012
+      }
+    },
+    "hyperliquid:arb:5:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.552,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 28.0,
+        "mean_sharpe": -1.4122,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -5.9404,
+        "median_excess_vs_buy_hold_pct": 0.5764
+      }
+    },
+    "hyperliquid:arb:5:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.9117,
+        "median_return_pct": -1.9784,
+        "pct_profitable_windows": 28.0,
+        "mean_sharpe": -6.0267,
+        "median_sharpe": -5.2712,
+        "mean_max_drawdown_pct": -5.5066,
+        "median_excess_vs_buy_hold_pct": -1.1021
+      }
+    },
+    "hyperliquid:arb:5:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -2.4233,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 37.0,
+        "mean_sharpe": -1.2611,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -7.4225,
+        "median_excess_vs_buy_hold_pct": 1.9039
+      }
+    },
+    "hyperliquid:arb+btc:5:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.4396,
+        "median_return_pct": -0.4044,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -4.4613,
+        "median_sharpe": -4.079,
+        "mean_max_drawdown_pct": -1.0545,
+        "median_excess_vs_buy_hold_pct": -0.0197
+      }
+    },
+    "hyperliquid:arb:5:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:arb:15:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 9.5048,
+        "median_return_pct": 7.4164,
+        "pct_profitable_windows": 84.0,
+        "mean_sharpe": 4.9671,
+        "median_sharpe": 4.4509,
+        "mean_max_drawdown_pct": -9.943,
+        "median_excess_vs_buy_hold_pct": 10.0512
+      }
+    },
+    "hyperliquid:arb:15:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.7784,
+        "median_return_pct": -2.3879,
+        "pct_profitable_windows": 10.0,
+        "mean_sharpe": -4.4149,
+        "median_sharpe": -5.6449,
+        "mean_max_drawdown_pct": -6.9236,
+        "median_excess_vs_buy_hold_pct": 2.6561
+      }
+    },
+    "hyperliquid:arb:15:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.2092,
+        "median_return_pct": -4.5981,
+        "pct_profitable_windows": 36.0,
+        "mean_sharpe": -2.6148,
+        "median_sharpe": -3.5719,
+        "mean_max_drawdown_pct": -17.3893,
+        "median_excess_vs_buy_hold_pct": -10.7713
+      }
+    },
+    "hyperliquid:arb:15:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.0191,
+        "median_return_pct": -8.3342,
+        "pct_profitable_windows": 38.0,
+        "mean_sharpe": -3.2002,
+        "median_sharpe": -4.1905,
+        "mean_max_drawdown_pct": -17.2382,
+        "median_excess_vs_buy_hold_pct": -11.6578
+      }
+    },
+    "hyperliquid:arb:15:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 3.7422,
+        "median_return_pct": -3.9974,
+        "pct_profitable_windows": 41.0,
+        "mean_sharpe": -0.9651,
+        "median_sharpe": -1.6936,
+        "mean_max_drawdown_pct": -14.7308,
+        "median_excess_vs_buy_hold_pct": -3.3042
+      }
+    },
+    "hyperliquid:arb:15:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -47.249,
+        "median_return_pct": -47.3658,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -35.9683,
+        "median_sharpe": -43.0935,
+        "mean_max_drawdown_pct": -48.7891,
+        "median_excess_vs_buy_hold_pct": -44.4943
+      }
+    },
+    "hyperliquid:arb:15:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.8875,
+        "median_return_pct": -0.6791,
+        "pct_profitable_windows": 38.0,
+        "mean_sharpe": 0.1305,
+        "median_sharpe": -0.0984,
+        "mean_max_drawdown_pct": -11.3505,
+        "median_excess_vs_buy_hold_pct": 0.3399
+      }
+    },
+    "hyperliquid:arb:15:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 2.0728,
+        "median_return_pct": -3.9925,
+        "pct_profitable_windows": 36.0,
+        "mean_sharpe": -1.6372,
+        "median_sharpe": -2.205,
+        "mean_max_drawdown_pct": -14.7598,
+        "median_excess_vs_buy_hold_pct": -5.9878
+      }
+    },
+    "hyperliquid:arb:15:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 0.3081,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 40.0,
+        "mean_sharpe": 1.172,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -5.1139,
+        "median_excess_vs_buy_hold_pct": 1.8025
+      }
+    },
+    "hyperliquid:arb+btc:15:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.4217,
+        "median_return_pct": -0.4071,
+        "pct_profitable_windows": 6.0,
+        "mean_sharpe": -0.809,
+        "median_sharpe": -0.6322,
+        "mean_max_drawdown_pct": -2.8448,
+        "median_excess_vs_buy_hold_pct": -2.7744
+      }
+    },
+    "hyperliquid:arb:15:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:arb:60:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 4.5028,
+        "median_return_pct": 3.2067,
+        "pct_profitable_windows": 59.0,
+        "mean_sharpe": 1.0812,
+        "median_sharpe": 1.0826,
+        "mean_max_drawdown_pct": -15.1404,
+        "median_excess_vs_buy_hold_pct": -4.0077
+      }
+    },
+    "hyperliquid:arb:60:breakout_atr": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 17.9947,
+        "median_return_pct": 1.4573,
+        "pct_profitable_windows": 55.0,
+        "mean_sharpe": 1.815,
+        "median_sharpe": 0.8087,
+        "mean_max_drawdown_pct": -13.8638,
+        "median_excess_vs_buy_hold_pct": -4.6172
+      }
+    },
+    "hyperliquid:arb:60:chart_patterns": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 29.5779,
+        "median_return_pct": 7.7747,
+        "pct_profitable_windows": 62.0,
+        "mean_sharpe": 1.3323,
+        "median_sharpe": 1.6102,
+        "mean_max_drawdown_pct": -21.4508,
+        "median_excess_vs_buy_hold_pct": -3.5831
+      }
+    },
+    "hyperliquid:arb:60:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 29.6538,
+        "median_return_pct": -4.1937,
+        "pct_profitable_windows": 46.0,
+        "mean_sharpe": 1.0243,
+        "median_sharpe": -0.7167,
+        "mean_max_drawdown_pct": -17.5454,
+        "median_excess_vs_buy_hold_pct": -4.9554
+      }
+    },
+    "hyperliquid:arb:60:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -1.7758,
+        "median_return_pct": -7.1368,
+        "pct_profitable_windows": 30.0,
+        "mean_sharpe": -1.7668,
+        "median_sharpe": -1.0381,
+        "mean_max_drawdown_pct": -25.4317,
+        "median_excess_vs_buy_hold_pct": -24.7338
+      }
+    },
+    "hyperliquid:arb:60:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -29.3063,
+        "median_return_pct": -33.0295,
+        "pct_profitable_windows": 11.0,
+        "mean_sharpe": -8.9486,
+        "median_sharpe": -8.2907,
+        "mean_max_drawdown_pct": -40.7764,
+        "median_excess_vs_buy_hold_pct": -50.1758
+      }
+    },
+    "hyperliquid:arb:60:rsi_threshold": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.1509,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 43.0,
+        "mean_sharpe": 0.2728,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -9.4434,
+        "median_excess_vs_buy_hold_pct": -4.7072
+      }
+    },
+    "hyperliquid:arb:60:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 27.1927,
+        "median_return_pct": 4.6155,
+        "pct_profitable_windows": 63.0,
+        "mean_sharpe": 1.8956,
+        "median_sharpe": 2.0027,
+        "mean_max_drawdown_pct": -14.6442,
+        "median_excess_vs_buy_hold_pct": -0.7672
+      }
+    },
+    "hyperliquid:arb:60:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.903,
+        "median_return_pct": 0.2916,
+        "pct_profitable_windows": 50.0,
+        "mean_sharpe": 1.0126,
+        "median_sharpe": 0.2077,
+        "mean_max_drawdown_pct": -4.3667,
+        "median_excess_vs_buy_hold_pct": -5.2759
+      }
+    },
+    "hyperliquid:arb+btc:60:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5293,
+        "median_return_pct": -0.3584,
+        "pct_profitable_windows": 8.0,
+        "mean_sharpe": -0.2992,
+        "median_sharpe": -0.2564,
+        "mean_max_drawdown_pct": -3.921,
+        "median_excess_vs_buy_hold_pct": -10.0284
+      }
+    },
+    "hyperliquid:arb:60:funding_carry": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:arb:240:bollinger_mean_reversion": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.5174,
+        "median_return_pct": -0.0444,
+        "pct_profitable_windows": 42.0,
+        "mean_sharpe": -0.0047,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -11.2636,
+        "median_excess_vs_buy_hold_pct": -12.496
+      }
+    },
+    "hyperliquid:arb:240:breakout_atr": {
+      "samples": 63,
+      "aggregate": {
+        "sample_count": 63,
+        "mean_return_pct": 20.8483,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 38.1,
+        "mean_sharpe": 0.8594,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -15.7526,
+        "median_excess_vs_buy_hold_pct": -6.4002
+      }
+    },
+    "hyperliquid:arb:240:chart_patterns": {
+      "samples": 99,
+      "aggregate": {
+        "sample_count": 99,
+        "mean_return_pct": 31.1293,
+        "median_return_pct": 6.4046,
+        "pct_profitable_windows": 63.64,
+        "mean_sharpe": 2.0088,
+        "median_sharpe": 1.8536,
+        "mean_max_drawdown_pct": -15.425,
+        "median_excess_vs_buy_hold_pct": 0.2097
+      }
+    },
+    "hyperliquid:arb:240:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 37.8357,
+        "median_return_pct": 19.587,
+        "pct_profitable_windows": 65.0,
+        "mean_sharpe": 1.9697,
+        "median_sharpe": 2.956,
+        "mean_max_drawdown_pct": -16.7956,
+        "median_excess_vs_buy_hold_pct": -1.6177
+      }
+    },
+    "hyperliquid:arb:240:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 18.6874,
+        "median_return_pct": 6.5316,
+        "pct_profitable_windows": 61.0,
+        "mean_sharpe": 0.924,
+        "median_sharpe": 1.53,
+        "mean_max_drawdown_pct": -18.3531,
+        "median_excess_vs_buy_hold_pct": -1.3208
+      }
+    },
+    "hyperliquid:arb:240:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -6.1335,
+        "median_return_pct": -19.1491,
+        "pct_profitable_windows": 27.0,
+        "mean_sharpe": -3.4171,
+        "median_sharpe": -4.9658,
+        "mean_max_drawdown_pct": -26.2534,
+        "median_excess_vs_buy_hold_pct": -32.7967
+      }
+    },
+    "hyperliquid:arb:240:rsi_threshold": {
+      "samples": 97,
+      "aggregate": {
+        "sample_count": 97,
+        "mean_return_pct": 1.2157,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 42.27,
+        "mean_sharpe": 0.4203,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -7.8764,
+        "median_excess_vs_buy_hold_pct": -15.7089
+      }
+    },
+    "hyperliquid:arb:240:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 27.167,
+        "median_return_pct": 9.4424,
+        "pct_profitable_windows": 64.0,
+        "mean_sharpe": 1.0566,
+        "median_sharpe": 2.1422,
+        "mean_max_drawdown_pct": -14.6872,
+        "median_excess_vs_buy_hold_pct": -2.5667
+      }
+    },
+    "hyperliquid:arb:240:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 1.0879,
+        "median_return_pct": 0.3644,
+        "pct_profitable_windows": 51.0,
+        "mean_sharpe": 0.6077,
+        "median_sharpe": 0.3877,
+        "mean_max_drawdown_pct": -4.9234,
+        "median_excess_vs_buy_hold_pct": -7.8507
+      }
+    },
+    "hyperliquid:arb+btc:240:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.128,
+        "median_return_pct": -0.0896,
+        "pct_profitable_windows": 6.0,
+        "mean_sharpe": -0.1118,
+        "median_sharpe": -0.0803,
+        "mean_max_drawdown_pct": -2.1747,
+        "median_excess_vs_buy_hold_pct": -16.6316
+      }
+    },
+    "hyperliquid:arb:240:funding_carry": {
+      "samples": 51,
+      "aggregate": {
+        "sample_count": 51,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -1.2249
+      }
+    },
+    "hyperliquid:arb:D:bollinger_mean_reversion": {
+      "samples": 83,
+      "aggregate": {
+        "sample_count": 83,
+        "mean_return_pct": -0.522,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 8.43,
+        "mean_sharpe": -0.0351,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -1.9155,
+        "median_excess_vs_buy_hold_pct": -91.5804
+      }
+    },
+    "hyperliquid:arb:D:breakout_atr": {
+      "samples": 44,
+      "aggregate": {
+        "sample_count": 44,
+        "mean_return_pct": -5.2052,
+        "median_return_pct": -1.8346,
+        "pct_profitable_windows": 6.82,
+        "mean_sharpe": -0.6951,
+        "median_sharpe": -0.4421,
+        "mean_max_drawdown_pct": -10.1608,
+        "median_excess_vs_buy_hold_pct": -108.9206
+      }
+    },
+    "hyperliquid:arb:D:chart_patterns": {
+      "samples": 0,
+      "aggregate": {
+        "median_excess_vs_buy_hold_pct": 0.0
+      }
+    },
+    "hyperliquid:arb:D:ema_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 62.545,
+        "median_return_pct": 60.7766,
+        "pct_profitable_windows": 77.0,
+        "mean_sharpe": 2.3844,
+        "median_sharpe": 3.1848,
+        "mean_max_drawdown_pct": -22.7749,
+        "median_excess_vs_buy_hold_pct": -15.5534
+      }
+    },
+    "hyperliquid:arb:D:macd_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 18.0915,
+        "median_return_pct": 13.6266,
+        "pct_profitable_windows": 62.0,
+        "mean_sharpe": 0.7793,
+        "median_sharpe": 1.5588,
+        "mean_max_drawdown_pct": -18.9186,
+        "median_excess_vs_buy_hold_pct": -75.1056
+      }
+    },
+    "hyperliquid:arb:D:perp_market_making": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 26.861,
+        "median_return_pct": 15.2762,
+        "pct_profitable_windows": 73.0,
+        "mean_sharpe": 1.3548,
+        "median_sharpe": 1.4403,
+        "mean_max_drawdown_pct": -18.5145,
+        "median_excess_vs_buy_hold_pct": -39.6156
+      }
+    },
+    "hyperliquid:arb:D:rsi_threshold": {
+      "samples": 99,
+      "aggregate": {
+        "sample_count": 99,
+        "mean_return_pct": 7.2095,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 38.38,
+        "mean_sharpe": 0.8972,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -3.6471,
+        "median_excess_vs_buy_hold_pct": -76.2463
+      }
+    },
+    "hyperliquid:arb:D:sma_cross": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 12.9037,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 33.0,
+        "mean_sharpe": 0.4433,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -8.3629,
+        "median_excess_vs_buy_hold_pct": -25.1393
+      }
+    },
+    "hyperliquid:arb:D:spot_grid": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": 7.3452,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 28.0,
+        "mean_sharpe": 0.4698,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -2.6592,
+        "median_excess_vs_buy_hold_pct": -71.8571
+      }
+    },
+    "hyperliquid:arb+btc:D:pair_trading": {
+      "samples": 100,
+      "aggregate": {
+        "sample_count": 100,
+        "mean_return_pct": -0.3858,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": -0.3435,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": -0.4775,
+        "median_excess_vs_buy_hold_pct": -84.0495
+      }
+    },
+    "hyperliquid:arb:D:funding_carry": {
+      "samples": 27,
+      "aggregate": {
+        "sample_count": 27,
+        "mean_return_pct": 0.0,
+        "median_return_pct": 0.0,
+        "pct_profitable_windows": 0.0,
+        "mean_sharpe": 0.0,
+        "median_sharpe": 0.0,
+        "mean_max_drawdown_pct": 0.0,
+        "median_excess_vs_buy_hold_pct": -107.0861
+      }
+    }
+  }
+}
