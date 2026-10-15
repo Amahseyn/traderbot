@@ -11,7 +11,23 @@ export type DashboardStats = {
   compare_count: number;
   sweep_count: number;
   experiment_count: number;
-  top_strategies: Array<{ strategy_id: string; n: number; best_return: number | null }>;
+  backtest_summary: {
+    count: number;
+    avg_return: number | null;
+    best_return: number | null;
+    worst_return: number | null;
+    positive_pct: number | null;
+  };
+  top_strategies: Array<{
+    strategy_id: string;
+    n: number;
+    best_return: number | null;
+    avg_return: number | null;
+  }>;
+  top_markets: Array<{ symbol: string; n: number; best_return: number | null; avg_return: number | null }>;
+  top_intervals: Array<
+    { interval_label: string; n: number; best_return: number | null; avg_return: number | null }
+  >;
 };
 
 export type ArtifactRef = {
@@ -337,6 +353,7 @@ export const api = {
   stats: () => fetchJson<DashboardStats>("/api/stats"),
   runs: (query = "") => fetchJson<EvaluationRun[]>(`/api/runs${query}`),
   run: (id: string) => fetchJson<EvaluationRun>(`/api/runs/${id}`),
+  runAnalytics: (id: string) => fetchJson<RunAnalytics>(`/api/runs/${id}/analytics`),
   configurations: (kind?: string) =>
     fetchJson<ConfigurationRow[]>(
       `/api/configurations${kind ? `?config_kind=${encodeURIComponent(kind)}` : ""}`,
@@ -548,4 +565,53 @@ export const api = {
     }
     return response.json() as Promise<{ id: string; status: string }>;
   },
+};
+
+export type RunAnalyticsSummary = {
+  initial_cash: number | null;
+  final_equity: number | null;
+  net_pnl: number | null;
+  return_pct: number | null;
+  fills: number;
+  round_trips: number;
+  open_position: boolean;
+  wins: number;
+  losses: number;
+  win_rate_pct: number | null;
+  profit_factor: number | null;
+  gross_profit: number | null;
+  gross_loss: number | null;
+  avg_win: number | null;
+  avg_loss: number | null;
+  payoff_ratio: number | null;
+  expectancy: number | null;
+  best_trade: number | null;
+  worst_trade: number | null;
+  max_win_streak: number;
+  max_loss_streak: number;
+  max_drawdown_pct: number | null;
+  max_drawdown_abs: number | null;
+  recovery_factor: number | null;
+  sharpe_per_trade: number | null;
+  sortino_per_trade: number | null;
+  avg_hold_seconds: number | null;
+  exposure_pct: number | null;
+  total_fees: number | null;
+};
+
+export type RunAnalytics = {
+  run_id: string;
+  summary: RunAnalyticsSummary;
+  equity_curve: { timestamp: number | null; equity: number }[];
+  drawdown_curve: { timestamp: number | null; drawdown_pct: number | null }[];
+  trade_pnls: {
+    index: number;
+    side: string;
+    entry_timestamp: number | null;
+    exit_timestamp: number | null;
+    pnl: number | null;
+    return_pct: number | null;
+    duration_seconds: number | null;
+  }[];
+  by_side: { side: string; trades: number; wins: number; net_pnl: number | null; win_rate_pct: number | null }[];
 };

@@ -5,6 +5,9 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Any
 
+from traderbot.markets.market_data import RESOLUTIONS
+from traderbot.utils.horizons import resolution_tokens_for_horizon_label
+
 
 @dataclass(frozen=True, slots=True)
 class RunRow:
@@ -45,6 +48,15 @@ def _row_to_run(row: sqlite3.Row) -> RunRow:
     )
 
 
+_STRATEGY_BACKTEST_FROM = """
+    FROM evaluation_runs r
+    JOIN configurations c ON c.id = r.config_id
+    WHERE r.run_kind = 'strategy_backtest'
+"""
+
+_RETURN_PCT_SQL = "CAST(json_extract(r.metrics_json, '$.return_pct') AS REAL)"
+
+
 def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
     run_count = connection.execute("SELECT COUNT(*) FROM evaluation_runs").fetchone()[0]
     config_count = connection.execute("SELECT COUNT(*) FROM configurations").fetchone()[0]
@@ -52,14 +64,60 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
     sweep_count = connection.execute("SELECT COUNT(*) FROM sweep_sessions").fetchone()[0]
     experiment_count = connection.execute("SELECT COUNT(*) FROM experiments").fetchone()[0]
     top_strategies = connection.execute(
-        """
+        f"""
         SELECT c.strategy_id, COUNT(*) AS n,
-               MAX(CAST(json_extract(r.metrics_json, '$.return_pct') AS REAL)) AS best_return
-        FROM evaluation_runs r
-        JOIN configurations c ON c.id = r.config_id
-        WHERE r.run_kind = 'strategy_backtest' AND c.strategy_id IS NOT NULL
+               MAX({_RETURN_PCT_SQL}) AS best_return,
+               AVG({_RETURN_PCT_SQL}) AS avg_return
+        {_STRATEGY_BACKTEST_FROM}
+          AND c.strategy_id IS NOT NULL
         GROUP BY c.strategy_id
         ORDER BY best_return DESC NULLS LAST
+        LIMIT 8
+        """
+    ).fetchall()
+    backtest_row = connection.execute(
+        f"""
+        SELECT
+            COUNT(*) AS n,
+            AVG({_RETURN_PCT_SQL}) AS avg_return,
+            MAX({_RETURN_PCT_SQL}) AS best_return,
+            MIN({_RETURN_PCT_SQL}) AS worst_return,
+            SUM(CASE WHEN {_RETURN_PCT_SQL} > 0 THEN 1 ELSE 0 END) AS positive_n,
+            SUM(CASE WHEN {_RETURN_PCT_SQL} IS NOT NULL THEN 1 ELSE 0 END) AS with_return_n
+        {_STRATEGY_BACKTEST_FROM}
+        """
+    ).fetchone()
+    with_return_n = int(backtest_row["with_return_n"] or 0)
+    positive_n = int(backtest_row["positive_n"] or 0)
+    backtest_summary = {
+        "count": int(backtest_row["n"] or 0),
+        "avg_return": backtest_row["avg_return"],
+        "best_return": backtest_row["best_return"],
+        "worst_return": backtest_row["worst_return"],
+        "positive_pct": positive_n / with_return_n * 100 if with_return_n else None,
+    }
+    top_markets = connection.execute(
+        f"""
+        SELECT c.symbol, COUNT(*) AS n,
+               MAX({_RETURN_PCT_SQL}) AS best_return,
+               AVG({_RETURN_PCT_SQL}) AS avg_return
+        {_STRATEGY_BACKTEST_FROM}
+          AND c.symbol IS NOT NULL AND TRIM(c.symbol) != ''
+        GROUP BY c.symbol
+        ORDER BY avg_return DESC NULLS LAST, best_return DESC NULLS LAST
+        LIMIT 8
+        """
+    ).fetchall()
+    top_intervals = connection.execute(
+        f"""
+        SELECT COALESCE(NULLIF(TRIM(c.horizon_label), ''), c.resolution) AS interval_label,
+               COUNT(*) AS n,
+               MAX({_RETURN_PCT_SQL}) AS best_return,
+               AVG({_RETURN_PCT_SQL}) AS avg_return
+        {_STRATEGY_BACKTEST_FROM}
+          AND COALESCE(NULLIF(TRIM(c.horizon_label), ''), c.resolution) IS NOT NULL
+        GROUP BY interval_label
+        ORDER BY avg_return DESC NULLS LAST, best_return DESC NULLS LAST
         LIMIT 8
         """
     ).fetchall()
@@ -69,8 +127,43 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
         "compare_count": compare_count,
         "sweep_count": sweep_count,
         "experiment_count": experiment_count,
+        "backtest_summary": backtest_summary,
         "top_strategies": [dict(row) for row in top_strategies],
+        "top_markets": [dict(row) for row in top_markets],
+        "top_intervals": [dict(row) for row in top_intervals],
     }
+
+
+def _like_literal(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _horizon_match_clause(label: str) -> tuple[str, list[Any]]:
+    """Match a horizon on the configuration, its dataset folder, or bar size.
+
+    Strategy runs store the candle token on ``resolution`` (``60``, ``60_last24h``)
+    and leave ``horizon_label`` empty. ``1h`` still means those 60-minute runs.
+    """
+    parts = [
+        "c.horizon_label = ?",
+        """EXISTS (
+            SELECT 1 FROM datasets d
+            WHERE d.repo_path = json_extract(c.data_context_json, '$.csv')
+              AND d.horizon_label = ?
+        )""",
+        "json_extract(c.data_context_json, '$.csv') LIKE ? ESCAPE '\\'",
+    ]
+    params: list[Any] = [
+        label,
+        label,
+        f"%/horizons/{_like_literal(label)}/%",
+    ]
+    for token in resolution_tokens_for_horizon_label(label, RESOLUTIONS):
+        parts.append("c.resolution = ?")
+        params.append(token)
+        parts.append("c.resolution LIKE ? ESCAPE '\\'")
+        params.append(f"{_like_literal(token)}\\_%")
+    return "(" + " OR ".join(parts) + ")", params
 
 
 def list_evaluation_runs(
@@ -98,8 +191,9 @@ def list_evaluation_runs(
         clauses.append("c.symbol = ?")
         params.append(symbol.upper())
     if horizon_label:
-        clauses.append("c.horizon_label = ?")
-        params.append(horizon_label)
+        clause, horizon_params = _horizon_match_clause(horizon_label)
+        clauses.append(clause)
+        params.extend(horizon_params)
     params.append(limit)
     query = f"""
         SELECT r.*, c.strategy_id, c.model_id, c.symbol, c.resolution, c.horizon_label,

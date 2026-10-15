@@ -3,11 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { api, API_BASE } from "@/lib/api";
-import { formatReturnPct, returnPctClassName } from "@/lib/format";
 import { WorkflowCards } from "@/components/WorkflowCards";
+import { OverviewResearchAnalytics } from "@/components/OverviewResearchAnalytics";
 import { RunsTable } from "@/components/RunsTable";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState, ErrorState, PageSkeleton, TableSkeleton } from "@/components/ui/States";
 
 export default function DashboardPage() {
   const statsQuery = useQuery({ queryKey: ["stats"], queryFn: api.stats });
@@ -17,15 +18,22 @@ export default function DashboardPage() {
   });
 
   if (statsQuery.isLoading) {
-    return <p className="text-muted">Loading dashboard…</p>;
+    return <PageSkeleton />;
   }
   if (statsQuery.isError) {
     return (
-      <p className="text-red-400">
-        Cannot reach Lab API ({API_BASE}). Start the stack with{" "}
-        <code className="text-slate-200">./run-lab.sh</code> or run{" "}
-        <code className="text-slate-200">./run-lab-api.sh</code> in another terminal.
-      </p>
+      <div className="space-y-6">
+        <PageHeader title="Research overview" />
+        <ErrorState
+          title={`Cannot reach Lab API (${API_BASE})`}
+          error="Start the stack with ./run-lab.sh, or run ./run-lab-api.sh in another terminal."
+          action={
+            <Button variant="secondary" onClick={() => statsQuery.refetch()}>
+              Retry
+            </Button>
+          }
+        />
+      </div>
     );
   }
 
@@ -35,6 +43,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        eyebrow="Overview"
         title="Research overview"
         description="Export market data, run backtests from Custom research, then review runs and trade logs."
         actions={
@@ -61,41 +70,7 @@ export default function DashboardPage() {
         </Link>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-panel p-4">
-          <h2 className="section-title mb-1">Top strategies</h2>
-          <p className="section-lead mb-4">Best return % seen across recorded backtests.</p>
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Strategy</th>
-                <th className="text-right">Runs</th>
-                <th className="text-right">Best return</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.top_strategies.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="text-muted text-sm">No strategy runs yet.</td>
-                </tr>
-              )}
-              {stats.top_strategies.map((row) => (
-                <tr key={row.strategy_id}>
-                  <td className="font-medium">{row.strategy_id}</td>
-                  <td className="text-right tabular-nums">{row.n}</td>
-                  <td
-                    className={`text-right font-mono text-sm tabular-nums ${returnPctClassName(
-                      row.best_return,
-                    )}`}
-                  >
-                    {formatReturnPct(row.best_return)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <OverviewResearchAnalytics stats={stats} />
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -107,18 +82,19 @@ export default function DashboardPage() {
             View all
           </Link>
         </div>
-        {recentRuns.length === 0 && !runsQuery.isLoading && (
-          <p className="text-muted text-sm">
-            No runs yet.{" "}
-            <Link href="/data" className="text-accent hover:underline">
-              Export data
-            </Link>{" "}
-            or{" "}
-            <Link href="/custom" className="text-accent hover:underline">
-              start Custom research
-            </Link>
-            .
-          </p>
+        {runsQuery.isLoading && <TableSkeleton rows={5} />}
+        {runsQuery.isError && <ErrorState title="Failed to load recent runs" error={runsQuery.error} />}
+        {recentRuns.length === 0 && runsQuery.isSuccess && (
+          <EmptyState
+            title="No runs yet"
+            description="Export market data, then run a backtest from Custom research."
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                <Link href="/data"><Button variant="secondary">Export data</Button></Link>
+                <Link href="/custom"><Button>Start research</Button></Link>
+              </div>
+            }
+          />
         )}
         {recentRuns.length > 0 && <RunsTable runs={recentRuns} variant="compact" />}
       </section>

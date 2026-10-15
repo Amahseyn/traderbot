@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Field, TextInput } from "@/components/ui/Field";
 import { JsonBlock } from "@/components/ui/JsonBlock";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ErrorState, Skeleton } from "@/components/ui/States";
 import { api } from "@/lib/api";
 
 const labUiTokenConfigured = Boolean(process.env.NEXT_PUBLIC_LAB_API_TOKEN?.trim());
@@ -88,8 +89,9 @@ export default function SettingsPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-4xl space-y-6 sm:space-y-8">
       <PageHeader
+        eyebrow="Configuration"
         title="Settings"
         description="Lab API access, Hyperliquid (default for Live), and Nobitex credentials. Secrets stay on the machine running the Lab API (.env)."
       />
@@ -98,7 +100,14 @@ export default function SettingsPage() {
         title="Lab API access"
         description="When API auth is enabled, jobs, risk changes, credential writes, and artifact downloads require a bearer token. See docs/live-trading.md in the repo."
       >
-        {statusQuery.isLoading && <p className="text-sm text-muted">Checking…</p>}
+        {statusQuery.isLoading && (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-3/5" />
+          </div>
+        )}
+        {statusQuery.isError && <ErrorState title="Could not read credential status" error={statusQuery.error} />}
         {statusQuery.data && (
           <ul className="text-sm space-y-1 text-slate-200">
             <li>
@@ -140,7 +149,14 @@ export default function SettingsPage() {
       </Card>
 
       <Card title="Exchange status">
-        {statusQuery.isLoading && <p className="text-sm text-muted">Checking…</p>}
+        {statusQuery.isLoading && (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-3/5" />
+          </div>
+        )}
+        {statusQuery.isError && <ErrorState title="Could not read credential status" error={statusQuery.error} />}
         {statusQuery.data && (
           <ul className="text-sm space-y-1 text-slate-200">
             <li>
@@ -225,7 +241,7 @@ export default function SettingsPage() {
 
       {statusQuery.data?.api_keys_configured && (
         <Card title="Profile (API key)">
-          {profileQuery.isLoading && <p className="text-sm text-muted">Loading profile…</p>}
+          {profileQuery.isLoading && <Skeleton className="h-16" />}
           {profileQuery.isError && (
             <p className="text-sm text-red-400">
               {profileQuery.error instanceof Error ? profileQuery.error.message : "Profile failed."}

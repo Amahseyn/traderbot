@@ -25,7 +25,8 @@ ensure_lab_api() {
   echo "Starting Lab API on ${health_url} …"
   LAB_KILL_API_PORT=0 "${repo_root}/run-lab-api.sh" &
   local api_pid=$!
-  for _ in $(seq 1 60); do
+  ready_attempts="${LAB_API_READY_MAX_ATTEMPTS:-240}"
+  for _ in $(seq 1 "${ready_attempts}"); do
     if lab_api_healthy "${health_url}"; then
       echo "Lab API ready."
       return 0

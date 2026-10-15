@@ -7,6 +7,7 @@ import { Field, SelectInput, TextInput } from "@/components/ui/Field";
 import { api, type MarketSpec } from "@/lib/api";
 import { formatUtcTimestamp } from "@/lib/format";
 import { marketMatchesSearch, type MarketScope } from "@/lib/dataFilters";
+import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
 
 type MarketSearchPickerProps = {
   selectedSymbol: string | null;
@@ -177,13 +178,10 @@ export function MarketSearchPicker({
         </Button>
       </div>
 
-      {catalogQuery.isLoading && <p className="text-sm text-muted">Loading market catalog…</p>}
+      {catalogQuery.isLoading && <TableSkeleton rows={3} />}
+      {catalogQuery.isError && <ErrorState title="Could not load the market catalog" error={catalogQuery.error} />}
       {syncMarketsMutation.isError && (
-        <p className="text-sm text-red-400">
-          {syncMarketsMutation.error instanceof Error
-            ? syncMarketsMutation.error.message
-            : "Market sync failed."}
-        </p>
+<ErrorState title="Market sync failed" error={syncMarketsMutation.error} />
       )}
 
       <p className="text-xs text-muted">

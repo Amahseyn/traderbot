@@ -11,6 +11,15 @@ from traderbot.algorithms.strategies.pair_trading import PairTradingAlgorithm
 from traderbot.algorithms.strategies.perp_market_making import PerpMarketMakingAlgorithm
 from traderbot.algorithms.strategies.spot_grid import SpotGridAlgorithm
 from traderbot.algorithms.strategies.chart_patterns import ChartPatternsAlgorithm
+from traderbot.algorithms.strategies.dca import DcaAlgorithm
+from traderbot.algorithms.strategies.grid import GridAlgorithm
+from traderbot.algorithms.strategies.ma_trend import MaTrendAlgorithm
+from traderbot.algorithms.strategies.momentum_shock import MomentumShockAlgorithm
+from traderbot.algorithms.strategies.online_logistic import OnlineLogisticAlgorithm
+from traderbot.algorithms.strategies.range_breakout import RangeBreakoutAlgorithm
+from traderbot.algorithms.strategies.rsi_divergence import RsiDivergenceAlgorithm
+from traderbot.algorithms.strategies.rsi_trend import RsiTrendAlgorithm
+from traderbot.algorithms.strategies.scalp_dip import ScalpDipAlgorithm
 from traderbot.algorithms.strategies.ema_cross import EmaCrossAlgorithm
 from traderbot.algorithms.strategies.macd import MacdCrossAlgorithm
 from traderbot.algorithms.strategies.rsi import RsiThresholdAlgorithm
@@ -107,6 +116,69 @@ STRATEGY_CATALOG: tuple[StrategyCatalogEntry, ...] = (
         style="market_making",
         implemented=True,
     ),
+    StrategyCatalogEntry(
+        id="ma_trend",
+        name="MA trend (golden cross)",
+        summary="50/200-style golden cross or price-over-MA entry; exit below slow MA / death cross; retracement adds; trailing stop.",
+        style="trend",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="rsi_trend",
+        name="RSI trend",
+        summary="Momentum: buy RSI crossing up through 55 above an EMA filter; exit RSI below 45 or filter lost.",
+        style="trend",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="rsi_divergence",
+        name="RSI divergence swing",
+        summary="Bullish divergence at confirmed swing lows with confirmation close; stop under the swing low; trailing stop; bearish divergence exit.",
+        style="swing",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="range_breakout",
+        name="Range breakout",
+        summary="Consolidation range breakout on volume; stop just below the breakout; measured-move target.",
+        style="breakout",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="scalp_dip",
+        name="Micro-dip scalper",
+        summary="Low-timeframe dip buys with bounce confirmation; ~0.75% TP, 0.5% SL, optional session-end flat, fixed size.",
+        style="scalping",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="dca",
+        name="Dollar-cost averaging",
+        summary="Fixed cash amount every N bars; summary includes a lump-sum comparison.",
+        style="accumulation",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="grid",
+        name="Grid trading",
+        summary="Range grid: more inventory near the bottom, less near the top; shuts down on range breakout.",
+        style="range",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="momentum_shock",
+        name="Event momentum (shock proxy)",
+        summary="PROXY for news/event momentum: buys price+volume shocks. No news feed; pluggable event source.",
+        style="event",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="online_logistic",
+        name="Online logistic signal",
+        summary="Walk-forward logistic regression on returns/volatility/RSI/momentum/volume (idea from CloddsBot, MIT).",
+        style="ml",
+        implemented=True,
+    ),
 )
 
 _IMPLEMENTED: dict[str, type[Algorithm]] = {
@@ -119,7 +191,21 @@ _IMPLEMENTED: dict[str, type[Algorithm]] = {
     "breakout_atr": BreakoutAtrAlgorithm,
     "spot_grid": SpotGridAlgorithm,
     "perp_market_making": PerpMarketMakingAlgorithm,
+    "ma_trend": MaTrendAlgorithm,
+    "rsi_trend": RsiTrendAlgorithm,
+    "rsi_divergence": RsiDivergenceAlgorithm,
+    "range_breakout": RangeBreakoutAlgorithm,
+    "scalp_dip": ScalpDipAlgorithm,
+    "dca": DcaAlgorithm,
+    "grid": GridAlgorithm,
+    "momentum_shock": MomentumShockAlgorithm,
+    "online_logistic": OnlineLogisticAlgorithm,
 }
+
+
+def _pick(*names: str) -> Callable[[Any], dict[str, Any]]:
+    return lambda namespace: {name: getattr(namespace, name) for name in names}
+
 
 _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
     "sma_cross": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
@@ -163,6 +249,48 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "half_spread_pct": a.mm_half_spread_pct,
         "inventory_skew": a.mm_inventory_skew,
     },
+    "ma_trend": _pick(
+        "trend_fast_period", "trend_slow_period", "ma_kind", "ma_entry_mode", "trailing_stop_pct", "trend_max_adds"
+    ),
+    "rsi_trend": _pick("period", "rsi_trend_entry", "rsi_trend_exit", "trend_filter_period"),
+    "rsi_divergence": _pick(
+        "period",
+        "swing_window_bars",
+        "divergence_rsi_level",
+        "divergence_confirm_bars",
+        "divergence_stop_buffer_pct",
+        "trailing_stop_pct",
+    ),
+    "range_breakout": _pick(
+        "lookback_bars",
+        "range_max_width_pct",
+        "breakout_volume_multiplier",
+        "breakout_stop_fraction",
+        "measured_move_multiplier",
+    ),
+    "scalp_dip": _pick(
+        "dip_lookback_bars",
+        "dip_pct",
+        "take_profit_pct",
+        "stop_loss_pct",
+        "session_end_hour_utc",
+        "cooldown_bars_after_loss",
+        "scalp_position_fraction",
+    ),
+    "dca": _pick("dca_interval_bars", "dca_order_count"),
+    "grid": _pick("lookback_bars", "grid_range_pct", "grid_levels", "grid_breakout_pct", "grid_reanchor_bars"),
+    "momentum_shock": _pick(
+        "lookback_bars", "shock_return_std", "shock_volume_multiplier", "shock_hold_bars", "trailing_stop_pct"
+    ),
+    "online_logistic": _pick(
+        "period",
+        "lookback_bars",
+        "ml_horizon_bars",
+        "ml_learning_rate",
+        "ml_buy_threshold",
+        "ml_sell_threshold",
+        "ml_warmup_samples",
+    ),
 }
 
 
@@ -206,7 +334,7 @@ def algorithm_for_id(strategy_id: str, **kwargs: Any) -> Algorithm:
         )
     cls = _IMPLEMENTED.get(strategy_id)
     if cls is None:
-        known = ", ".join(sorted(_IMPLEMENTED) + ["pair_trading"])
+        known = ", ".join(sorted(_IMPLEMENTED) + ["pair_trading", "funding_carry"])
         raise ValueError(f"unsupported strategy_id={strategy_id!r}; implemented: {known}")
     return cls(**kwargs)
 

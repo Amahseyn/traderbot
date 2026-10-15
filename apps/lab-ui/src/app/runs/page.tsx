@@ -7,8 +7,24 @@ import { Suspense, useMemo, useState } from "react";
 import { RunsTable } from "@/components/RunsTable";
 import { Field, SelectInput } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Button } from "@/components/ui/Button";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/ui/States";
 import { api } from "@/lib/api";
-import { HORIZON_OPTIONS } from "@/lib/pipelines";
+const RUN_HORIZON_FILTERS = [
+  { value: "1m", label: "1 minute ahead" },
+  { value: "5m", label: "5 minutes ahead" },
+  { value: "15m", label: "15 minutes ahead" },
+  { value: "30m", label: "30 minutes ahead" },
+  { value: "1h", label: "1 hour ahead" },
+  { value: "2h", label: "2 hours ahead" },
+  { value: "3h", label: "3 hours ahead" },
+  { value: "4h", label: "4 hours ahead" },
+  { value: "6h", label: "6 hours ahead" },
+  { value: "12h", label: "12 hours ahead" },
+  { value: "1d", label: "1 day ahead" },
+  { value: "2d", label: "2 days ahead" },
+  { value: "3d", label: "3 days ahead" },
+] as const;
 
 function RunsPageContent() {
   const searchParams = useSearchParams();
@@ -47,11 +63,18 @@ function RunsPageContent() {
     return [...values].sort();
   }, [datasetsQuery.data, symbol]);
   const strategies = strategiesQuery.data ?? [];
+  const hasFilters = Boolean(runKind || symbol || strategyId || horizonLabel);
+  const clearFilters = () => {
+    setRunKind("");
+    setSymbol("");
+    setStrategyId("");
+    setHorizonLabel("");
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Review"
+        eyebrow="Step 3 · Review"
         title="Runs"
         description="Strategy backtests in the catalog. Filter the list, then open a run for trade logs, charts, and parameters."
       />
@@ -89,7 +112,7 @@ function RunsPageContent() {
         <Field label="Horizon">
           <SelectInput value={horizonLabel} onChange={(event) => setHorizonLabel(event.target.value)}>
             <option value="">All</option>
-            {HORIZON_OPTIONS.filter((option) => option.value !== "usual" && option.value !== "all").map((option) => (
+            {RUN_HORIZON_FILTERS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -98,21 +121,31 @@ function RunsPageContent() {
         </Field>
       </div>
 
-      {runsQuery.isLoading && <p className="text-muted">Loading runs…</p>}
-      {runsQuery.isError && <p className="text-red-400">Failed to load runs.</p>}
+      {runsQuery.isLoading && <TableSkeleton rows={8} />}
+      {runsQuery.isError && (
+        <ErrorState
+          title="Failed to load runs"
+          error={runsQuery.error}
+          action={<Button variant="secondary" onClick={() => runsQuery.refetch()}>Retry</Button>}
+        />
+      )}
 
-      {!runsQuery.isLoading && rows.length === 0 && (
-        <p className="text-muted text-sm">
-          No runs match these filters. Export data under{" "}
-          <Link href="/data" className="text-accent hover:underline">
-            Data
-          </Link>{" "}
-          or start a job from{" "}
-          <Link href="/custom" className="text-accent hover:underline">
-            Custom research
-          </Link>
-          .
-        </p>
+      {runsQuery.isSuccess && rows.length === 0 && (
+        <EmptyState
+          title={hasFilters ? "No runs match these filters" : "No runs yet"}
+          description={
+            <>
+              Export data under{" "}
+              <Link href="/data" className="text-accent hover:underline">Data</Link> or start a job from{" "}
+              <Link href="/custom" className="text-accent hover:underline">Custom research</Link>.
+            </>
+          }
+          action={
+            hasFilters ? (
+              <Button variant="secondary" onClick={clearFilters}>Clear filters</Button>
+            ) : undefined
+          }
+        />
       )}
 
       {rows.length > 0 && (
@@ -128,7 +161,7 @@ function RunsPageContent() {
 
 export default function RunsPage() {
   return (
-    <Suspense fallback={<p className="text-muted">Loading runs…</p>}>
+    <Suspense fallback={<TableSkeleton rows={8} />}>
       <RunsPageContent />
     </Suspense>
   );

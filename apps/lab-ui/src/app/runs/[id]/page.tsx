@@ -6,12 +6,14 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { ArtifactGallery } from "@/components/ArtifactGallery";
 import { CompareSessionPanel } from "@/components/CompareSessionPanel";
+import { RunAnalyticsPanel } from "@/components/RunAnalyticsPanel";
 import { RunDetailOverview } from "@/components/RunDetailOverview";
 import { TradeLogsTable } from "@/components/TradeLogsTable";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { JsonBlock } from "@/components/ui/JsonBlock";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ErrorState, PageSkeleton } from "@/components/ui/States";
 import { api, apiUrl } from "@/lib/api";
 
 export default function RunDetailPage() {
@@ -22,20 +24,26 @@ export default function RunDetailPage() {
 
   if (runQuery.isLoading) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-10 w-2/3 rounded-lg bg-panel" />
-        <div className="h-40 rounded-xl bg-panel" />
-        <div className="h-64 rounded-xl bg-panel" />
-      </div>
+      <PageSkeleton />
     );
   }
   if (runQuery.isError || !runQuery.data) {
     return (
       <div className="space-y-4">
-        <p className="text-red-400">Run not found.</p>
-        <Link href="/runs">
-          <Button variant="secondary">Back to runs</Button>
-        </Link>
+        <ErrorState
+          title={runQuery.isError ? "Could not load this run" : "Run not found"}
+          error={runQuery.error}
+          action={
+            <div className="flex flex-wrap gap-2">
+              <Link href="/runs">
+                <Button variant="secondary">Back to runs</Button>
+              </Link>
+              <Button variant="ghost" onClick={() => runQuery.refetch()}>
+                Retry
+              </Button>
+            </div>
+          }
+        />
       </div>
     );
   }
@@ -48,6 +56,11 @@ export default function RunDetailPage() {
 
   return (
     <div className="space-y-8">
+      <nav aria-label="Breadcrumb" className="text-muted -mb-4 text-xs">
+        <Link href="/runs" className="hover:text-white">Runs</Link>
+        <span className="mx-1.5">/</span>
+        <span className="text-slate-300">{run.id.slice(0, 8)}</span>
+      </nav>
       <PageHeader
         eyebrow="Review"
         title={titleParts.length > 0 ? titleParts.join(" · ") : `Run ${run.id.slice(0, 8)}…`}
@@ -65,6 +78,8 @@ export default function RunDetailPage() {
       />
 
       <RunDetailOverview run={run} />
+
+      {run.run_kind === "strategy_backtest" && <RunAnalyticsPanel runId={run.id} />}
 
       {run.run_kind === "strategy_backtest" && <TradeLogsTable metrics={run.metrics} />}
 

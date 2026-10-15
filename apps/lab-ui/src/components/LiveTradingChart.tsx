@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { api, type OhlcBar } from "@/lib/api";
 import { summarizeLiveJobLog, type TradeMarker } from "@/lib/liveLog";
 import { formatMoney, formatResolutionLabel, formatUtcTimestamp } from "@/lib/format";
+import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
 
 type LiveTradingChartProps = {
   jobId: string;
@@ -322,9 +323,13 @@ export function LiveTradingChart({
       )}
 
       <div className="px-3 py-3">
-        {ohlcQuery.isLoading && <p className="text-sm text-muted">Loading candles…</p>}
+        {ohlcQuery.isLoading && <Skeleton className="h-56" />}
         {ohlcQuery.isError && (
-          <p className="text-sm text-red-400">Could not load OHLC for this session.</p>
+          <ErrorState
+            title="Could not load candles for this session"
+            error={ohlcQuery.error}
+            action={<button type="button" className="text-xs text-accent hover:underline" onClick={() => ohlcQuery.refetch()}>Retry</button>}
+          />
         )}
 
         {plot && (
@@ -467,7 +472,7 @@ export function LiveTradingChart({
           </div>
         )}
 
-        {!ohlcQuery.isLoading && bars.length < 2 && (
+        {ohlcQuery.isSuccess && bars.length < 2 && (
           <p className="text-sm text-muted">Not enough candle data to draw a chart yet.</p>
         )}
 

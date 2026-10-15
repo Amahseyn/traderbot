@@ -8,6 +8,7 @@ import { filterJobLogText } from "@/lib/jobLog";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
 
 const LIVE_JOB_POLL_MS = 500;
 const LIVE_JOBS_LIST_POLL_MS = 1000;
@@ -317,12 +318,13 @@ export function JobMonitor({
             }
           >
             {activeJobId && activeJobQuery.isPending && !displayJob && (
-              <p className="text-sm text-muted">Loading job {activeJobId.slice(0, 8)}…</p>
+              <TableSkeleton rows={3} />
             )}
             {activeJobId && activeJobQuery.isError && !displayJob && (
-              <p className="text-sm text-red-400">
-                Could not load this job. It may have been cleared from the Lab API database.
-              </p>
+              <ErrorState
+                title="Could not load this job"
+                error="It may have been cleared from the Lab API database."
+              />
             )}
             {(displayJob || (fullLog && alwaysShowLogPanel && !activeJobId)) && (
               <div className="space-y-2 text-sm">
@@ -345,11 +347,7 @@ export function JobMonitor({
                 </div>
                 )}
                 {displayJob && stopMutation.isError && (
-                  <p className="text-sm text-red-400">
-                    {stopMutation.error instanceof Error
-                      ? stopMutation.error.message
-                      : "Could not stop this job."}
-                  </p>
+<ErrorState title="Could not stop this job" error={stopMutation.error} />
                 )}
                 {displayJob?.status === "completed" && displayJob.job_type === "strategy-test" && (
                   <p className="text-sm text-emerald-300/90">
@@ -397,7 +395,7 @@ export function JobMonitor({
                     ) : (
                       <>
                         <a href="/data" className="text-accent hover:underline">Data</a> or{" "}
-                        <a href="/custom" className="text-accent hover:underline">Custom research</a>
+                        <a href="/custom" className="text-accent hover:underline">Research</a>
                       </>
                     )}
                     .
@@ -407,7 +405,7 @@ export function JobMonitor({
                   <p className="text-sm text-amber-200/90">
                     No log lines yet. If this stays empty, the Lab API may have restarted while an
                     older job was still marked running — run compare again from{" "}
-                    <a href="/custom" className="text-accent hover:underline">Custom research</a> (or
+                    <a href="/custom" className="text-accent hover:underline">Research</a> (or
                     restart with <code className="text-xs">./run-lab-api.sh</code> and start a new
                     job).
                   </p>
@@ -454,6 +452,8 @@ export function JobMonitor({
       )}
 
       <Card title={recentJobsTitle} description={recentJobsDescription}>
+        {jobsForDisplay.length > 0 && (
+        <div className="overflow-x-auto rounded-lg border border-border">
         <table className="data">
           <thead>
             <tr>
@@ -503,11 +503,15 @@ export function JobMonitor({
             })}
           </tbody>
         </table>
-        {jobsQuery.isLoading && <p className="text-muted mt-2 text-sm">Loading jobs…</p>}
-        {!jobsQuery.isLoading && jobsForDisplay.length === 0 && (
-          <p className="text-muted mt-2 text-sm">
-            {jobTypeFilter ? "No trading jobs yet." : "No background jobs yet."}
-          </p>
+        </div>
+        )}
+        {jobsQuery.isLoading && <TableSkeleton rows={4} />}
+        {jobsQuery.isError && <ErrorState title="Failed to load jobs" error={jobsQuery.error} />}
+        {jobsQuery.isSuccess && jobsForDisplay.length === 0 && (
+          <EmptyState
+            title={jobTypeFilter ? "No trading jobs yet" : "No background jobs yet"}
+            description={jobTypeFilter ? "Start a paper or live session above." : "Jobs you start appear here with live status and logs."}
+          />
         )}
       </Card>
     </div>

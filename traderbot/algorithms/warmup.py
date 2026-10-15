@@ -26,4 +26,19 @@ def warmup_bar_count(strategy_id: str, kwargs: dict[str, Any]) -> int:
         return max(lookback, atr_period) + 5
     if strategy_id == "chart_patterns":
         return 2 * swing + separation + 20
+    if strategy_id == "ma_trend":
+        return int(kwargs.get("trend_slow_period", 200)) + 2
+    if strategy_id == "rsi_trend":
+        return max(period, int(kwargs.get("trend_filter_period", 50))) + 2
+    if strategy_id == "rsi_divergence":
+        return period + 4 * swing + 20
+    if strategy_id in ("range_breakout", "grid", "momentum_shock"):
+        return lookback + 2
+    if strategy_id == "scalp_dip":
+        return int(kwargs.get("dip_lookback_bars", 10)) + 1
+    if strategy_id == "online_logistic":
+        # The model trains online from the first bar; replay at least this much history live.
+        return lookback + int(kwargs.get("ml_horizon_bars", 6)) + int(kwargs.get("ml_warmup_samples", 100)) + period
+    if strategy_id == "dca":
+        return 0
     return max(slow, period, lookback, atr_period) + 10

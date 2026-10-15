@@ -189,6 +189,21 @@ def vectorbt_extra_for_backtest(
     slippage_rate: float = 0.0,
     execution: str = DEFAULT_BACKTEST_EXECUTION,
 ) -> dict[str, Any] | None:
+    extra: dict[str, Any] = {}
+    if algorithm.name == "dca":
+        from traderbot.backtesting.benchmarks import build_dca_lump_sum_comparison
+
+        extra["lump_sum_benchmark"] = build_dca_lump_sum_comparison(
+            algorithm,
+            bars,
+            initial_cash=initial_cash,
+            fee_rate=fee_rate,
+            slippage_rate=slippage_rate,
+            execution=execution,
+        )
+    if getattr(algorithm, "uses_position_sizing", False):
+        extra["vectorbt_skipped"] = "partial position sizing; vectorbt from_signals assumes all-in/all-out"
+        return extra
     try:
         metrics = vectorbt_metrics_dict(
             algorithm,
@@ -199,5 +214,5 @@ def vectorbt_extra_for_backtest(
             execution=execution,
         )
     except ImportError:
-        return None
-    return {"vectorbt": metrics}
+        return extra or None
+    return {**extra, "vectorbt": metrics}

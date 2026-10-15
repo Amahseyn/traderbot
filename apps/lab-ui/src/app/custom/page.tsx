@@ -248,11 +248,11 @@ export default function CustomPipelinePage() {
       Boolean(datetimeLocalToUtcIso(runStartLocal) || datetimeLocalToUtcIso(runEndLocal)));
 
   return (
-    <div className="space-y-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:items-start lg:gap-8">
+    <div className="space-y-6 sm:space-y-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:items-start lg:gap-8">
       <div className="space-y-8 min-w-0">
       <PageHeader
-        eyebrow="Research loop"
-        title="Custom pipeline"
+        eyebrow="Step 2 · Research"
+        title="Research pipeline"
         description="Configure an end-to-end run: download one or a batch of markets × horizons from Nobitex, or pick OHLC files, then compare rule-based strategies (with a cap or subset)."
       />
 
@@ -302,7 +302,7 @@ export default function CustomPipelinePage() {
                 </div>
                 <Field label="Strategies">
                   {strategiesQuery.isLoading ? (
-                    <p className="text-sm text-muted">Loading strategies…</p>
+                    <div className="grid gap-2 sm:grid-cols-2">{[0, 1, 2, 3].map((index) => <div key={index} className="h-8 animate-pulse rounded-lg bg-surface" />)}</div>
                   ) : (
                     <StrategyMultiSelect
                       strategies={ruleStrategies}

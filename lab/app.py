@@ -155,6 +155,19 @@ def create_app(database_path: Path | None = None):
         finally:
             connection.close()
 
+    @app.get("/api/runs/{run_id}/analytics")
+    def api_run_analytics(run_id: str):
+        from lab.store.run_analytics import compute_run_analytics
+
+        connection = get_connection()
+        try:
+            row = fetch_evaluation_run(connection, run_id)
+        finally:
+            connection.close()
+        if row is None:
+            raise HTTPException(status_code=404, detail="run not found")
+        return {"run_id": run_id, **compute_run_analytics(row.metrics or {})}
+
     @app.get("/api/runs/{run_id}/artifact")
     def api_run_artifact(run_id: str, file: str = Query(..., min_length=1)):
         connection = get_connection()

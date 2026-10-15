@@ -25,6 +25,15 @@ _LIVE_TUNE_PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
     "bollinger_mean_reversion": {"period": [15, 20, 25], "num_std": [1.5, 2.0, 2.5]},
     "chart_patterns": {"swing_window_bars": [2, 3, 5], "min_swing_separation_bars": [3, 5, 8]},
     "breakout_atr": {"lookback_bars": [10, 20, 30], "atr_multiplier": [1.5, 2.0, 2.5]},
+    "ma_trend": {"trend_fast_period": [10, 20], "trend_slow_period": [50, 100]},
+    "rsi_trend": {"rsi_trend_entry": [50, 55, 60], "rsi_trend_exit": [40, 45]},
+    "rsi_divergence": {"swing_window_bars": [2, 3], "divergence_rsi_level": [40, 45]},
+    "range_breakout": {"lookback_bars": [10, 20], "range_max_width_pct": [0.03, 0.06]},
+    "scalp_dip": {"dip_pct": [0.003, 0.005], "take_profit_pct": [0.005, 0.01]},
+    "dca": {"dca_interval_bars": [4, 8], "dca_order_count": [5, 10]},
+    "grid": {"grid_range_pct": [0.02, 0.05], "grid_levels": [4, 8]},
+    "momentum_shock": {"shock_return_std": [2.0, 2.5], "shock_hold_bars": [6, 12]},
+    "online_logistic": {"ml_horizon_bars": [3, 6], "ml_buy_threshold": [0.52, 0.55]},
 }
 
 

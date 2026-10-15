@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from traderbot.algorithms.utils import price_context_kwargs_from_namespace
-from traderbot.utils.horizons import horizon_label, price_series_from_bars
+from traderbot.utils.horizons import horizon_label, price_series_from_bars, resolution_tokens_for_horizon_label
 from traderbot.utils.bars import load_bars_csv, normalize_bar
 from traderbot.utils.equity import buy_hold_value, final_equity_from_curve
 from utils.plots import build_subplot_grid_shape, hide_unused_subplot_axes, visualizations_dir
@@ -35,6 +35,8 @@ def test_final_equity_from_curve():
 
 def test_horizon_label_and_price_series():
     assert horizon_label(60, 4) == "4h"
+    assert resolution_tokens_for_horizon_label("1h", ("1", "60", "240", "D")) == ["60"]
+    assert resolution_tokens_for_horizon_label("1d", ("60", "D", "2D")) == ["D"]
     bars = [{"timestamp": 1, "close": 100.0}, {"timestamp": 2, "close": 101.0}]
     assert price_series_from_bars(bars) == [(1, 100.0), (2, 101.0)]
 

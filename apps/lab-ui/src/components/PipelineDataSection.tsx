@@ -14,6 +14,7 @@ import {
   uniqueDatasetSymbols,
 } from "@/lib/dataFilters";
 import { formatDurationMinutes, formatUtcTimestamp, minutesFromResolution } from "@/lib/format";
+import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
 
 export type DataSourceMode = "existing" | "download";
 
@@ -344,13 +345,15 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
               </SelectInput>
             </Field>
           </div>
-          {datasetsQuery.isLoading && <p className="text-sm text-muted">Loading datasets…</p>}
+          {datasetsQuery.isLoading && <TableSkeleton rows={4} />}
           {datasetsQuery.isError && (
-            <p className="text-sm text-red-400">
-              {datasetsQuery.error instanceof Error ? datasetsQuery.error.message : "Could not load datasets."}
-            </p>
+            <ErrorState
+              title="Could not load datasets"
+              error={datasetsQuery.error}
+              action={<Button type="button" variant="secondary" onClick={() => datasetsQuery.refetch()}>Retry</Button>}
+            />
           )}
-          {!datasetsQuery.isLoading && (
+          {datasetsQuery.isSuccess && (
             <CatalogDatasetTable
               rows={filteredDatasets}
               selectedIds={state.datasetIds}
@@ -478,33 +481,38 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
                 )}
               </div>
 
-              {catalogQuery.isLoading && <p className="text-sm text-muted">Loading market catalog…</p>}
+              {catalogQuery.isLoading && <TableSkeleton rows={3} />}
               {catalogQuery.isError && (
-                <p className="text-sm text-red-400">
-                  {catalogQuery.error instanceof Error
-                    ? catalogQuery.error.message
-                    : "Could not load market catalog (is the Lab API running?)."}
-                </p>
+                <ErrorState
+                  title="Could not load the market catalog"
+                  error={catalogQuery.error}
+                  action={<Button type="button" variant="secondary" onClick={() => catalogQuery.refetch()}>Retry</Button>}
+                />
               )}
               {syncMarketsMutation.isError && (
-                <p className="text-sm text-red-400">
-                  {syncMarketsMutation.error instanceof Error
-                    ? syncMarketsMutation.error.message
-                    : "Market sync failed."}
-                  {state.marketScope === "nobitex_all" && (
-                    <span className="mt-1 block text-amber-200/90">
-                      Nobitex may be blocked from your network (SSL/VPN). Use{" "}
-                      <strong>Load offline catalog</strong> or switch scope to{" "}
-                      <strong>Crypto 1h jobs file</strong>, then Sync.
-                    </span>
-                  )}
-                </p>
+                <ErrorState
+                  title="Market sync failed"
+                  error={syncMarketsMutation.error}
+                  action={
+                    state.marketScope === "nobitex_all" ? (
+                      <span className="text-xs text-amber-200/90">
+                        Nobitex may be blocked from your network (SSL/VPN). Use <strong>Load offline catalog</strong> or
+                        switch scope to <strong>Crypto 1h jobs file</strong>, then Sync.
+                      </span>
+                    ) : undefined
+                  }
+                />
               )}
               {catalogEmpty && !catalogQuery.isLoading && (
-                <p className="text-sm text-amber-200/90">
-                  Market catalog is empty. Click <strong>Sync catalog</strong> (Hyperliquid or Nobitex scope), or switch
-                  scope to <strong>Crypto 1h jobs file</strong> for offline pairs.
-                </p>
+                <EmptyState
+                  title="Market catalog is empty"
+                  description={
+                    <>
+                      Click <strong>Sync catalog</strong> (Hyperliquid or Nobitex scope), or switch scope to{" "}
+                      <strong>Crypto 1h jobs file</strong> for offline pairs.
+                    </>
+                  }
+                />
               )}
               {searchNeedle.length > 0 && marketsSearchQuery.isFetching && (
                 <p className="text-sm text-muted">Searching…</p>
@@ -734,11 +742,9 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
                   and switch to “Use existing catalog” after it finishes.
                 </p>
                 {standaloneExportMutation.isError && (
-                  <p className="mt-1 text-red-400">
-                    {standaloneExportMutation.error instanceof Error
-                      ? standaloneExportMutation.error.message
-                      : "Export failed to start."}
-                  </p>
+                  <div className="mt-2">
+                    <ErrorState title="Export failed to start" error={standaloneExportMutation.error} />
+                  </div>
                 )}
               </div>
           </>

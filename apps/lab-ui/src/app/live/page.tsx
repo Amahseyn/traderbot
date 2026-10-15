@@ -50,6 +50,7 @@ export default function LiveTradingPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        eyebrow="Trade"
         title="Live trading"
         description="Run one or many sessions in parallel — each job gets its own chart, log stream, and live candle feed (Hyperliquid by default)."
         actions={
@@ -61,7 +62,11 @@ export default function LiveTradingPage() {
                   : "bg-amber-900/30 text-amber-100 ring-1 ring-amber-500/25"
               }`}
             >
-              {hyperliquidReady
+              {authQuery.isLoading
+                ? "Checking credentials…"
+                : authQuery.isError
+                  ? "Credential status unavailable"
+                  : hyperliquidReady
                 ? "Hyperliquid ready"
                 : nobitexReady
                   ? "Nobitex keys configured"

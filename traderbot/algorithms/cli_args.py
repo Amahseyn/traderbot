@@ -4,6 +4,48 @@ import argparse
 from typing import Any
 
 
+# (name, type, default, help) for strategies added after the original flag set.
+EXTRA_STRATEGY_PARAMS: tuple[tuple[str, type, object, str], ...] = (
+    ("trend_fast_period", int, 50, "ma_trend fast moving average period"),
+    ("trend_slow_period", int, 200, "ma_trend slow moving average period"),
+    ("ma_kind", str, "sma", "ma_trend average type: sma or ema"),
+    ("ma_entry_mode", str, "golden_cross", "ma_trend entry: golden_cross or price_cross"),
+    ("trailing_stop_pct", float, 0.0, "Trailing stop below the peak close (0=off; ma_trend, rsi_divergence, momentum_shock)"),
+    ("trend_max_adds", int, 0, "ma_trend tranches added on retracements to the fast MA"),
+    ("rsi_trend_entry", float, 55.0, "rsi_trend: buy when RSI crosses up through this level"),
+    ("rsi_trend_exit", float, 45.0, "rsi_trend: sell when RSI crosses down through this level"),
+    ("trend_filter_period", int, 50, "rsi_trend EMA trend filter period"),
+    ("divergence_rsi_level", float, 40.0, "rsi_divergence: prior swing-low RSI must be at or below this"),
+    ("divergence_confirm_bars", int, 5, "rsi_divergence: bars allowed for the confirmation close"),
+    ("divergence_stop_buffer_pct", float, 0.005, "rsi_divergence stop buffer below the swing low"),
+    ("range_max_width_pct", float, 0.06, "range_breakout: max (high-low)/mean close for a consolidation"),
+    ("breakout_volume_multiplier", float, 1.5, "range_breakout: breakout volume vs range average"),
+    ("breakout_stop_fraction", float, 0.5, "range_breakout: stop at range high minus this fraction of height"),
+    ("measured_move_multiplier", float, 1.0, "range_breakout target = range high + height * this"),
+    ("dip_lookback_bars", int, 10, "scalp_dip: bars for the recent high"),
+    ("dip_pct", float, 0.004, "scalp_dip: dip below the recent high that triggers a buy"),
+    ("take_profit_pct", float, 0.0075, "scalp_dip take profit"),
+    ("stop_loss_pct", float, 0.005, "scalp_dip stop loss"),
+    ("session_end_hour_utc", int, -1, "scalp_dip: go flat during this UTC hour (-1=off)"),
+    ("cooldown_bars_after_loss", int, 3, "scalp_dip: bars to wait after a losing trade"),
+    ("scalp_position_fraction", float, 1.0, "scalp_dip fixed position size (fraction of equity)"),
+    ("dca_interval_bars", int, 24, "dca: bars between purchases"),
+    ("dca_order_count", int, 10, "dca: number of equal purchases (each = initial cash / count)"),
+    ("grid_range_pct", float, 0.05, "grid: range half-width around the anchor mean close"),
+    ("grid_levels", int, 5, "grid: number of bands"),
+    ("grid_breakout_pct", float, 0.01, "grid: shut down when close exits the range by this much"),
+    ("grid_reanchor_bars", int, 0, "grid: re-anchor this many bars after a shutdown (0=never)"),
+    ("shock_return_std", float, 2.5, "momentum_shock: bar return z-score that counts as an event"),
+    ("shock_volume_multiplier", float, 2.0, "momentum_shock: event volume vs average"),
+    ("shock_hold_bars", int, 12, "momentum_shock: max bars to hold after an event"),
+    ("ml_horizon_bars", int, 6, "online_logistic: label horizon (bars ahead)"),
+    ("ml_learning_rate", float, 0.05, "online_logistic SGD learning rate"),
+    ("ml_buy_threshold", float, 0.55, "online_logistic: buy when P(up) is at least this"),
+    ("ml_sell_threshold", float, 0.45, "online_logistic: sell when P(up) is at most this"),
+    ("ml_warmup_samples", int, 100, "online_logistic: labelled samples before trading"),
+)
+
+
 def default_strategy_namespace(**overrides: Any) -> argparse.Namespace:
     """Defaults aligned with ``add_strategy_param_flags`` for Lab jobs and compare sessions."""
     values: dict[str, Any] = {
@@ -40,6 +82,7 @@ def default_strategy_namespace(**overrides: Any) -> argparse.Namespace:
         "mm_half_spread_pct": 0.0005,
         "mm_inventory_skew": 0.0,
     }
+    values.update({name: default for name, _kind, default, _help in EXTRA_STRATEGY_PARAMS})
     values.update(overrides)
     return argparse.Namespace(**values)
 
@@ -120,3 +163,5 @@ def add_strategy_param_flags(parser: argparse.ArgumentParser) -> None:
         default=0.35,
         help="Minimum pattern score before chart_patterns emits buy/sell",
     )
+    for name, kind, default, help_text in EXTRA_STRATEGY_PARAMS:
+        parser.add_argument(f"--{name.replace('_', '-')}", type=kind, default=default, help=help_text)

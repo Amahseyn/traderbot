@@ -6,6 +6,7 @@ import { ArtifactGallery } from "@/components/ArtifactGallery";
 import { Card } from "@/components/ui/Card";
 import { api, type EvaluationRun } from "@/lib/api";
 import { formatReturnPct, parseReturnPct, returnPctClassName } from "@/lib/format";
+import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
 
 type CompareSessionPanelProps = {
   sessionId: string;
@@ -52,12 +53,13 @@ export function CompareSessionPanel({ sessionId, currentRunId, symbol }: Compare
           : "Other strategies tested on the same dataset in one compare job."
       }
     >
-      {peersQuery.isLoading && <p className="text-muted text-sm">Loading compare results…</p>}
-      {!peersQuery.isLoading && peers.length === 0 && (
+      {peersQuery.isLoading && <TableSkeleton rows={4} />}
+      {peersQuery.isError && <ErrorState title="Could not load compare results" error={peersQuery.error} />}
+      {peersQuery.isSuccess && peers.length === 0 && (
         <p className="text-muted text-sm">No sibling runs found for this compare session.</p>
       )}
       {peers.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-border">
+        <div className="overflow-x-auto rounded-lg border border-border">
           <table className="data">
             <thead>
               <tr>

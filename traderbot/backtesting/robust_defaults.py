@@ -29,6 +29,15 @@ DEFAULT_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
     "bollinger_mean_reversion": {"period": [14, 20, 30], "num_std": [1.5, 2.0, 2.5]},
     "chart_patterns": {"swing_window_bars": [2, 3, 5], "pattern_score_threshold": [0.25, 0.35, 0.5]},
     "breakout_atr": {"lookback_bars": [10, 20, 40], "atr_multiplier": [1.0, 1.5, 2.0]},
+    "ma_trend": {"trend_fast_period": [20, 50], "trend_slow_period": [100, 200]},
+    "rsi_trend": {"rsi_trend_entry": [50, 55, 60], "rsi_trend_exit": [40, 45]},
+    "rsi_divergence": {"swing_window_bars": [2, 3, 5], "divergence_rsi_level": [35, 40, 45]},
+    "range_breakout": {"lookback_bars": [10, 20, 40], "range_max_width_pct": [0.03, 0.06, 0.1]},
+    "scalp_dip": {"dip_pct": [0.003, 0.005, 0.008], "take_profit_pct": [0.005, 0.0075, 0.01]},
+    "dca": {"dca_interval_bars": [6, 24, 72], "dca_order_count": [5, 10, 20]},
+    "grid": {"grid_range_pct": [0.03, 0.05, 0.1], "grid_levels": [4, 6, 10]},
+    "momentum_shock": {"shock_return_std": [2.0, 2.5, 3.0], "shock_hold_bars": [6, 12, 24]},
+    "online_logistic": {"ml_horizon_bars": [3, 6, 12], "ml_buy_threshold": [0.52, 0.55, 0.6]},
 }
 
 FULL_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
@@ -48,6 +57,15 @@ FULL_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
         "lookback_bars": [8, 10, 15, 20, 30, 40],
         "atr_multiplier": [0.75, 1.0, 1.25, 1.5, 2.0, 2.5],
     },
+    "ma_trend": {"trend_fast_period": [10, 20, 30, 50, 80], "trend_slow_period": [100, 150, 200, 250]},
+    "rsi_trend": {"rsi_trend_entry": [50, 52, 55, 58, 60, 65], "rsi_trend_exit": [35, 40, 45, 48]},
+    "rsi_divergence": {"swing_window_bars": [2, 3, 4, 5, 7], "divergence_rsi_level": [30, 35, 40, 45, 50]},
+    "range_breakout": {"lookback_bars": [8, 12, 16, 20, 30, 40], "range_max_width_pct": [0.02, 0.03, 0.05, 0.08, 0.12]},
+    "scalp_dip": {"dip_pct": [0.002, 0.003, 0.004, 0.006, 0.008, 0.012], "take_profit_pct": [0.005, 0.0065, 0.0075, 0.009, 0.01]},
+    "dca": {"dca_interval_bars": [1, 6, 12, 24, 48, 72, 168], "dca_order_count": [4, 8, 12, 24]},
+    "grid": {"grid_range_pct": [0.02, 0.03, 0.05, 0.08, 0.12], "grid_levels": [3, 4, 6, 8, 12]},
+    "momentum_shock": {"shock_return_std": [1.5, 2.0, 2.5, 3.0, 3.5], "shock_hold_bars": [3, 6, 12, 24, 48]},
+    "online_logistic": {"ml_horizon_bars": [1, 3, 6, 12, 24], "ml_buy_threshold": [0.5, 0.52, 0.55, 0.58, 0.62]},
 }
 
 

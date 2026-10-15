@@ -8,8 +8,9 @@ import { api, API_BASE } from "@/lib/api";
 type NavLink = { href: string; label: string };
 
 const LOOP_LINKS: NavLink[] = [
+  { href: "/", label: "Overview" },
   { href: "/data", label: "Data" },
-  { href: "/custom", label: "Custom" },
+  { href: "/custom", label: "Research" },
   { href: "/strategies", label: "Strategies" },
   { href: "/live", label: "Live" },
   { href: "/runs", label: "Runs" },
@@ -21,6 +22,7 @@ function NavItem({ link, active }: { link: NavLink; active: boolean }) {
   return (
     <Link
       href={link.href}
+      aria-current={active ? "page" : undefined}
       className={`shrink-0 rounded-lg px-3 py-1.5 text-sm transition ${
         active
           ? "bg-accent/20 text-white ring-1 ring-accent/30"
@@ -69,15 +71,16 @@ export function Nav() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky top-0 z-20 border-b border-border bg-panel/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-1 px-6 py-3">
+    <nav aria-label="Main" className="sticky top-0 z-20 border-b border-border bg-panel/95 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-3 sm:px-6 [scrollbar-width:none]">
         <Link
           href="/"
           className="mr-2 flex items-center font-semibold text-white tracking-tight shrink-0"
           title="Overview"
         >
           <ApiStatusDot />
-          Traderbot Lab
+          <span className="hidden sm:inline">Traderbot Lab</span>
+          <span className="sm:hidden">Lab</span>
         </Link>
 
         {LOOP_LINKS.map((link) => (

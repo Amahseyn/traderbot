@@ -14,6 +14,7 @@ import {
   liveSessionSubtitle,
   type LiveTerminalSession,
 } from "@/lib/liveSession";
+import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
 
 const TERMINAL_JOB_TYPES = new Set(["terminal-once", "terminal-live", "terminal-replay"]);
 const LIVE_JOB_POLL_MS = 500;
@@ -145,7 +146,7 @@ export function LiveSessionsCharts({
       )}
 
       {watchedJobIds.length > 0 && visibleSessions.length === 0 && (
-        <p className="text-sm text-muted">Loading session data…</p>
+        <div className="grid gap-4 lg:grid-cols-2"><Skeleton className="h-72 rounded-xl" /><Skeleton className="h-72 rounded-xl" /></div>
       )}
 
       {visibleSessions.length > 0 && (

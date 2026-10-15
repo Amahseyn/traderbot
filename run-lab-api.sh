@@ -22,7 +22,7 @@ run_lab() {
   PYTHONPATH="${repo_root}${PYTHONPATH:+:${PYTHONPATH}}" python3 -m lab "$@"
 }
 
-run_lab init
+# serve runs DB init/migrations on startup; a separate init duplicated work and delayed /health.
 
 if [[ "${LAB_KILL_API_PORT:-1}" != "0" ]]; then
   kill_listen_port "${lab_port}"

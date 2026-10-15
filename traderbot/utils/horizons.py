@@ -1,8 +1,21 @@
 from __future__ import annotations
 
+from typing import Any
+
 from traderbot.utils.resolution import resolution_minutes
 
-from typing import Any
+
+def resolution_tokens_for_horizon_label(label: str, tokens: tuple[str, ...]) -> list[str]:
+    """Resolution tokens whose one-bar label is ``label`` (``60`` → ``1h``)."""
+    matched: list[str] = []
+    for token in tokens:
+        try:
+            minutes = resolution_minutes(token)
+        except ValueError:
+            continue
+        if horizon_label(minutes, 1) == label:
+            matched.append(token)
+    return matched
 
 
 def horizon_label(bar_minutes: int, horizon_bars: int) -> str:

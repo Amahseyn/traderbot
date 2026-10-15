@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Field, SelectInput, TextInput } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/ui/States";
 import Link from "next/link";
 import { api, datasetDownloadUrl } from "@/lib/api";
 import { formatUtcTimestamp } from "@/lib/format";
@@ -81,17 +82,17 @@ export default function DataPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="1 · Data"
+        eyebrow="Step 1 · Data"
         title="Data"
         description="Sync the Nobitex market catalog, export OHLC into data/, and download registered datasets for workbench jobs."
         actions={
-          <Link href="/actions">
-            <Button variant="secondary">Open workbench</Button>
+          <Link href="/custom">
+            <Button variant="secondary">Open research</Button>
           </Link>
         }
       />
 
-      <div className="grid gap-8 lg:grid-cols-5">
+      <div className="grid gap-6 lg:grid-cols-5 lg:gap-8">
         <div className="space-y-6 lg:col-span-3">
           <Card
             title="Nobitex markets"
@@ -130,29 +131,29 @@ export default function DataPage() {
               </Button>
             </div>
 
-            {catalogQuery.isLoading && <p className="text-sm text-muted">Loading catalog from database…</p>}
+            {catalogQuery.isLoading && <TableSkeleton rows={4} />}
             {catalogQuery.isError && (
-              <p className="text-sm text-red-400">
-                {catalogQuery.error instanceof Error
-                  ? catalogQuery.error.message
-                  : "Could not read market catalog from the database."}{" "}
-                Run <code className="text-slate-200">./run-lab.sh</code> to restart the Lab API.
-              </p>
+              <ErrorState
+                title="Could not read the market catalog"
+                error={catalogQuery.error}
+                action={<Button variant="secondary" onClick={() => catalogQuery.refetch()}>Retry</Button>}
+              />
             )}
 
             {syncMarketsMutation.isError && (
-              <p className="text-sm text-red-400">
-                {syncMarketsMutation.error instanceof Error
-                  ? syncMarketsMutation.error.message
-                  : "Sync failed."}
-              </p>
+              <ErrorState title="Sync failed" error={syncMarketsMutation.error} />
             )}
 
             {!catalogQuery.isLoading && !catalogQuery.isError && catalogEmpty && (
-              <p className="text-sm text-muted">
-                No markets in this scope yet. Click <strong className="text-slate-200">Sync from Nobitex</strong>{" "}
-                (or switch to Crypto 1h jobs file for the local jobs file).
-              </p>
+              <EmptyState
+                title="No markets in this scope yet"
+                description={
+                  <>
+                    Click <strong className="text-slate-200">Sync from Nobitex</strong>, or switch scope to the
+                    Crypto 1h jobs file.
+                  </>
+                }
+              />
             )}
 
             {catalogQuery.data && totalInCatalog > 0 && (
@@ -262,11 +263,16 @@ export default function DataPage() {
           </Card>
 
           <Card title="Catalog datasets" description="Registered OHLC CSVs (from exports, backtests, and compares).">
-            {datasetsQuery.isLoading && <p className="text-sm text-muted">Loading datasets…</p>}
-            {!datasetsQuery.isLoading && (datasetsQuery.data ?? []).length === 0 && (
-              <p className="text-sm text-muted">No datasets in the catalog yet.</p>
+            {datasetsQuery.isLoading && <TableSkeleton rows={4} />}
+            {datasetsQuery.isError && <ErrorState title="Failed to load datasets" error={datasetsQuery.error} />}
+            {datasetsQuery.isSuccess && (datasetsQuery.data ?? []).length === 0 && (
+              <EmptyState
+                title="No datasets yet"
+                description="Start an export above; finished exports and backtest CSVs appear here."
+              />
             )}
             {(datasetsQuery.data ?? []).length > 0 && (
+              <div className="overflow-x-auto rounded-lg border border-border">
               <table className="data">
                 <thead>
                   <tr>
@@ -302,6 +308,7 @@ export default function DataPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </Card>
         </div>

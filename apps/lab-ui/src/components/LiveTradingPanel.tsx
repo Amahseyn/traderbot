@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Field, SelectInput, TextInput } from "@/components/ui/Field";
 import { api, type MarketSpec } from "@/lib/api";
 import { formatDurationMinutes, formatResolutionLabel, minutesFromResolution } from "@/lib/format";
+import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
 
 type ExecutionMode = "once" | "continuous";
 type OrderMode = "paper" | "live";
@@ -817,14 +818,19 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
           <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
             <Button
               type="button"
-              className="px-5 py-2"
+              className="w-full px-5 py-2 sm:w-auto"
               disabled={submitMutation.isPending || terminalCatalogQuery.isLoading}
               onClick={() => submitMutation.mutate()}
             >
-              {submitMutation.isPending ? "Starting…" : startLabel}
+              {terminalCatalogQuery.isLoading ? "Loading strategies…" : submitMutation.isPending ? "Starting…" : startLabel}
             </Button>
             {terminalCatalogQuery.isError && (
-              <span className="text-sm text-red-400">Could not load strategies.</span>
+              <span className="text-sm text-red-400" role="alert">
+                Could not load strategies.{" "}
+                <button type="button" className="underline" onClick={() => terminalCatalogQuery.refetch()}>
+                  Retry
+                </button>
+              </span>
             )}
           </div>
 

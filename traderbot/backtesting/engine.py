@@ -4,7 +4,7 @@ import logging
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from traderbot.algorithms.base import Algorithm, SignalAction
+from traderbot.algorithms.base import Algorithm, OrderSize, SignalAction
 from traderbot.utils.bars import bars_from_ohlc_rows, load_bars_csv, normalize_bar
 from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION
 
@@ -66,6 +66,46 @@ def _fill_price(raw_price: float, action: SignalAction, slippage_rate: float) ->
     return raw_price
 
 
+MIN_ORDER_CASH = 1e-9
+
+
+def _sized_fill(
+    action: SignalAction,
+    size: OrderSize,
+    *,
+    cash: float,
+    position: float,
+    fill_price: float,
+    initial_cash: float,
+    fee_rate: float,
+) -> tuple[float, float, float, float] | None:
+    """Partial fill → ``(cash, position, fee, traded_size)``; ``None`` when nothing trades."""
+    equity = cash + position * fill_price
+    if action == "buy":
+        if size.cash_fraction is not None:
+            spend = size.cash_fraction * initial_cash
+        else:
+            spend = float(size.target_exposure) * equity - position * fill_price
+        spend = min(spend, cash)
+        if spend <= MIN_ORDER_CASH:
+            return None
+        fee = spend * fee_rate
+        bought = (spend - fee) / fill_price
+        return cash - spend, position + bought, fee, bought
+    if action == "sell" and position > 0:
+        target = float(size.target_exposure or 0.0)
+        sell_size = min(position, max(0.0, position - target * equity / fill_price))
+        if sell_size * fill_price <= MIN_ORDER_CASH:
+            return None
+        proceeds = sell_size * fill_price
+        fee = proceeds * fee_rate
+        remaining = position - sell_size
+        if remaining * fill_price <= MIN_ORDER_CASH:
+            remaining = 0.0
+        return cash + proceeds - fee, remaining, fee, sell_size
+    return None
+
+
 def run_backtest(
     algorithm: Algorithm,
     bars: list[dict[str, Any]],
@@ -78,6 +118,7 @@ def run_backtest(
 ) -> BacktestResult:
     """
     Long-only backtest: full cash on buy, full exit on sell, mark-to-market each bar.
+    Algorithms that return an :class:`OrderSize` from ``order_size()`` get partial fills.
 
     ``execution="close"`` fills at the signal bar close (optimistic intrabar fill).
     ``execution="next_open"`` fills at the next bar open, so the fill price is never
@@ -104,24 +145,57 @@ def run_backtest(
     normalized = [normalize_bar(raw_bar) for raw_bar in bars]
 
     pending: SignalAction | None = None
+    pending_size: OrderSize | None = None
     for bar_index, bar in enumerate(normalized):
         bar_open_unix_seconds = int(bar["timestamp"])
         open_price = float(bar["open"])
         close_price = float(bar["close"])
         signal = algorithm.on_bar(bar)
+        signal_size = algorithm.order_size() if signal != "hold" else None
 
         action: SignalAction = "hold"
+        action_size: OrderSize | None = None
         fill_price = 0.0
         if execution == "close":
             action = signal
+            action_size = signal_size
             fill_price = _fill_price(close_price, signal, slippage_rate)
         else:
             if pending is not None:
                 action = pending
+                action_size = pending_size
                 fill_price = _fill_price(open_price, pending, slippage_rate)
             pending = signal
+            pending_size = signal_size
 
-        if action == "buy" and position == 0 and cash > 0 and fill_price > 0:
+        if action_size is not None and action != "hold" and fill_price > 0:
+            sized = _sized_fill(
+                action,
+                action_size,
+                cash=cash,
+                position=position,
+                fill_price=fill_price,
+                initial_cash=initial_cash,
+                fee_rate=fee_rate,
+            )
+            if sized is not None:
+                new_cash, new_position, fee, traded_size = sized
+                total_fees += fee
+                trades.append(
+                    Trade(
+                        timestamp=bar_open_unix_seconds,
+                        action=action,
+                        price=fill_price,
+                        size=traded_size,
+                        fee=fee,
+                        cash_before=cash,
+                        cash_after=new_cash,
+                        position_after=new_position,
+                        equity_after=new_cash + new_position * close_price,
+                    )
+                )
+                cash, position = new_cash, new_position
+        elif action == "buy" and position == 0 and cash > 0 and fill_price > 0:
             cash_before = cash
             fee = cash_before * fee_rate
             total_fees += fee
@@ -217,8 +291,8 @@ def build_trade_log_entries(result: BacktestResult) -> list[dict[str, Any]]:
 
 def build_cash_flow_summary(result: BacktestResult) -> dict[str, Any]:
     """Run-level money summary: cash in/out per side, fees, PnL."""
-    cash_in = sum(trade.cash_before for trade in result.trades if trade.action == "buy")
-    cash_out = sum(trade.cash_after for trade in result.trades if trade.action == "sell")
+    cash_in = sum(trade.cash_before - trade.cash_after for trade in result.trades if trade.action == "buy")
+    cash_out = sum(trade.cash_after - trade.cash_before for trade in result.trades if trade.action == "sell")
     return {
         "initial_cash": result.initial_cash,
         "final_equity": round(result.final_equity, 6),

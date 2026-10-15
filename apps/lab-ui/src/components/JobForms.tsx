@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Field, SelectInput, TextInput } from "@/components/ui/Field";
 import { api, type DatasetRow, type StrategyParamField } from "@/lib/api";
+import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
 
 type JobTab = "test" | "compare" | "sweep";
 
@@ -544,7 +545,7 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
               description="Backtest one rule-based strategy on a catalog dataset."
             >
               {datasetsQuery.isLoading ? (
-                <p className="text-sm text-muted">Loading datasets…</p>
+                <TableSkeleton rows={3} />
               ) : datasetOptions.length === 0 ? (
                 <EmptyDatasets failed={datasetsQuery.isError} />
               ) : (
@@ -609,7 +610,7 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
               description="Rank every rule-based strategy on one catalog dataset."
             >
               {datasetsQuery.isLoading ? (
-                <p className="text-sm text-muted">Loading datasets…</p>
+                <TableSkeleton rows={3} />
               ) : datasetOptions.length === 0 ? (
                 <EmptyDatasets failed={datasetsQuery.isError} />
               ) : (
@@ -670,7 +671,7 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
               description="Grid-search 1–2 parameters for one strategy, ranked by holdout tail or full return. The grid and base knobs follow the selected strategy."
             >
               {datasetsQuery.isLoading ? (
-                <p className="text-sm text-muted">Loading datasets…</p>
+                <TableSkeleton rows={3} />
               ) : datasetOptions.length === 0 ? (
                 <EmptyDatasets failed={datasetsQuery.isError} />
               ) : (
@@ -782,7 +783,7 @@ export function JobForms({ onJob }: { onJob: (jobId: string) => void }) {
                 </button>
                 {showSweepBase && (
                   strategyParamsQuery.isLoading ? (
-                    <p className="text-sm text-muted">Loading parameters…</p>
+                    <TableSkeleton rows={2} />
                   ) : (
                     <SweepBaseParamsFields
                       fields={sweepParamFields}

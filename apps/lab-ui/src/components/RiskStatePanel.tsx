@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/Card";
 import { api } from "@/lib/api";
+import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
 
 export function RiskStatePanel() {
   const queryClient = useQueryClient();
@@ -18,7 +19,13 @@ export function RiskStatePanel() {
 
   return (
     <Card title="Risk manager" description="Live orders pass through these limits (terminal session scope).">
-      {riskQuery.isLoading && <p className="text-sm text-muted">Loading risk state…</p>}
+      {riskQuery.isLoading && (
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-1/3" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      )}
+      {riskQuery.isError && <ErrorState title="Could not load risk state" error={riskQuery.error} />}
       {riskQuery.data && (
         <div className="space-y-3 text-sm">
           <p className={halted ? "text-red-300" : "text-emerald-200"}>
