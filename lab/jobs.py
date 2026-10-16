@@ -42,6 +42,7 @@ from lab.tasks import (
     run_strategy_sweep_task,
     run_strategy_test_task,
     run_custom_research_task,
+    run_finrl_platform_task,
 )
 from lab.terminal_tasks import (
     run_terminal_live_task,
@@ -464,6 +465,21 @@ def register_job_routes(app, get_connection: Callable) -> None:
         )
         return {"id": job_id, "status": JOB_STATUS_QUEUED}
 
+    @app.post("/api/jobs/finrl-platform")
+    def job_finrl_platform(body: dict[str, Any]):
+        connection = get_connection()
+        try:
+            job_id = _insert_job(connection, "finrl-platform", body)
+        finally:
+            connection.close()
+        _start_inprocess(
+            get_connection,
+            job_id,
+            "finrl-platform",
+            lambda: run_finrl_platform_task(body),
+        )
+        return {"id": job_id, "status": JOB_STATUS_QUEUED}
+
     @app.post("/api/jobs/custom-research")
     def job_custom_research(body: dict[str, Any]):
         connection = get_connection()
@@ -488,6 +504,13 @@ def register_job_routes(app, get_connection: Callable) -> None:
     def job_terminal_once(body: dict[str, Any]):
         connection = get_connection()
         try:
+            from lab.job_resolvers import JobPayloadError, validate_terminal_job_body
+
+            try:
+                body = validate_terminal_job_body(body)
+            except JobPayloadError as exc:
+                connection.close()
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
             job_id = _insert_job(connection, "terminal-once", body)
         finally:
             connection.close()
@@ -523,6 +546,13 @@ def register_job_routes(app, get_connection: Callable) -> None:
     def job_terminal_live(body: dict[str, Any]):
         connection = get_connection()
         try:
+            from lab.job_resolvers import validate_terminal_job_body
+
+            try:
+                body = validate_terminal_job_body(body)
+            except JobPayloadError as exc:
+                connection.close()
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
             job_id = _insert_job(connection, "terminal-live", body)
         finally:
             connection.close()

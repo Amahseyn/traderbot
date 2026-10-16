@@ -22,6 +22,12 @@ def register_catalog_routes(app) -> None:
     def api_catalog_strategies(implemented_only: bool = False):
         return [asdict(entry) for entry in list_strategies(implemented_only=implemented_only)]
 
+    @app.get("/api/catalog/finrl-trading")
+    def api_catalog_finrl_trading():
+        from traderbot.integrations.finrl_trading import capabilities_api_payload
+
+        return capabilities_api_payload()
+
     @app.get("/api/catalog/terminal")
     def api_catalog_terminal(implemented_only: bool = False):
         return catalog_dict(implemented_only=implemented_only)
@@ -72,6 +78,19 @@ def register_catalog_routes(app) -> None:
             "sweep_meta": sweep_meta,
         }
 
+    @app.get("/api/catalog/strategy-tune-grid")
+    def api_catalog_strategy_tune_grid(strategy_id: str = Query(...), full: bool = False):
+        from traderbot.algorithms.registry import backtest_strategy_ids
+        from traderbot.backtesting.robust_defaults import tune_grid_for_strategy
+
+        if strategy_id not in backtest_strategy_ids():
+            raise HTTPException(status_code=404, detail=f"unsupported strategy_id={strategy_id!r}")
+        try:
+            param_grid = tune_grid_for_strategy(strategy_id, full=full)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return {"strategy_id": strategy_id, "full": full, "param_grid": param_grid}
+
     @app.get("/api/catalog/strategy-params")
     def api_catalog_strategy_params(strategy_id: str = Query(...)):
         from traderbot.algorithms.cli_args import default_strategy_namespace
@@ -97,6 +116,55 @@ def register_catalog_routes(app) -> None:
                 kind = "string"
             fields.append({"name": name, "kind": kind, "default": default})
         return {"strategy_id": strategy_id, "params": fields}
+
+    @app.get("/api/catalog/live-strategy-ranks")
+    def api_catalog_live_strategy_ranks(
+        src: str = Query(..., min_length=1),
+        dst: str = Query(..., min_length=1),
+        resolution: str = Query("60"),
+        exchange: str = Query("hyperliquid"),
+        max_bars: int = Query(100, ge=20, le=300),
+        initial_cash: float | None = Query(default=None),
+    ):
+        from lab.live_strategy_ranks import rank_strategies_on_live_bars
+        from lab.store import open_database
+        from lab.store.queries import fetch_best_sweep
+
+        try:
+            payload = rank_strategies_on_live_bars(
+                exchange=exchange,
+                src=src,
+                dst=dst,
+                resolution=resolution,
+                max_bars=max_bars,
+                initial_cash=initial_cash,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        symbol = str(payload.get("symbol") or "").upper()
+        connection = open_database()
+        try:
+            for row in payload.get("ranked", []):
+                strategy_id = row.get("strategy_id")
+                if not isinstance(strategy_id, str):
+                    continue
+                sweep = fetch_best_sweep(
+                    connection,
+                    strategy_id=strategy_id,
+                    symbol=symbol or None,
+                    resolution=resolution,
+                )
+                if sweep is None:
+                    continue
+                metrics = sweep.get("best_metrics") if isinstance(sweep.get("best_metrics"), dict) else {}
+                if metrics.get("return_pct") is not None:
+                    row["stored_sweep_return_pct"] = metrics.get("return_pct")
+                if metrics.get("holdout_return_pct") is not None:
+                    row["stored_sweep_holdout_return_pct"] = metrics.get("holdout_return_pct")
+        finally:
+            connection.close()
+        return payload
 
     @app.get("/api/markets/ohlc")
     def api_markets_ohlc(

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from traderbot.algorithms.registry import algorithm_for_id, backtest_strategy_ids
+from traderbot.algorithms.registry import algorithm_for_id, backtest_strategy_ids, build_strategy_kwargs_for_bars
 from traderbot.algorithms.visualize import compare_visualization_paths_to_dict, render_compare_plots
 from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_backtest, save_backtest_result
 from traderbot.backtesting.holdout_window import return_pct_over_equity_tail
@@ -143,7 +143,8 @@ def _run_crypto_1h_local_for_csv(
     compare_root = layout.runs / "strategy_compare" / source_csv.stem
     tree = result_tree_at(compare_root, run_id=slice_path.stem)
     for strategy_id in backtest_strategy_ids():
-        algo = algorithm_for_id(strategy_id)
+        kwargs = build_strategy_kwargs_for_bars(strategy_id, bars, csv_path=source_csv)
+        algo = algorithm_for_id(strategy_id, **kwargs)
         from traderbot.utils.trading_costs import (
             DEFAULT_BACKTEST_EXECUTION,
             DEFAULT_SLIPPAGE_RATE,
@@ -330,6 +331,58 @@ def pipeline_export_then_hourly(
         "solution_root": str(layout.root),
         "data_dir": str(csv_dir),
         "asset_count": desk.outputs.get("asset_count"),
+    }
+    result.write_summary(layout.reports / "pipeline_summary.json")
+    return result
+
+
+def pipeline_finrl_platform(
+    *,
+    src: str = "btc",
+    dst: str = "usdt",
+    intervals: str = "1,5",
+    max_bars: int = 100,
+    equity_periods: int = 100,
+    include_equity_rotation: bool = True,
+    solutions_root: Path = SOLUTIONS_ROOT,
+    solution_root: Path | None = None,
+) -> PipelineResult:
+    """Traderbot + FinRL-Trading: HL export, intraday window metrics, EMA backtest, optional equity rotation."""
+    from traderbot.integrations.finrl_trading.research import run_full_platform_experiment
+
+    layout = prepare_solution(
+        "finrl-platform",
+        solutions_root=solutions_root,
+        solution_root=solution_root,
+        title="FinRL platform integration",
+        description="Hyperliquid 1m/5m + FinRL intraday + traderbot finrl_ema_intraday + optional US equity rotation.",
+    )
+    result = PipelineResult(pipeline_id="finrl-platform")
+    interval_list = [p.strip() for p in intervals.split(",") if p.strip()]
+
+    def _log(msg: str) -> None:
+        print(msg, flush=True)
+
+    payload = run_full_platform_experiment(
+        src=src,
+        dst=dst,
+        intervals=interval_list or ["1", "5"],
+        max_bars=max_bars,
+        equity_periods=equity_periods,
+        include_equity_rotation=include_equity_rotation,
+        log=_log,
+    )
+    report_path = layout.reports / "finrl_platform_report.json"
+    report_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+    result.add_step(
+        "finrl_platform",
+        detail=f"HL {src}/{dst} bars={max_bars} intervals={interval_list}",
+        artifacts=[report_path],
+    )
+    result.outputs = {
+        "solution_root": str(layout.root),
+        "report": str(report_path),
+        **{k: payload.get(k) for k in ("exported_csv", "finrl_intraday_report", "traderbot_finrl_ema_backtests")},
     }
     result.write_summary(layout.reports / "pipeline_summary.json")
     return result

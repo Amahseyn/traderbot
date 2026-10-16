@@ -8,6 +8,7 @@ STRATEGY_EXCHANGE_SUPPORT: dict[str, tuple[str, ...]] = {
     "spot_grid": ("nobitex", "hyperliquid"),
     "funding_carry": ("hyperliquid",),
     "perp_market_making": ("hyperliquid",),
+    "finrl_ema_intraday": ("hyperliquid",),
 }
 
 # Rule strategies from registry run on any OHLC series (CSV or live export).

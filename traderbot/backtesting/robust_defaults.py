@@ -24,6 +24,7 @@ DEFAULT_MIN_TRADES = 5
 DEFAULT_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
     "sma_cross": {"fast": [5, 10, 20], "slow": [20, 50, 100]},
     "ema_cross": {"fast": [5, 10, 20], "slow": [20, 50, 100]},
+    "finrl_ema_intraday": {"fast": [8, 12, 16], "slow": [36, 48, 60]},
     "rsi_threshold": {"period": [7, 14, 21], "oversold": [20, 30.0]},
     "macd_cross": {"fast": [8, 12], "slow": [21, 26]},
     "bollinger_mean_reversion": {"period": [14, 20, 30], "num_std": [1.5, 2.0, 2.5]},
@@ -36,8 +37,17 @@ DEFAULT_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
     "scalp_dip": {"dip_pct": [0.003, 0.005, 0.008], "take_profit_pct": [0.005, 0.0075, 0.01]},
     "dca": {"dca_interval_bars": [6, 24, 72], "dca_order_count": [5, 10, 20]},
     "grid": {"grid_range_pct": [0.03, 0.05, 0.1], "grid_levels": [4, 6, 10]},
+    "spot_grid": {"grid_count": [4, 6, 8], "grid_take_profit_pct": [0.008, 0.01, 0.012]},
+    "perp_market_making": {
+        "mm_half_spread_pct": [0.0003, 0.0005, 0.0008],
+        "mm_inventory_skew": [0.0, 0.25],
+    },
     "momentum_shock": {"shock_return_std": [2.0, 2.5, 3.0], "shock_hold_bars": [6, 12, 24]},
     "online_logistic": {"ml_horizon_bars": [3, 6, 12], "ml_buy_threshold": [0.52, 0.55, 0.6]},
+    "ensemble": {
+        "ensemble_preset": ["1m_scalp_trend", "1m_pattern_ma", "intraday_trend_stack"],
+        "ensemble_entry_rule": ["all", "majority"],
+    },
 }
 
 FULL_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
@@ -64,8 +74,20 @@ FULL_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
     "scalp_dip": {"dip_pct": [0.002, 0.003, 0.004, 0.006, 0.008, 0.012], "take_profit_pct": [0.005, 0.0065, 0.0075, 0.009, 0.01]},
     "dca": {"dca_interval_bars": [1, 6, 12, 24, 48, 72, 168], "dca_order_count": [4, 8, 12, 24]},
     "grid": {"grid_range_pct": [0.02, 0.03, 0.05, 0.08, 0.12], "grid_levels": [3, 4, 6, 8, 12]},
+    "spot_grid": {
+        "grid_count": [3, 4, 6, 8, 10],
+        "grid_take_profit_pct": [0.006, 0.008, 0.01, 0.012, 0.018],
+    },
+    "perp_market_making": {
+        "mm_half_spread_pct": [0.0002, 0.0003, 0.0005, 0.0008, 0.0012],
+        "mm_inventory_skew": [0.0, 0.15, 0.25, 0.4, 0.5],
+    },
     "momentum_shock": {"shock_return_std": [1.5, 2.0, 2.5, 3.0, 3.5], "shock_hold_bars": [3, 6, 12, 24, 48]},
     "online_logistic": {"ml_horizon_bars": [1, 3, 6, 12, 24], "ml_buy_threshold": [0.5, 0.52, 0.55, 0.58, 0.62]},
+    "ensemble": {
+        "ensemble_preset": ["1m_scalp_trend", "1m_pattern_ma", "1m_ml_trend", "intraday_trend_stack"],
+        "ensemble_entry_rule": ["all", "majority", "primary"],
+    },
 }
 
 
@@ -94,6 +116,25 @@ def tune_grid_for_strategy(strategy_id: str, *, full: bool = False) -> dict[str,
     if grid is None:
         raise ValueError(f"no built-in tune grid for strategy_id={strategy_id!r}")
     return {name: list(values) for name, values in grid.items()}
+
+
+def validate_tune_grids(*, full: bool = False) -> None:
+    """Raise if any backtest strategy is missing a grid or uses non-strategy param names."""
+    from traderbot.algorithms.registry import backtest_strategy_ids, strategy_param_names
+
+    source = FULL_TUNE_GRIDS if full else DEFAULT_TUNE_GRIDS
+    for strategy_id in backtest_strategy_ids():
+        grid = source.get(strategy_id)
+        if grid is None:
+            raise ValueError(f"missing tune grid for strategy_id={strategy_id!r}")
+        if not grid:
+            raise ValueError(f"empty tune grid for strategy_id={strategy_id!r}")
+        if len(grid) > 2:
+            raise ValueError(f"tune grid for {strategy_id!r} has more than 2 params")
+        allowed = set(strategy_param_names(strategy_id))
+        for name in grid:
+            if name not in allowed:
+                raise ValueError(f"tune grid param {name!r} is not used by strategy {strategy_id!r}")
 
 
 def _holdout_for_bar_count(bar_count: int, options: TuneRobustOptions) -> int | None:

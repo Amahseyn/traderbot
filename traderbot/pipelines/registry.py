@@ -8,6 +8,7 @@ from traderbot.pipelines.definitions import (
     pipeline_crypto_1h_local,
     pipeline_export_then_hourly,
     pipeline_crypto_jobs_export,
+    pipeline_finrl_platform,
     pipeline_sma_backtest,
 )
 
@@ -181,6 +182,53 @@ PIPELINES: tuple[PipelineSpec, ...] = (
             ),
         ),
         days_kw="export_days",
+        full=True,
+    ),
+    PipelineSpec(
+        id="finrl-platform",
+        title="FinRL + Hyperliquid (full platform)",
+        description=(
+            "Export HL 1m/5m → FinRL intraday window report (100 bars, not annualized) → "
+            "traderbot finrl_ema_intraday backtest → optional FinRL adaptive rotation (US equity)."
+        ),
+        fn=pipeline_finrl_platform,
+        steps=_steps(
+            ("export", "Hyperliquid OHLC"),
+            ("finrl_intraday", "FinRL intraday experiment"),
+            ("traderbot_backtest", "Traderbot finrl_ema_intraday"),
+            ("equity_rotation", "FinRL adaptive rotation (optional)"),
+        ),
+        inputs=(
+            PipelineInputView(key="src", label="Coin (HL)", kind="text", default="btc"),
+            PipelineInputView(key="dst", label="Quote", kind="text", default="usdt"),
+            PipelineInputView(
+                key="intervals",
+                label="Intervals",
+                kind="text",
+                default="1,5",
+                hint="Hyperliquid resolutions: 1,5,15,...",
+            ),
+            PipelineInputView(
+                key="max_bars",
+                label="Bars per interval",
+                kind="number",
+                default="100",
+                hint="Window size; metrics are not annualized.",
+            ),
+            PipelineInputView(
+                key="equity_periods",
+                label="Equity rotation periods",
+                kind="number",
+                default="100",
+                hint="Weekly rebalance count for FinRL adaptive rotation report.",
+            ),
+            PipelineInputView(
+                key="include_equity_rotation",
+                label="Run US equity rotation",
+                kind="boolean",
+                default="true",
+            ),
+        ),
         full=True,
     ),
 )

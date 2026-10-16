@@ -16,7 +16,7 @@ def warmup_bar_count(strategy_id: str, kwargs: dict[str, Any]) -> int:
 
     if strategy_id == "macd_cross":
         return slow + signal + 10
-    if strategy_id in ("sma_cross", "ema_cross"):
+    if strategy_id in ("sma_cross", "ema_cross", "finrl_ema_intraday"):
         return max(fast, slow) + 2
     if strategy_id == "rsi_threshold":
         return period + 2
@@ -41,4 +41,13 @@ def warmup_bar_count(strategy_id: str, kwargs: dict[str, Any]) -> int:
         return lookback + int(kwargs.get("ml_horizon_bars", 6)) + int(kwargs.get("ml_warmup_samples", 100)) + period
     if strategy_id == "dca":
         return 0
+    if strategy_id == "ensemble":
+        from traderbot.algorithms.strategies.ensemble import ensemble_member_specs
+
+        preset = str(kwargs.get("ensemble_preset", "1m_scalp_trend"))
+        counts = [
+            warmup_bar_count(member_id, member_kwargs)
+            for member_id, member_kwargs in ensemble_member_specs(preset)
+        ]
+        return max(counts) if counts else 50
     return max(slow, period, lookback, atr_period) + 10

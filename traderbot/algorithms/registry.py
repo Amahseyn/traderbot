@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from traderbot.algorithms.base import Algorithm
@@ -20,7 +21,9 @@ from traderbot.algorithms.strategies.range_breakout import RangeBreakoutAlgorith
 from traderbot.algorithms.strategies.rsi_divergence import RsiDivergenceAlgorithm
 from traderbot.algorithms.strategies.rsi_trend import RsiTrendAlgorithm
 from traderbot.algorithms.strategies.scalp_dip import ScalpDipAlgorithm
+from traderbot.algorithms.strategies.ensemble import EnsembleAlgorithm
 from traderbot.algorithms.strategies.ema_cross import EmaCrossAlgorithm
+from traderbot.algorithms.strategies.finrl_ema_intraday import FinrlEmaIntradayAlgorithm
 from traderbot.algorithms.strategies.macd import MacdCrossAlgorithm
 from traderbot.algorithms.strategies.rsi import RsiThresholdAlgorithm
 from traderbot.algorithms.strategies.sma_cross import SmaCrossAlgorithm
@@ -179,6 +182,27 @@ STRATEGY_CATALOG: tuple[StrategyCatalogEntry, ...] = (
         style="ml",
         implemented=True,
     ),
+    StrategyCatalogEntry(
+        id="ensemble",
+        name="Strategy ensemble",
+        summary="Combine preset child strategies (e.g. 1m scalp + RSI trend); entry all/majority/primary, exit any/all/primary.",
+        style="meta",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="finrl_ema_intraday",
+        name="FinRL EMA intraday",
+        summary="FinRL-Trading Hyperliquid preset: EMA 12/48 on 1m/5m bars (pairs with FinRL intraday pipeline).",
+        style="trend",
+        implemented=True,
+    ),
+    StrategyCatalogEntry(
+        id="finrl_adaptive_rotation",
+        name="FinRL adaptive rotation (equity)",
+        summary="Multi-asset US equity rotation from FinRL-Trading; run via finrl platform pipeline (not single-CSV backtest).",
+        style="portfolio",
+        implemented=False,
+    ),
 )
 
 _IMPLEMENTED: dict[str, type[Algorithm]] = {
@@ -200,6 +224,8 @@ _IMPLEMENTED: dict[str, type[Algorithm]] = {
     "grid": GridAlgorithm,
     "momentum_shock": MomentumShockAlgorithm,
     "online_logistic": OnlineLogisticAlgorithm,
+    "ensemble": EnsembleAlgorithm,
+    "finrl_ema_intraday": FinrlEmaIntradayAlgorithm,
 }
 
 
@@ -210,6 +236,7 @@ def _pick(*names: str) -> Callable[[Any], dict[str, Any]]:
 _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
     "sma_cross": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
     "ema_cross": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
+    "finrl_ema_intraday": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
     "rsi_threshold": lambda a: {
         "period": a.period,
         "oversold": a.oversold,
@@ -291,6 +318,7 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "ml_sell_threshold",
         "ml_warmup_samples",
     ),
+    "ensemble": _pick("ensemble_preset", "ensemble_entry_rule", "ensemble_exit_rule"),
 }
 
 
@@ -320,6 +348,29 @@ def normalize_strategy_mode(mode: str | None) -> str:
 def strategy_ids_for_mode(mode: str | None) -> list[str]:
     normalize_strategy_mode(mode)
     return backtest_strategy_ids()
+
+
+def build_strategy_kwargs_for_bars(
+    strategy_id: str,
+    bars: list[dict[str, Any]],
+    *,
+    csv_path: str | Path | None = None,
+    base_namespace: Any | None = None,
+) -> dict[str, Any]:
+    """Namespace kwargs for ``algorithm_for_id`` using bar-derived defaults (e.g. spot grid bounds)."""
+    from traderbot.algorithms.strategy_defaults import namespace_for_strategy_backtest
+    from traderbot.algorithms.strategies.spot_grid import grid_price_bounds_from_bars
+
+    namespace = namespace_for_strategy_backtest(
+        strategy_id,
+        base_namespace,
+        csv_path=Path(csv_path) if csv_path is not None else None,
+    )
+    if strategy_id == "spot_grid" and bars:
+        low, high = grid_price_bounds_from_bars(bars)
+        namespace.grid_start_price = low
+        namespace.grid_end_price = high
+    return strategy_kwargs_from_namespace(strategy_id, namespace)
 
 
 def algorithm_for_id(strategy_id: str, **kwargs: Any) -> Algorithm:
@@ -357,6 +408,25 @@ _ALGO_KWARG_TO_NAMESPACE_FIELD = {
     "high_tolerance_ratio": "pattern_tolerance_ratio",
 }
 
+_STRATEGY_KWARG_NAMESPACE: dict[str, dict[str, str]] = {
+    "spot_grid": {
+        "start_price": "grid_start_price",
+        "end_price": "grid_end_price",
+        "take_profit_pct": "grid_take_profit_pct",
+    },
+    "perp_market_making": {
+        "half_spread_pct": "mm_half_spread_pct",
+        "inventory_skew": "mm_inventory_skew",
+    },
+}
+
+
+def _namespace_field_for_kwarg(strategy_id: str, kwarg: str) -> str:
+    override = _STRATEGY_KWARG_NAMESPACE.get(strategy_id, {}).get(kwarg)
+    if override is not None:
+        return override
+    return _ALGO_KWARG_TO_NAMESPACE_FIELD.get(kwarg, kwarg)
+
 
 def strategy_param_names(strategy_id: str) -> list[str]:
     """Namespace field names this strategy actually consumes (sweepable knobs)."""
@@ -366,5 +436,5 @@ def strategy_param_names(strategy_id: str) -> list[str]:
     from traderbot.algorithms.cli_args import default_strategy_namespace
 
     kwargs = strategy_kwargs_from_namespace(strategy_id, default_strategy_namespace())
-    names = [_ALGO_KWARG_TO_NAMESPACE_FIELD.get(key, key) for key in kwargs]
+    names = [_namespace_field_for_kwarg(strategy_id, key) for key in kwargs]
     return list(dict.fromkeys(names))

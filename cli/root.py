@@ -65,6 +65,7 @@ def _register_commands() -> None:
     from cli.strategy import main as strategy_main
     from cli.terminal import main as terminal_main
     from cli.export import main as export_main
+    from cli.finrl import main as finrl_main
 
     _register("cli", "Interactive menu (data, strategy, auth, …)", interactive_main)
     _register("export", "Download OHLC candles to CSV", export_main)
@@ -79,6 +80,7 @@ def _register_commands() -> None:
         interface_main,
     )
     _register("terminal", "Live, once, and CSV replay strategy loops", terminal_main)
+    _register("finrl", "FinRL-Trading integration (Hyperliquid + equity rotation)", finrl_main)
 
 
 def main(argv: list[str] | None = None) -> None:

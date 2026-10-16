@@ -141,6 +141,14 @@ def main(argv: list[str] | None = None) -> None:
         kwargs["days"] = args.export_days
         kwargs.pop("skip_export", None)
 
+    if pid == "finrl-platform":
+        kwargs.setdefault("src", "btc")
+        kwargs.setdefault("dst", "usdt")
+        kwargs.setdefault("intervals", "1,5")
+        kwargs.setdefault("max_bars", 100)
+        kwargs.setdefault("equity_periods", 100)
+        kwargs.setdefault("include_equity_rotation", True)
+
     try:
         result = run_pipeline(pid, **kwargs)
     except KeyError as e:

@@ -136,6 +136,10 @@ export type SweepSession = {
   best_metrics: Record<string, unknown>;
   config_id: string | null;
   manifest_path: string | null;
+  optimize_start_utc: string | null;
+  optimize_end_utc: string | null;
+  compare_start_utc: string | null;
+  compare_end_utc: string | null;
   created_at_utc: string;
 };
 
@@ -162,6 +166,30 @@ export type TerminalCatalog = {
   hyperliquid_resolutions?: string[];
 };
 
+export type LiveStrategyRankRow = {
+  strategy_id: string;
+  rank: number;
+  return_pct: number | null;
+  max_drawdown_pct?: number | null;
+  trade_count?: number | null;
+  final_equity?: number | null;
+  stored_sweep_return_pct?: number | null;
+  stored_sweep_holdout_return_pct?: number | null;
+};
+
+export type LiveStrategyRanks = {
+  exchange: string;
+  symbol: string;
+  src: string;
+  dst: string;
+  resolution: string;
+  bars: number;
+  initial_cash: number;
+  ranked: LiveStrategyRankRow[];
+  skipped: Array<{ strategy_id: string; error: string }>;
+  strategy_count: number;
+};
+
 export type StrategyParamField = {
   name: string;
   kind: "int" | "float" | "bool" | "optional_float" | "string";
@@ -178,6 +206,10 @@ export type OptimizedStrategyParams = {
     requested_symbol: string | null;
     sweep_symbol: string | null;
     sweep_fallback: boolean;
+    optimize_start_utc?: string | null;
+    optimize_end_utc?: string | null;
+    compare_start_utc?: string | null;
+    compare_end_utc?: string | null;
   };
 };
 
@@ -268,6 +300,44 @@ function withLabAuth(init?: RequestInit): RequestInit {
   return { ...init, headers };
 }
 
+export function parseApiErrorBody(text: string, status: number): string {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return `${status}`;
+  }
+  try {
+    const parsed = JSON.parse(trimmed) as { detail?: unknown; error?: unknown };
+    if (typeof parsed.error === "string" && parsed.error) {
+      return parsed.error;
+    }
+    if (typeof parsed.detail === "string" && parsed.detail) {
+      return parsed.detail;
+    }
+  } catch {
+    /* plain text */
+  }
+  return trimmed;
+}
+
+export function formatApiError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (error === null || error === undefined) {
+    return "Request failed";
+  }
+  return String(error);
+}
+
+export function isLabAuthError(error: unknown): boolean {
+  const message = formatApiError(error).toLowerCase();
+  return (
+    message.includes("invalid or missing lab api token") ||
+    message.includes("401") ||
+    message.includes("unauthorized")
+  );
+}
+
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, withLabAuth(init));
   if (!response.ok) {
@@ -277,7 +347,7 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
       );
     }
     const detail = await response.text();
-    throw new Error(detail || `${response.status} ${response.statusText}`);
+    throw new Error(parseApiErrorBody(detail, response.status) || `${response.status} ${response.statusText}`);
   }
   return response.json() as Promise<T>;
 }
@@ -475,9 +545,35 @@ export const api = {
     fetchJson<TerminalCatalog>(
       `/api/catalog/terminal?implemented_only=${implementedOnly ? "true" : "false"}`,
     ),
+  liveStrategyRanks: (options: {
+    exchange: string;
+    src: string;
+    dst: string;
+    resolution: string;
+    maxBars?: number;
+    initialCash?: number;
+  }) => {
+    const params = new URLSearchParams({
+      exchange: options.exchange,
+      src: options.src,
+      dst: options.dst,
+      resolution: options.resolution,
+    });
+    if (options.maxBars !== undefined) {
+      params.set("max_bars", String(options.maxBars));
+    }
+    if (options.initialCash !== undefined && options.initialCash > 0) {
+      params.set("initial_cash", String(options.initialCash));
+    }
+    return fetchJson<LiveStrategyRanks>(`/api/catalog/live-strategy-ranks?${params.toString()}`);
+  },
   strategyParams: (strategyId: string) =>
     fetchJson<{ strategy_id: string; params: StrategyParamField[] }>(
       `/api/catalog/strategy-params?strategy_id=${encodeURIComponent(strategyId)}`,
+    ),
+  strategyTuneGrid: (strategyId: string, full = false) =>
+    fetchJson<{ strategy_id: string; full: boolean; param_grid: Record<string, unknown[]> }>(
+      `/api/catalog/strategy-tune-grid?strategy_id=${encodeURIComponent(strategyId)}&full=${full ? "true" : "false"}`,
     ),
   optimizedStrategyParams: (options: {
     strategyId: string;
@@ -524,6 +620,24 @@ export const api = {
     }
     return response.json() as Promise<{ id: string; status: string; stop_requested?: boolean }>;
   },
+  /** Re-queue a job with the same stored payload (new job id). */
+  restartJob: async (job: JobRow) => {
+    const body = { ...job.payload };
+    delete body.job_id;
+    const response = await fetch(
+      `${API_BASE}/api/jobs/${encodeURIComponent(job.job_type)}`,
+      withLabAuth({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    );
+    if (!response.ok) {
+      const raw = await response.text();
+      throw new Error(parseApiErrorBody(raw, response.status));
+    }
+    return response.json() as Promise<{ id: string; status: string }>;
+  },
   riskState: () => fetchJson<Record<string, unknown>>("/api/risk/state"),
   riskKillSwitch: (enabled: boolean) =>
     fetchJson<Record<string, unknown>>("/api/risk/kill-switch", {
@@ -549,6 +663,20 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+    }),
+  runFinrlPlatform: (body: Record<string, unknown> = {}) =>
+    fetchJson<{ id: string; status: string }>("/api/jobs/finrl-platform", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        src: "btc",
+        dst: "usdt",
+        intervals: "1,5",
+        max_bars: 100,
+        equity_periods: 100,
+        include_equity_rotation: true,
+        ...body,
+      }),
     }),
   postJob: async (jobType: string, body: Record<string, unknown>) => {
     const response = await fetch(

@@ -28,6 +28,22 @@ _RESOLUTION_BAR_SECONDS: dict[str, int] = {
     "D": 24 * 60 * 60,
 }
 
+_INTERVAL_TO_RESOLUTION: dict[str, str] = {v: k for k, v in _RESOLUTION_TO_INTERVAL.items()}
+
+
+def hyperliquid_resolution(interval_or_resolution: str) -> str:
+    """Accept HL API resolution (``1``) or bar label (``1m``)."""
+    s = str(interval_or_resolution).strip()
+    if s in HYPERLIQUID_RESOLUTIONS:
+        return s
+    mapped = _INTERVAL_TO_RESOLUTION.get(s)
+    if mapped is not None:
+        return mapped
+    raise ValueError(
+        f"Hyperliquid resolution must be one of {HYPERLIQUID_RESOLUTIONS} "
+        f"or {_INTERVAL_TO_RESOLUTION} (got {interval_or_resolution!r})"
+    )
+
 
 def hyperliquid_coin_from_src(src: str) -> str:
     """Perp coin name on Hyperliquid (e.g. btc → BTC)."""
@@ -72,12 +88,48 @@ def _normalize_candle(candle: dict[str, Any], *, coin: str, resolution: str) -> 
     }
 
 
-def fetch_hyperliquid_perp_coins() -> list[str]:
+def hyperliquid_perp_meta_entry(src: str) -> dict[str, Any] | None:
+    coin = hyperliquid_coin_from_src(src)
+    meta = hyperliquid_info().meta()
+    universe = meta.get("universe")
+    if not isinstance(universe, list):
+        return None
+    for entry in universe:
+        if isinstance(entry, dict) and str(entry.get("name", "")).upper() == coin:
+            return entry
+    return None
+
+
+def hyperliquid_perp_is_delisted(src: str) -> bool:
+    entry = hyperliquid_perp_meta_entry(src)
+    return bool(entry and entry.get("isDelisted"))
+
+
+def hyperliquid_export_empty_reason(src: str, *, resolution: str) -> str:
+    if hyperliquid_perp_is_delisted(src):
+        return (
+            f"{hyperliquid_coin_from_src(src)} is delisted on Hyperliquid "
+            f"(isDelisted=true); no candle history is available — pick another market."
+        )
+    return (
+        f"Hyperliquid returned 0 closed candles for {hyperliquid_coin_from_src(src)} "
+        f"resolution {resolution} in the requested window."
+    )
+
+
+def fetch_hyperliquid_perp_coins(*, include_delisted: bool = False) -> list[str]:
     meta = hyperliquid_info().meta()
     universe = meta.get("universe")
     if not isinstance(universe, list):
         raise ValueError("Hyperliquid meta response missing universe")
-    return [str(entry["name"]) for entry in universe if isinstance(entry, dict) and entry.get("name")]
+    names: list[str] = []
+    for entry in universe:
+        if not isinstance(entry, dict) or not entry.get("name"):
+            continue
+        if not include_delisted and entry.get("isDelisted"):
+            continue
+        names.append(str(entry["name"]))
+    return names
 
 
 HYPERLIQUID_CANDLE_REQUEST_DELAY_SECONDS = 0.2

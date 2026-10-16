@@ -68,6 +68,10 @@ def apply_strategy_baseline_defaults(namespace: Any, strategy_id: str) -> list[s
         namespace.fast = 12
         namespace.slow = 26
         applied.extend(["fast", "slow"])
+    if strategy_id == "finrl_ema_intraday" and generic_ma:
+        namespace.fast = 12
+        namespace.slow = 48
+        applied.extend(["fast", "slow"])
     if strategy_id == "bollinger_mean_reversion" and getattr(namespace, "period", None) == 14:
         namespace.period = 20
         applied.append("period")
