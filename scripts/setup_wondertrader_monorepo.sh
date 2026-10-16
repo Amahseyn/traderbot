@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Clone WonderTrader next to traderbot for local development.
+# Clone WonderTrader into traderbot/vendor/wondertrader (not a separate git repo).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PARENT="$(cd "$ROOT/.." && pwd)"
-TARGET="${PARENT}/wondertrader"
+TARGET="${ROOT}/vendor/wondertrader"
 if [[ -d "$TARGET/dist" ]]; then
   echo "WonderTrader already at $TARGET"
   exit 0
 fi
+mkdir -p "$(dirname "$TARGET")"
 git clone --depth 1 https://github.com/wondertrader/wondertrader.git "$TARGET"
-echo "Cloned to $TARGET — apply local patches from your fork if needed."
-echo "export WONDERTRADER_ROOT=$TARGET"
+rm -rf "$TARGET/.git"
+echo "Cloned to $TARGET (vendor copy, no nested repo)."
+echo "Apply macos_bt patches from docs/wondertrader.md if needed."

@@ -18,13 +18,13 @@ def wondertrader_root() -> Path:
         if root.is_dir():
             return root
     for candidate in (
-        _TRADERBOT_ROOT.parent / "wondertrader",
         _TRADERBOT_ROOT / "vendor" / "wondertrader",
+        _TRADERBOT_ROOT.parent / "wondertrader",
     ):
         if candidate.is_dir():
             return candidate.resolve()
     raise FileNotFoundError(
-        "WonderTrader tree not found. Clone next to traderbot, use vendor/wondertrader, "
+        "WonderTrader tree not found. Run scripts/setup_wondertrader_monorepo.sh "
         "or set WONDERTRADER_ROOT."
     )
 

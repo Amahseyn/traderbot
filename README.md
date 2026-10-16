@@ -67,7 +67,7 @@ Live order hooks: override `AlgorithmTrader.on_signal` and set `execution=Execut
 
 Implemented rule strategies (shared by live `AlgorithmTrader` and backtests): SMA/EMA cross, RSI thresholds, MACD cross, Bollinger mean reversion. Catalog: `traderbot strategy catalog --implemented-only`.
 
-**WonderTrader** (futures CTA/HFT/UFT backtest + live template checks): clone `wondertrader` next to this repo, `pip install -e ".[wondertrader]"`, then `traderbot wondertrader validate --full`. See [docs/wondertrader.md](docs/wondertrader.md).
+**WonderTrader** (futures CTA/HFT/UFT backtest + live template checks): `./scripts/setup_wondertrader_monorepo.sh`, `pip install -e ".[wondertrader]"`, then `traderbot wondertrader validate --full`. See [docs/wondertrader.md](docs/wondertrader.md).
 
 ```python
 from traderbot import algorithm_for_id, run_backtest

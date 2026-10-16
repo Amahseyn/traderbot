@@ -1,6 +1,6 @@
 # WonderTrader integration
 
-Traderbot drives the **WonderTrader** tree (sibling clone or `vendor/wondertrader`) for:
+Traderbot drives the **WonderTrader** tree under `vendor/wondertrader` for:
 
 - **Backtest** — native `WtBtRunner` (CTA / HFT / UFT / exec) on bundled CFFEX.IF sample data
 - **Live readiness** — validates `dist/WtRunnerCta|Hft|Uft` templates and broker env vars (actual live needs `WtRunner` + CTP/SimNow)
@@ -8,15 +8,14 @@ Traderbot drives the **WonderTrader** tree (sibling clone or `vendor/wondertrade
 ## Layout
 
 ```text
-trade/
-  traderbot/          ← this repo (CLI, Lab, tests)
-  wondertrader/       ← upstream + macos_bt backtest build
+traderbot/
+  vendor/wondertrader/   ← local copy (not committed; run setup script)
+  traderbot/integrations/wondertrader/
 ```
 
-Or:
-
 ```bash
-git submodule add https://github.com/wondertrader/wondertrader.git vendor/wondertrader
+./scripts/setup_wondertrader_monorepo.sh
+# optional override:
 export WONDERTRADER_ROOT="$PWD/vendor/wondertrader"
 ```
 
@@ -29,7 +28,7 @@ pip install -e ".[dev,wondertrader]"
 ## macOS backtest binary
 
 ```bash
-cd wondertrader
+cd vendor/wondertrader
 ./scripts/build_macos_bt.sh
 python3 scripts/prepare_sample_storage.py
 ```
@@ -79,4 +78,4 @@ pytest tests/test_wondertrader_integration.py
 pytest -m integration tests/test_wondertrader_integration.py::test_full_backtest_experiment
 ```
 
-CI runs smoke tests when `../wondertrader` is present (optional checkout step).
+CI checks out upstream WonderTrader into `vendor/wondertrader` for smoke tests.

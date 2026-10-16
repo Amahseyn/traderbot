@@ -13,11 +13,11 @@ jobs:
           python-version: "3.12"
       - name: Install
         run: pip install -e ".[dev,backtest,wondertrader]"
-      - name: Checkout WonderTrader (optional sibling)
+      - name: Checkout WonderTrader into vendor/
         uses: actions/checkout@v4
         with:
           repository: wondertrader/wondertrader
-          path: wondertrader
+          path: vendor/wondertrader
           sparse-checkout: |
             dist
             scripts
@@ -27,6 +27,4 @@ jobs:
       - name: Pytest
         run: pytest
       - name: WonderTrader smoke
-        run: |
-          export WONDERTRADER_ROOT="$GITHUB_WORKSPACE/wondertrader"
-          traderbot wondertrader smoke
+        run: traderbot wondertrader smoke

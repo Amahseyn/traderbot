@@ -10,6 +10,9 @@ __pycache__/
 /results/
 /solutions/
 
+# WonderTrader vendor tree (large; use setup_wondertrader_monorepo.sh)
+/vendor/wondertrader/
+
 # Lab UI (Node)
 apps/lab-ui/node_modules/
 apps/lab-ui/.next/
