@@ -149,6 +149,10 @@ def main(argv: list[str] | None = None) -> None:
         kwargs.setdefault("equity_periods", 100)
         kwargs.setdefault("include_equity_rotation", True)
 
+    if pid == "wondertrader-platform":
+        kwargs.setdefault("full_backtest", True)
+        kwargs.setdefault("build_runner", False)
+
     try:
         result = run_pipeline(pid, **kwargs)
     except KeyError as e:

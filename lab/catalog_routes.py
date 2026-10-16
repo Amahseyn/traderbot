@@ -28,6 +28,12 @@ def register_catalog_routes(app) -> None:
 
         return capabilities_api_payload()
 
+    @app.get("/api/catalog/wondertrader")
+    def api_catalog_wondertrader():
+        from traderbot.integrations.wondertrader import capabilities_api_payload
+
+        return capabilities_api_payload()
+
     @app.get("/api/catalog/terminal")
     def api_catalog_terminal(implemented_only: bool = False):
         return catalog_dict(implemented_only=implemented_only)

@@ -43,6 +43,7 @@ from lab.tasks import (
     run_strategy_test_task,
     run_custom_research_task,
     run_finrl_platform_task,
+    run_wondertrader_platform_task,
 )
 from lab.terminal_tasks import (
     run_terminal_live_task,
@@ -477,6 +478,21 @@ def register_job_routes(app, get_connection: Callable) -> None:
             job_id,
             "finrl-platform",
             lambda: run_finrl_platform_task(body),
+        )
+        return {"id": job_id, "status": JOB_STATUS_QUEUED}
+
+    @app.post("/api/jobs/wondertrader-platform")
+    def job_wondertrader_platform(body: dict[str, Any]):
+        connection = get_connection()
+        try:
+            job_id = _insert_job(connection, "wondertrader-platform", body)
+        finally:
+            connection.close()
+        _start_inprocess(
+            get_connection,
+            job_id,
+            "wondertrader-platform",
+            lambda: run_wondertrader_platform_task(body),
         )
         return {"id": job_id, "status": JOB_STATUS_QUEUED}
 

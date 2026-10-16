@@ -10,6 +10,7 @@ from traderbot.pipelines.definitions import (
     pipeline_crypto_jobs_export,
     pipeline_finrl_platform,
     pipeline_sma_backtest,
+    pipeline_wondertrader_platform,
 )
 
 
@@ -227,6 +228,36 @@ PIPELINES: tuple[PipelineSpec, ...] = (
                 label="Run US equity rotation",
                 kind="boolean",
                 default="true",
+            ),
+        ),
+        full=True,
+    ),
+    PipelineSpec(
+        id="wondertrader-platform",
+        title="WonderTrader (backtest + live readiness)",
+        description=(
+            "Smoke-test dist configs and sample IF data → optional WtBtRunner experiment "
+            "(CTA/HFT/UFT/exec) → live template checklist (WtRunnerCta/Hft/Uft)."
+        ),
+        fn=pipeline_wondertrader_platform,
+        steps=_steps(
+            ("smoke", "Dist layout + English operator files"),
+            ("live_check", "WtRunner config templates"),
+            ("backtest", "Four-engine WtBtRunner experiment"),
+        ),
+        inputs=(
+            PipelineInputView(
+                key="full_backtest",
+                label="Run WtBtRunner experiment",
+                kind="boolean",
+                default="true",
+            ),
+            PipelineInputView(
+                key="build_runner",
+                label="Build macos_bt first",
+                kind="boolean",
+                default="false",
+                hint="macOS only; cmake + make WtBtRunner",
             ),
         ),
         full=True,

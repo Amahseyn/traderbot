@@ -66,6 +66,7 @@ def _register_commands() -> None:
     from cli.terminal import main as terminal_main
     from cli.export import main as export_main
     from cli.finrl import main as finrl_main
+    from cli.wondertrader import main as wondertrader_main
 
     _register("cli", "Interactive menu (data, strategy, auth, …)", interactive_main)
     _register("export", "Download OHLC candles to CSV", export_main)
@@ -81,6 +82,11 @@ def _register_commands() -> None:
     )
     _register("terminal", "Live, once, and CSV replay strategy loops", terminal_main)
     _register("finrl", "FinRL-Trading integration (Hyperliquid + equity rotation)", finrl_main)
+    _register(
+        "wondertrader",
+        "WonderTrader backtest (WtBtRunner) and live readiness checks",
+        wondertrader_main,
+    )
 
 
 def main(argv: list[str] | None = None) -> None:

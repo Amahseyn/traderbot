@@ -387,3 +387,51 @@ def pipeline_finrl_platform(
     result.write_summary(layout.reports / "pipeline_summary.json")
     return result
 
+
+def pipeline_wondertrader_platform(
+    *,
+    full_backtest: bool = True,
+    build_runner: bool = False,
+    solutions_root: Path = SOLUTIONS_ROOT,
+    solution_root: Path | None = None,
+    **_: Any,
+) -> PipelineResult:
+    """WonderTrader: smoke validation + optional four-engine WtBtRunner experiment."""
+    from traderbot.integrations.wondertrader.experiment import run_platform_validation
+    from traderbot.integrations.wondertrader.paths import logs_dir, wondertrader_root
+
+    layout = prepare_solution(
+        "wondertrader-platform",
+        solutions_root=solutions_root,
+        solution_root=solution_root,
+        title="WonderTrader platform",
+        description="Dist smoke test, live readiness, and WtBtRunner cta/hft/uft/exec experiment.",
+    )
+    result = PipelineResult(pipeline_id="wondertrader-platform")
+
+    def _log(msg: str) -> None:
+        print(msg, flush=True)
+
+    log_path = logs_dir() / "pipeline_wondertrader.log"
+    payload = run_platform_validation(
+        full_backtest=full_backtest,
+        build=build_runner,
+        log=_log,
+        log_file=log_path,
+    )
+    report_path = layout.reports / "wondertrader_platform_report.json"
+    report_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+    result.add_step(
+        "wondertrader_platform",
+        detail=f"root={wondertrader_root()} full_backtest={full_backtest}",
+        artifacts=[report_path, log_path],
+    )
+    result.outputs = {
+        "solution_root": str(layout.root),
+        "report": str(report_path),
+        "ok": payload.get("ok"),
+        "manifest": (payload.get("backtest") or {}).get("manifest_path"),
+    }
+    result.write_summary(layout.reports / "pipeline_summary.json")
+    return result
+

@@ -44,6 +44,26 @@ def run_finrl_platform_task(body: dict[str, Any]) -> None:
     print(json.dumps(report, indent=2, default=str), flush=True)
 
 
+def run_wondertrader_platform_task(body: dict[str, Any]) -> None:
+    from traderbot.integrations.wondertrader.experiment import run_platform_validation
+    from traderbot.integrations.wondertrader.paths import logs_dir
+
+    log_path = logs_dir() / "job_wondertrader_platform.log"
+
+    def log(msg: str) -> None:
+        print(msg, flush=True)
+
+    report = run_platform_validation(
+        full_backtest=bool(body.get("full_backtest", True)),
+        build=bool(body.get("build_runner", False)),
+        log=log,
+        log_file=log_path,
+    )
+    print(json.dumps(report, indent=2, default=str), flush=True)
+    if not report.get("ok"):
+        raise RuntimeError("WonderTrader platform validation failed")
+
+
 def run_export_task(fields: dict[str, Any]) -> None:
     src = fields.get("src")
     dst = fields.get("dst")
