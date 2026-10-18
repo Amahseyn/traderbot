@@ -61,3 +61,16 @@ done
 4. Keep risk limits (`capital_cap`, daily loss, kill switch) in live/paper.
 
 See also `docs/crypto-strategies.md` and OOS tables in `docs/strategy-matrix-evaluation.md`.
+
+
+## Research hygiene (walk-forward, ranking)
+
+- `python -m cli data cache-hyperliquid BTC ETH --interval 1 --interval 5` appends closed
+  candles to `data/cache/hyperliquid/*.csv`. Hyperliquid only serves ~5000 recent candles
+  (~3.5 days of 1m, ~17 days of 5m), so run it daily to build multi-week history.
+- `python -m cli strategy walk-forward <csv> --strategy scalp_dip --param dip_pct=0.004,0.006`
+  tunes on a rolling train window and reports only out-of-sample results.
+- Sweeps rank by `edge` by default: eligible (>= 30 trades), then t-stat >= 2 on per-trade
+  net returns, then net average per round trip. `--rank-by return_pct` restores the old order.
+- `ensemble_filter_mode=state` lets `rsi_trend` act as a trend-state filter instead of
+  requiring its crossover on the same bar as the scalp entry.

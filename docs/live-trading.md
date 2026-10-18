@@ -67,6 +67,31 @@ Lab **Live** tab runs the same stack via `POST /api/jobs/terminal-live` (require
 
 Shared defaults live in `traderbot/utils/trading_costs.py`: **0.045% fee** and **0.05% slippage** per taker fill (Hyperliquid perp), **0.015%** and no slippage for maker (resting limit) fills. Research tools (`sweep`, `live_tune`, `compare`, `batch`, `validation`, Lab jobs) resolve costs per venue via `resolve_cost_rates`: explicit `fee` / `slippage` win, else `exchange`, else the venue inferred from the CSV name (`*IRT` → Nobitex 0.35% taker + 0.1% slippage), else Hyperliquid. Override the Hyperliquid defaults with `TRADERBOT_DEFAULT_FEE_RATE` / `TRADERBOT_DEFAULT_SLIPPAGE_RATE`.
 
+## Order engine (limit entries, brackets, quotes, shorts)
+
+Strategies that return an `OrderSpec` or quotes (`perp_market_making`, `scalp_dip` with
+`--scalp-order-mode bracket|maker`, or `--allow-short 1`) run through an order engine:
+
+- **Backtest / paper:** `traderbot.backtesting.broker.SimBroker`. Limit orders fill only when a
+  later bar trades *through* the price, at that price, paying the maker fee (HL 0.015%).
+  Stops pay taker fee + slippage; TP/SL are measured from the actual fill; when stop and TP
+  are both inside one bar the stop wins. Paper uses the same broker (next-open market fills).
+- **Live Hyperliquid:** `traderbot.hyperliquid.order_manager.HyperliquidOrderManager` posts
+  post-only (ALO) entries/quotes, cancels/replaces quotes every bar, and on fill places a
+  reduce-only ALO take-profit plus a native reduce-only stop trigger from the fill price;
+  OCO is emulated by polling. *Not yet exercised against the live exchange.*
+- **Nobitex:** long-only market orders only; order-engine strategies fall back with a warning.
+- Shorts are Hyperliquid perps only; `*IRT` markets are always long-only.
+
+## Live data loop
+
+- `--align-to-bar` (default on): wake ~1s after each bar close; retry every 2s for 20s if the
+  bar is not published yet; `--poll-sec` is the maximum sleep.
+- Missed bars (slow step, reconnect) are replayed oldest-first, never skipped.
+- `--ws` (Hyperliquid): public candle websocket; falls back to REST when quiet for 2 bars.
+- Nobitex UDF `to` is exclusive of the bar opening at `to`; the bot now asks for
+  `to = start of current bar`, so the latest closed bar is no longer dropped.
+
 ## Monitoring and incident response
 
 - Watch job logs (`/live` in the UI) and terminal JSON events for `live order failed`.
