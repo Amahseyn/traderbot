@@ -158,9 +158,9 @@ def test_scalp_dip_atr_mode_and_volume_filter():
 
 def test_scalp_preset_fills_defaults_but_explicit_flags_win():
     algo = algorithm_for_id("scalp_dip", **strategy_kwargs_from_namespace("scalp_dip", default_strategy_namespace(scalp_preset="5m")))
-    assert algo.scalp_threshold_mode == "atr" and algo.scalp_order_mode == "bracket"
-    algo = algorithm_for_id("scalp_dip", **strategy_kwargs_from_namespace("scalp_dip", default_strategy_namespace(scalp_preset="5m", scalp_order_mode="maker")))
-    assert algo.scalp_order_mode == "maker"
+    assert algo.scalp_order_mode == "maker" and algo.take_profit_pct == 0.006
+    algo = algorithm_for_id("scalp_dip", **strategy_kwargs_from_namespace("scalp_dip", default_strategy_namespace(scalp_preset="5m", scalp_order_mode="bracket")))
+    assert algo.scalp_order_mode == "bracket"
 
 
 def test_legacy_market_strategy_untouched_by_on_fill():

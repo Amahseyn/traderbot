@@ -12,9 +12,11 @@ from traderbot.algorithms.streaming import atr_init, atr_update
 ORDER_MODES = ("legacy", "bracket", "maker")
 THRESHOLD_MODES = ("fixed", "atr")
 
-#: Named parameter sets. ``1m`` is the historical default; ``5m`` scales everything to ATR
-#: (so it adapts to the slower bar) and uses exchange-side brackets. Both are starting
-#: points for walk-forward tuning, not tuned results.
+#: Named parameter sets. ``1m`` is the historical default. ``5m`` is the combination a
+#: rolling walk-forward (train 2000 / test 500 bars, HL BTC+ETH 5m, Oct 2026, HL taker
+#: 0.045% + 0.05% slippage, maker 0.015%) picked most often: post-only entry, tighter TP.
+#: It lost less than the legacy settings out of sample but was **not** profitable; treat
+#: both as starting points for your own walk-forward, not as tuned edges.
 SCALP_DIP_PRESETS: dict[str, dict[str, Any]] = {
     "1m": {
         "dip_lookback_bars": 10,
@@ -24,14 +26,13 @@ SCALP_DIP_PRESETS: dict[str, dict[str, Any]] = {
         "cooldown_bars_after_loss": 3,
     },
     "5m": {
-        "dip_lookback_bars": 12,
-        "scalp_threshold_mode": "atr",
-        "dip_atr_mult": 1.5,
-        "tp_atr_mult": 2.0,
-        "sl_atr_mult": 1.5,
-        "atr_period": 14,
+        "dip_lookback_bars": 10,
+        "dip_pct": 0.004,
+        "take_profit_pct": 0.006,
+        "stop_loss_pct": 0.005,
         "cooldown_bars_after_loss": 1,
-        "scalp_order_mode": "bracket",
+        "scalp_order_mode": "maker",
+        "entry_ttl_bars": 2,
     },
 }
 
@@ -76,9 +77,9 @@ class ScalpDipAlgorithm(Algorithm):
         cooldown_bars_after_loss=3,
         scalp_position_fraction=1.0,
         scalp_threshold_mode: str = "fixed",
-        dip_atr_mult: float = 1.5,
-        tp_atr_mult: float = 2.0,
-        sl_atr_mult: float = 1.5,
+        dip_atr_mult: float = 3.0,
+        tp_atr_mult: float = 3.0,
+        sl_atr_mult: float = 3.0,
         atr_period: int = 14,
         scalp_order_mode: str = "legacy",
         entry_offset_pct: float = 0.0002,
