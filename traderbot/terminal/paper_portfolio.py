@@ -24,6 +24,8 @@ class PaperPortfolio:
     quote_currency: str
     base_amount: float = 0.0
     fee_rate: float = DEFAULT_TRADE_FEE_RATE
+    #: Market-fill slippage, same convention as the backtest (buys pay more, sells get less).
+    slippage_rate: float = 0.0
     session_initial_cash: float | None = None
     last_mark_price: float = 0.0
 
@@ -57,6 +59,10 @@ class PaperPortfolio:
         if price <= 0:
             return {"filled": False, "reason": "invalid_price"}
         self._mark_for_valuation(price)
+        if action == "buy":
+            price = price * (1.0 + self.slippage_rate)
+        elif action == "sell":
+            price = price * (1.0 - self.slippage_rate)
         if action == "buy":
             if self.quote_cash <= 0:
                 return {"filled": False, "reason": "no_quote_cash"}

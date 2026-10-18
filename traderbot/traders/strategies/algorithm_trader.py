@@ -105,6 +105,13 @@ class AlgorithmTrader(NobitexTrader):
             low=float(bar["low"]),
             close=float(bar["close"]),
         )
+        if getattr(self.algorithm, "uses_order_engine", False):
+            # The order engine reports fills via on_fill; only align once after warmup so a
+            # resting (unfilled) limit entry is not wiped every bar.
+            if not getattr(self, "_order_engine_synced", False):
+                self._order_engine_synced = True
+                self.algorithm.sync_open_position(self.in_position)
+            return
         self.algorithm.sync_open_position(self.in_position)
 
     def step(self) -> None:

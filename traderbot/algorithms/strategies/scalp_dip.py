@@ -152,6 +152,10 @@ class ScalpDipAlgorithm(Algorithm):
         elif self._direction == 0:
             self._direction = 1
 
+    @property
+    def uses_order_engine(self) -> bool:
+        return self.scalp_order_mode != "legacy" or self.allow_short
+
     def order_size(self) -> OrderSize | None:
         return self._size
 

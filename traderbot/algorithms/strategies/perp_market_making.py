@@ -100,6 +100,10 @@ class PerpMarketMakingAlgorithm(Algorithm):
             self._entry_price = 0.0
         self._direction = new_direction
 
+    @property
+    def uses_order_engine(self) -> bool:
+        return True
+
     def quotes(self) -> list[Quote] | None:
         return list(self._quotes)
 

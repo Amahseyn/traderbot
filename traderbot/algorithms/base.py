@@ -118,6 +118,12 @@ class Algorithm(ABC):
         """Execution for the most recent non-hold signal; ``None`` = market order, no bracket."""
         return None
 
+    @property
+    def uses_order_engine(self) -> bool:
+        """True when signals need limit/bracket/quote/short execution (paper and live then route
+        through the order engine instead of the long-only market path)."""
+        return False
+
     def quotes(self) -> list[Quote] | None:
         """Quoting strategies return the full set of resting maker quotes after each bar.
 

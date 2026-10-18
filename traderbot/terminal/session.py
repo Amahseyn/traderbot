@@ -183,14 +183,16 @@ def build_terminal_trader(
         assert paper_initial_cash is not None
         initial_cash = paper_initial_cash
         paper_fee_raw = getattr(args, "paper_fee_rate", None)
-        if paper_fee_raw is not None:
-            paper_fee_rate = float(paper_fee_raw)
-        else:
-            paper_fee_rate, _slippage_rate = backtest_cost_rates(exchange)
+        default_fee, paper_slippage = backtest_cost_rates(exchange)
+        paper_fee_rate = float(paper_fee_raw) if paper_fee_raw is not None else default_fee
+        slippage_raw = getattr(args, "paper_slippage_rate", None)
+        if slippage_raw is not None:
+            paper_slippage = float(slippage_raw)
         trader.paper_portfolio = PaperPortfolio(
             quote_cash=initial_cash,
             quote_currency=dst,
             fee_rate=paper_fee_rate,
+            slippage_rate=paper_slippage,
         )
         print_tick_event(
             {
@@ -199,6 +201,7 @@ def build_terminal_trader(
                 "initial_cash": initial_cash,
                 "capital_cap": capital_cap,
                 "fee_rate": trader.paper_portfolio.fee_rate,
+                "slippage_rate": trader.paper_portfolio.slippage_rate,
                 "symbol": symbol,
                 "strategy_id": args.strategy,
             },

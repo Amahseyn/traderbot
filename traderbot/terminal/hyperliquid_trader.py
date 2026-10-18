@@ -70,6 +70,58 @@ class HyperliquidTerminalTrader(TerminalAlgorithmTrader):
                 # Position closed off-bot (stop / take-profit filled): drop sibling orders.
                 self._cancel_active_stop(coin)
 
+    def _step_live_order_engine(self, bar: Bar, poll: int) -> None:
+        """Limit entries / brackets / quotes via :class:`HyperliquidOrderManager`."""
+        from traderbot.hyperliquid.order_manager import HyperliquidOrderManager
+        from traderbot.terminal.events import print_tick_event
+
+        manager = getattr(self, "_order_manager", None)
+        if manager is None:
+            manager = HyperliquidOrderManager(
+                coin=self._coin(),
+                algorithm=self.algorithm,
+                allow_short=bool(getattr(self.algorithm, "allow_short", False)),
+                capital_cap=self.inventory.capital_cap,
+                emit=lambda event: print_tick_event({**event, "strategy_id": self.strategy_id}),
+            )
+            try:
+                manager._refresh_position()
+            except HyperliquidTradingError as exc:
+                raise NobitexClientError(str(exc)) from exc
+            self._order_manager = manager
+        close_price = float(bar["close"])
+        try:
+            equity = self.perp_equity(hyperliquid_account_value_usd())
+        except HyperliquidTradingError as exc:
+            raise NobitexClientError(str(exc)) from exc
+        verdict = self.risk.evaluate("buy", equity=equity, mark_price=close_price)
+        if not verdict.allowed and manager.position == 0:
+            manager.cancel_all()
+            print_tick_event({"event": "tick", "poll": poll, "status": "blocked", "strategy_id": self.strategy_id,
+                              "message": f"risk blocked: {verdict.reason}"})
+            return
+        try:
+            signal = manager.step(bar)
+        except HyperliquidTradingError as exc:
+            raise NobitexClientError(str(exc)) from exc
+        self.in_position = manager.position != 0
+        sync_inventory_to_exchange_base(self.inventory, max(0.0, manager.position), mark_price=close_price)
+        print_tick_event(
+            {
+                "event": "tick",
+                "poll": poll,
+                "status": "evaluated",
+                "strategy_id": self.strategy_id,
+                "bar_timestamp": bar.get("timestamp"),
+                "close": close_price,
+                "symbol": bar.get("symbol"),
+                "signal": signal,
+                "position": manager.position,
+                "resting_orders": len(manager.resting),
+                "bracket": manager.bracket is not None,
+            }
+        )
+
     def perp_equity(self, account_value: float) -> float:
         """Perp equity = account value (already includes the position's unrealised PnL)."""
         return float(account_value)

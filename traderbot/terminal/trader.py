@@ -65,6 +65,24 @@ class TerminalAlgorithmTrader(AlgorithmTrader):
         if timestamp is not None:
             self._last_bar_timestamp = int(timestamp)
         self.prepare_for_bar(bar)
+        if getattr(self.algorithm, "uses_order_engine", False):
+            if self.execution.mode == "paper" and self.paper_portfolio is not None:
+                self._step_paper_order_engine(bar, poll)
+                return
+            live_engine = getattr(self, "_step_live_order_engine", None)
+            if self.execution.mode != "paper" and live_engine is not None:
+                live_engine(bar, poll)
+                return
+            if not getattr(self, "_warned_no_order_engine", False):
+                self._warned_no_order_engine = True
+                print_tick_event(
+                    {
+                        "event": "warning",
+                        "strategy_id": self.strategy_id,
+                        "message": "limit/bracket/quote orders are not supported on this venue; "
+                        "falling back to long-only market orders on buy/sell signals",
+                    }
+                )
         signal = self.algorithm.on_bar(bar)
         self._pending_order_size = self.algorithm.order_size() if signal != "hold" else None
         order_action = order_action_for_long_only(self.in_position, signal)
@@ -117,6 +135,68 @@ class TerminalAlgorithmTrader(AlgorithmTrader):
             self._sync_in_position_after_paper_fill(order_action)
         else:
             self.on_signal(order_action, bar)
+
+    def _step_paper_order_engine(self, bar: Bar, poll: int) -> None:
+        """Paper fills through the same SimBroker the backtest uses (limits on trade-through at
+        the maker fee, brackets from the fill price, stops with taker fee + slippage)."""
+        from traderbot.backtesting.broker import SimBroker
+
+        portfolio = self.paper_portfolio
+        assert portfolio is not None
+        broker = getattr(self, "_paper_broker", None)
+        if broker is None:
+            spendable = self.inventory.spendable_quote(portfolio.quote_cash)
+            if spendable <= 0:
+                spendable = portfolio.quote_cash
+            self._paper_reserve = max(0.0, portfolio.quote_cash - spendable)
+            broker = SimBroker(
+                self.algorithm,
+                initial_cash=spendable,
+                fee_rate=portfolio.fee_rate,
+                slippage_rate=portfolio.slippage_rate,
+                execution="next_open",
+                symbol=self.market_symbol,
+            )
+            self._paper_broker = broker
+        before = len(broker.trades)
+        signal = broker.step(bar)
+        portfolio.quote_cash = self._paper_reserve + broker.cash
+        portfolio.base_amount = broker.position
+        self.in_position = broker.position != 0
+        mark = float(bar.get("close") or 0)
+        for trade in broker.trades[before:]:
+            fill = {
+                "filled": True,
+                "side": trade.action,
+                "price": trade.price,
+                "fee": trade.fee,
+                "base_delta": trade.size if trade.action == "buy" else -trade.size,
+                "reason": trade.reason,
+                "liquidity": trade.liquidity,
+            }
+            print_signal_event(
+                trade.action,
+                bar,
+                mode="paper",
+                strategy_id=self.strategy_id,
+                emit_holds=self.emit_holds,
+                extra={"fill": fill, "portfolio": portfolio.snapshot(mark)},
+            )
+        tick: dict[str, object] = {
+            "event": "tick",
+            "poll": poll,
+            "status": "evaluated",
+            "strategy_id": self.strategy_id,
+            "bar_timestamp": bar.get("timestamp"),
+            "close": bar.get("close"),
+            "symbol": bar.get("symbol"),
+            "signal": signal,
+            "in_position": self.in_position,
+            "resting_orders": len(broker.resting),
+            "pending_market": broker.pending is not None,
+        }
+        self._attach_paper_portfolio(tick)
+        print_tick_event(tick)
 
     def _sync_in_position_after_paper_fill(self, action: SignalAction) -> None:
         if self.paper_portfolio is not None:
