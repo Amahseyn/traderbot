@@ -7,6 +7,8 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from traderbot.backtesting.trade_stats import DEFAULT_MIN_TRADES
+
 from traderbot.algorithms.registry import (
     algorithm_for_id,
     backtest_strategy_ids,
@@ -268,8 +270,14 @@ def main(argv: list[str] | None = None) -> None:
     sweep.add_argument("--train-fraction", type=float, default=0.6)
     sweep.add_argument("--validation-fraction", type=float, default=0.2)
     sweep.add_argument("--holdout-tail-bars", type=int, default=None)
-    sweep.add_argument("--min-trades", type=int, default=0)
+    sweep.add_argument("--min-trades", type=int, default=DEFAULT_MIN_TRADES, help="Minimum trades (fills) before a combo is eligible (default %(default)s)")
     sweep.add_argument("--max-combos", type=int, default=64)
+    sweep.add_argument(
+        "--rank-by",
+        choices=("edge", "return_pct", "avg_trade_net_pct"),
+        default="edge",
+        help="edge = significant (t>=2) combos first, then net average per trade (default); return_pct = legacy",
+    )
     sweep.add_argument(
         "--optimize-method",
         choices=("grid", "optuna"),
@@ -302,7 +310,7 @@ def main(argv: list[str] | None = None) -> None:
     )
     validate.add_argument("--train-fraction", type=float, default=0.6)
     validate.add_argument("--validation-fraction", type=float, default=0.2)
-    validate.add_argument("--min-trades", type=int, default=1)
+    validate.add_argument("--min-trades", type=int, default=DEFAULT_MIN_TRADES, help="Minimum trades (fills) before a combo is eligible (default %(default)s)")
     validate.add_argument("--max-combos", type=int, default=64)
     validate.add_argument("--out", type=Path, default=None, help="Write validation_manifest.json")
     _add_param_flags(validate)
@@ -323,7 +331,7 @@ def main(argv: list[str] | None = None) -> None:
     leaderboard.add_argument("--test-tail-bars", type=int, default=100)
     leaderboard.add_argument("--validation-fraction", type=float, default=0.25)
     leaderboard.add_argument("--top", type=int, default=3, dest="top_n")
-    leaderboard.add_argument("--min-trades", type=int, default=0)
+    leaderboard.add_argument("--min-trades", type=int, default=DEFAULT_MIN_TRADES, help="Minimum trades (fills) before a combo is eligible (default %(default)s)")
     leaderboard.add_argument("--max-combos", type=int, default=64)
     leaderboard.add_argument(
         "--full-grid",
@@ -368,7 +376,7 @@ def main(argv: list[str] | None = None) -> None:
     batch_lb.add_argument("--test-tail-bars", type=int, default=100)
     batch_lb.add_argument("--validation-fraction", type=float, default=0.25)
     batch_lb.add_argument("--top", type=int, default=3, dest="top_n")
-    batch_lb.add_argument("--min-trades", type=int, default=0)
+    batch_lb.add_argument("--min-trades", type=int, default=DEFAULT_MIN_TRADES, help="Minimum trades (fills) before a combo is eligible (default %(default)s)")
     batch_lb.add_argument("--max-combos", type=int, default=128)
     batch_lb.add_argument(
         "--full-grid",
@@ -412,7 +420,7 @@ def main(argv: list[str] | None = None) -> None:
     )
     tune.add_argument("--holdout-tail-bars", type=int, default=None)
     tune.add_argument("--holdout-fraction", type=float, default=0.2)
-    tune.add_argument("--min-trades", type=int, default=5)
+    tune.add_argument("--min-trades", type=int, default=DEFAULT_MIN_TRADES, help="Minimum trades (fills) before a combo is eligible (default %(default)s)")
     tune.add_argument("--max-combos", type=int, default=64)
     tune.add_argument("--min-bars", type=int, default=100)
     tune.add_argument("--horizon-label", type=str, default=None)
@@ -425,7 +433,60 @@ def main(argv: list[str] | None = None) -> None:
     )
     _add_param_flags(tune)
 
+    walk = sub.add_parser(
+        "walk-forward",
+        help="Rolling tune-on-train / trade-next-window evaluation; reports out-of-sample edge only",
+    )
+    walk.add_argument("csv", type=Path)
+    walk.add_argument("--strategy", choices=implemented_strategy_ids(), default="scalp_dip")
+    walk.add_argument("--cash", type=float, default=10_000.0)
+    _add_fill_flags(walk)
+    walk.add_argument("--param", dest="params", action="append", default=[], help="Repeatable: name=v1,v2")
+    walk.add_argument("--train-bars", type=int, default=2000)
+    walk.add_argument("--test-bars", type=int, default=500)
+    walk.add_argument("--warmup-bars", type=int, default=200)
+    walk.add_argument("--min-trades", type=int, default=DEFAULT_MIN_TRADES)
+    walk.add_argument("--rank-by", choices=("edge", "return_pct", "avg_trade_net_pct"), default="edge")
+    walk.add_argument("--out", type=Path, default=None)
+    _add_param_flags(walk)
+
     args = parser.parse_args(argv)
+
+    if args.command == "walk-forward":
+        from traderbot.backtesting import load_bars_csv
+        from traderbot.backtesting.sweep import parse_sweep_param
+        from traderbot.backtesting.walk_forward import WalkForwardOptions, run_walk_forward
+
+        grid: dict[str, Any] = {}
+        try:
+            for spec in args.params:
+                name, values = parse_sweep_param(spec)
+                grid[name] = values
+            fee, slippage = _resolve_fee_slippage(args, args.csv)
+            payload = run_walk_forward(
+                WalkForwardOptions(
+                    strategy_id=args.strategy,
+                    param_grid=grid,
+                    bars=load_bars_csv(args.csv),
+                    train_bars=args.train_bars,
+                    test_bars=args.test_bars,
+                    warmup_bars=args.warmup_bars,
+                    cash=args.cash,
+                    fee=fee,
+                    slippage=slippage,
+                    execution=args.execution,
+                    min_trades=args.min_trades,
+                    rank_by=args.rank_by,
+                ),
+                base_namespace=args,
+            )
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            sys.exit(2)
+        if args.out is not None:
+            args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        print(json.dumps(payload, indent=2))
+        return
 
     if args.command == "catalog":
         entries = list_strategies(implemented_only=args.implemented)
@@ -614,6 +675,7 @@ def main(argv: list[str] | None = None) -> None:
                     holdout_tail_bars=args.holdout_tail_bars,
                     min_trades=args.min_trades,
                     max_combos=args.max_combos,
+                    rank_by=getattr(args, "rank_by", "edge"),
                 ),
                 base_namespace=args,
                 config=optimize_config,

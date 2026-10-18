@@ -10,6 +10,7 @@ from traderbot.backtesting.engine import (
     build_cash_flow_summary,
     build_trade_log_entries,
 )
+from traderbot.backtesting.trade_stats import trade_stats
 
 
 def backtest_summary_dict(
@@ -30,6 +31,7 @@ def backtest_summary_dict(
         "slippage_rate": result.slippage_rate,
         "execution": result.execution,
         "total_fees": round(result.total_fees, 6),
+        **trade_stats(result),
         "cash_flow": build_cash_flow_summary(result),
         "trade_logs": build_trade_log_entries(result),
     }

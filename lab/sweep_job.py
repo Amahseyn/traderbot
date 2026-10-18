@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from traderbot.backtesting.trade_stats import DEFAULT_MIN_TRADES
 from traderbot.backtesting.robust_defaults import tune_grid_for_strategy
 from traderbot.backtesting.optimize_select import optimize_config_from_body, run_strategy_optimize
 from traderbot.backtesting.sweep import SweepOptions
@@ -68,7 +69,7 @@ def run_recorded_strategy_sweep(
             exchange=(str(body.get("exchange")).strip().lower() or None) if body.get("exchange") else None,
             execution=str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION),
             holdout_tail_bars=None if holdout_raw in (None, "") else int(holdout_raw),
-            min_trades=int(min_trades_raw or 0),
+            min_trades=DEFAULT_MIN_TRADES if min_trades_raw in (None, "") else int(min_trades_raw),
             max_combos=int(max_combos_raw or 64),
         ),
         _strategy_namespace_from_body(body),

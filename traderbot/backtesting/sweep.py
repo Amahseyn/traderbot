@@ -9,6 +9,7 @@ from traderbot.algorithms.cli_args import default_strategy_namespace, merge_stra
 from traderbot.algorithms.registry import algorithm_for_id, strategy_kwargs_from_namespace
 from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_backtest
 from traderbot.backtesting.holdout_window import return_pct_over_equity_tail
+from traderbot.backtesting.trade_stats import DEFAULT_MIN_TRADES
 from traderbot.data.intrahour import enrich_bars_for_csv
 from traderbot.utils.trading_costs import (
     ResolvesCostRates,
@@ -21,12 +22,22 @@ DEFAULT_LIVE_TUNE_MAX_BARS = 100
 DEFAULT_LIVE_TUNE_HOLDOUT_BARS = 20
 
 
-def sweep_rank_key(row: dict[str, Any], *, rank_by: str = "return_pct") -> tuple[int, float]:
+#: Default ranking: net average per round trip, significant (t >= 2) combos first.
+DEFAULT_RANK_BY = "edge"
+RANK_BY_CHOICES = ("edge", "return_pct", "avg_trade_net_pct")
+
+
+def sweep_rank_key(row: dict[str, Any], *, rank_by: str = "return_pct") -> tuple:
     """Rank eligible combos by the in-sample metric only.
 
     ``holdout_return_pct`` is reported for inspection but deliberately excluded
     from the sort key so holdout data never influences parameter selection.
+    ``rank_by="edge"`` sorts by significance tier, then net average per trade, then return.
     """
+    if rank_by == "edge":
+        from traderbot.backtesting.trade_stats import edge_rank_key
+
+        return edge_rank_key(row)
     primary = row.get(rank_by)
     return (
         1 if row.get("eligible") else 0,
@@ -46,6 +57,12 @@ def parse_sweep_param(spec: str) -> tuple[str, list[Any]]:
     allowed = set(vars(default_strategy_namespace()))
     if name not in allowed:
         raise ValueError(f"unknown sweep param {name!r}")
+    from traderbot.backtesting.param_bounds import param_value_error
+
+    for value in values:
+        error = param_value_error(name, value)
+        if error:
+            raise ValueError(f"invalid --param {spec!r}: {error}")
     return name, values
 
 
@@ -77,9 +94,10 @@ class SweepOptions(ResolvesCostRates):
     exchange: str | None = None
     execution: str = DEFAULT_BACKTEST_EXECUTION
     holdout_tail_bars: int | None = None
-    min_trades: int = 0
+    min_trades: int = DEFAULT_MIN_TRADES
     max_combos: int = DEFAULT_MAX_COMBOS
     max_bars: int | None = None
+    rank_by: str = DEFAULT_RANK_BY
 
 
 @dataclass
@@ -104,6 +122,8 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
         raise ValueError("holdout_tail_bars must be >= 1")
     if options.min_trades < 0:
         raise ValueError("min_trades must be >= 0")
+    if options.rank_by not in RANK_BY_CHOICES:
+        raise ValueError(f"rank_by must be one of {RANK_BY_CHOICES}")
 
     base = merge_strategy_namespace(base_namespace)
     if options.bars is not None:
@@ -187,7 +207,7 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
         reason = skipped[0]["error"] if skipped else "no combinations"
         raise ValueError(f"sweep found no valid combos: {reason}")
 
-    rank_by = "return_pct"
+    rank_by = options.rank_by
 
     for row in rows:
         holdout_return = row.get("holdout_return_pct")

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from traderbot.backtesting.trade_stats import DEFAULT_MIN_TRADES, SIGNIFICANT_T_STAT
 from traderbot.algorithms.cli_args import merge_strategy_namespace
 from traderbot.algorithms.registry import algorithm_for_id, strategy_kwargs_from_namespace
 from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_backtest
@@ -32,8 +33,9 @@ class ValidationOptions(ResolvesCostRates):
     execution: str = DEFAULT_BACKTEST_EXECUTION
     train_fraction: float = 0.6
     validation_fraction: float = 0.2
-    min_trades: int = 1
+    min_trades: int = DEFAULT_MIN_TRADES
     max_combos: int = 64
+    rank_by: str = "edge"
 
 
 def run_strategy_validation(
@@ -131,13 +133,26 @@ def run_strategy_validation(
         reason = skipped[0]["error"] if skipped else "no combinations"
         raise ValueError(f"validation found no valid combos: {reason}")
 
-    def _selection_key(row: dict[str, Any]) -> tuple[int, float, float]:
+    def _selection_key(row: dict[str, Any]) -> tuple:
         validation_return = float(row["validation"]["return_pct"])
         train_return = float(row["train"]["return_pct"])
+        if getattr(options, "rank_by", "edge") == "return_pct":
+            return (1 if row["eligible"] else 0, validation_return, train_return)
+        # Edge: significant positive train edge that also holds on validation first, then the
+        # validation net average per round trip (fees/slippage included), then return.
+        train_t = row["train"].get("trade_t_stat")
+        validation_avg = row["validation"].get("avg_trade_net_pct")
+        robust = (
+            train_t is not None
+            and float(train_t) >= SIGNIFICANT_T_STAT
+            and validation_avg is not None
+            and float(validation_avg) > 0
+        )
         return (
             1 if row["eligible"] else 0,
+            1 if robust else 0,
+            float(validation_avg) if validation_avg is not None else float("-inf"),
             validation_return,
-            train_return,
         )
 
     candidates.sort(key=_selection_key, reverse=True)
@@ -210,7 +225,7 @@ class LeaderboardOptions(ResolvesCostRates):
     slippage: float | None = None
     exchange: str | None = None
     execution: str = DEFAULT_BACKTEST_EXECUTION
-    min_trades: int = 0
+    min_trades: int = DEFAULT_MIN_TRADES
     max_combos: int = 64
     full_grid: bool = False
     strategy_ids: list[str] | None = None

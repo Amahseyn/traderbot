@@ -18,7 +18,7 @@ from traderbot.utils.trading_costs import (
 
 MIN_TUNE_BARS = 100
 DEFAULT_HOLDOUT_FRACTION = 0.2
-DEFAULT_MIN_TRADES = 5
+from traderbot.backtesting.trade_stats import DEFAULT_MIN_TRADES  # noqa: E402  (30)
 
 DEFAULT_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
     "sma_cross": {"fast": [5, 10, 20], "slow": [20, 50, 100]},

@@ -151,7 +151,7 @@ def _validation_payload_to_sweep(
         "execution": options.execution,
         "holdout_tail_bars": None,
         "min_trades": options.min_trades,
-        "rank_by": "validation_return_pct",
+        "rank_by": "validation_return_pct" if options.rank_by == "return_pct" else "validation_edge",
         "selection_mode": "validation",
         "selection_mode_applied": "validation",
         "train_fraction": validation_payload.get("train_fraction"),
@@ -267,6 +267,7 @@ def run_strategy_optimize(
                 validation_fraction=cfg.validation_fraction,
                 min_trades=options.min_trades,
                 max_combos=options.max_combos,
+                rank_by="return_pct" if options.rank_by == "return_pct" else "edge",
             ),
             base_namespace,
         )

@@ -319,7 +319,9 @@ def resolve_sweep_body(connection: sqlite3.Connection, body: dict[str, Any]) -> 
             raise JobPayloadError("holdout_tail_bars must be at least 1")
         prepared["holdout_tail_bars"] = holdout_tail_bars
     try:
-        min_trades = int(body.get("min_trades") if body.get("min_trades") not in (None, "") else 0)
+        from traderbot.backtesting.trade_stats import DEFAULT_MIN_TRADES
+
+        min_trades = int(body.get("min_trades") if body.get("min_trades") not in (None, "") else DEFAULT_MIN_TRADES)
         max_combos = int(body.get("max_combos") if body.get("max_combos") not in (None, "") else 64)
     except (TypeError, ValueError) as exc:
         raise JobPayloadError("min_trades and max_combos must be integers") from exc

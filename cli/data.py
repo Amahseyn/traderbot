@@ -136,7 +136,38 @@ def main(argv: list[str] | None = None) -> None:
         help="Display plots in an interactive matplotlib window",
     )
 
+    cache = sub.add_parser(
+        "cache-hyperliquid",
+        help="Append newly closed Hyperliquid candles to a local CSV cache (run daily to build multi-week 1m/5m history)",
+    )
+    cache.add_argument("coins", nargs="+", help="e.g. BTC ETH")
+    cache.add_argument("--interval", dest="resolutions", action="append", default=None, help="Repeatable: 1, 5, 15 ...")
+    cache.add_argument("--cache-dir", type=Path, default=Path("data/cache"))
+    cache.add_argument("--lookback-days", type=float, default=30.0, help="First fetch only (API keeps ~5000 candles)")
+
     args = parser.parse_args(argv)
+
+    if args.command == "cache-hyperliquid":
+        from traderbot.data.bar_cache import find_gaps, update_hyperliquid_cache
+        from traderbot.hyperliquid.market_data import _bar_duration_seconds
+
+        summary = []
+        for coin in args.coins:
+            for resolution in args.resolutions or ["1", "5"]:
+                path, bars = update_hyperliquid_cache(
+                    coin, resolution, cache_dir=args.cache_dir, lookback_days=args.lookback_days
+                )
+                summary.append({
+                    "coin": coin.upper(),
+                    "resolution": resolution,
+                    "path": str(path),
+                    "bars": len(bars),
+                    "first": bars[0]["timestamp"] if bars else None,
+                    "last": bars[-1]["timestamp"] if bars else None,
+                    "gaps": len(find_gaps(bars, _bar_duration_seconds(resolution))),
+                })
+        print(json.dumps(summary, indent=2))
+        return
 
     if args.command == "markets":
         print(json.dumps(markets_catalog_dict(args.jobs), indent=2))

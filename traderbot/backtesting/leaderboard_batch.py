@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
+from traderbot.backtesting.trade_stats import DEFAULT_MIN_TRADES
 from traderbot.backtesting.validation import LeaderboardOptions, run_leakage_safe_leaderboard
 from traderbot.data.export import write_csv
 from traderbot.hyperliquid.market_data import (
@@ -85,7 +86,7 @@ class LeaderboardBatchOptions:
     test_tail_bars: int = 100
     validation_fraction: float = 0.25
     top_n: int = 3
-    min_trades: int = 0
+    min_trades: int = DEFAULT_MIN_TRADES
     max_combos: int = 128
     full_grid: bool = True
 

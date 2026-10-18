@@ -71,9 +71,11 @@ def suggest_strategy_param(
 ) -> Any:
     """Map one namespace field to an Optuna suggestion."""
     if grid_values:
+        from traderbot.backtesting.param_bounds import param_value_error
+
         unique: list[Any] = []
         for value in grid_values:
-            if value not in unique:
+            if value not in unique and param_value_error(name, value) is None:
                 unique.append(value)
         if unique:
             return trial.suggest_categorical(name, unique)
@@ -84,11 +86,11 @@ def suggest_strategy_param(
         low, high = _int_bounds(name, default)
         return trial.suggest_int(name, low, high)
     if isinstance(default, float):
-        magnitude = max(abs(default), 0.001)
-        low = default - magnitude * 2.0
-        high = default + magnitude * 2.0
-        if low == high:
-            low, high = default * 0.5, default * 1.5
+        from traderbot.backtesting.param_bounds import float_bounds
+
+        low, high = float_bounds(name, default)
+        if low >= high:
+            return default
         return trial.suggest_float(name, low, high)
     if default is None:
         return trial.suggest_categorical(name, list(OPTIONAL_FLOAT_CHOICES))
