@@ -31,9 +31,8 @@ from traderbot.results.layout import (
 )
 from traderbot.backtesting.metrics import buy_and_hold_return_pct
 from traderbot.utils.trading_costs import (
+    ResolvesCostRates,
     DEFAULT_BACKTEST_EXECUTION,
-    DEFAULT_SLIPPAGE_RATE,
-    DEFAULT_TRADE_FEE_RATE,
 )
 
 
@@ -46,13 +45,14 @@ LogFn = Callable[[str], None]
 
 
 @dataclass
-class StrategyCompareOptions:
+class StrategyCompareOptions(ResolvesCostRates):
     csv_path: Path
     out_dir: Path | None = None
     visualize: bool = True
     cash: float = 10_000.0
-    fee: float = DEFAULT_TRADE_FEE_RATE
-    slippage: float = DEFAULT_SLIPPAGE_RATE
+    fee: float | None = None
+    slippage: float | None = None
+    exchange: str | None = None
     execution: str = DEFAULT_BACKTEST_EXECUTION
     vectorbt: bool = False
     strategy_namespace: Any | None = None
@@ -287,14 +287,15 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
 
 
 @dataclass
-class StrategyTestOptions:
+class StrategyTestOptions(ResolvesCostRates):
     csv_path: Path
     strategy_id: str
     out_dir: Path | None = None
     visualize: bool = True
     cash: float = 10_000.0
-    fee: float = DEFAULT_TRADE_FEE_RATE
-    slippage: float = DEFAULT_SLIPPAGE_RATE
+    fee: float | None = None
+    slippage: float | None = None
+    exchange: str | None = None
     execution: str = DEFAULT_BACKTEST_EXECUTION
     vectorbt: bool = False
     strategy_namespace: Any | None = None

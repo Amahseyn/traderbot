@@ -14,21 +14,21 @@ from traderbot.backtesting.robust_defaults import tune_grid_for_strategy
 from traderbot.backtesting.sweep import MAX_SWEEP_PARAMS
 from traderbot.data.intrahour import enrich_bars_for_csv
 from traderbot.utils.trading_costs import (
+    ResolvesCostRates,
     DEFAULT_BACKTEST_EXECUTION,
-    DEFAULT_SLIPPAGE_RATE,
-    DEFAULT_TRADE_FEE_RATE,
 )
 
 
 @dataclass
-class ValidationOptions:
+class ValidationOptions(ResolvesCostRates):
     strategy_id: str
     param_grid: dict[str, list[Any]]
     csv_path: str | Path | None = None
     bars: list[dict[str, Any]] | None = None
     cash: float = 10_000.0
-    fee: float = DEFAULT_TRADE_FEE_RATE
-    slippage: float = DEFAULT_SLIPPAGE_RATE
+    fee: float | None = None
+    slippage: float | None = None
+    exchange: str | None = None
     execution: str = DEFAULT_BACKTEST_EXECUTION
     train_fraction: float = 0.6
     validation_fraction: float = 0.2
@@ -200,14 +200,15 @@ def run_strategy_validation(
 
 
 @dataclass
-class LeaderboardOptions:
+class LeaderboardOptions(ResolvesCostRates):
     bars: list[dict[str, Any]]
     test_tail_bars: int = 100
     validation_fraction_of_pre_test: float = 0.25
     top_n: int = 3
     cash: float = 10.0
-    fee: float = DEFAULT_TRADE_FEE_RATE
-    slippage: float = DEFAULT_SLIPPAGE_RATE
+    fee: float | None = None
+    slippage: float | None = None
+    exchange: str | None = None
     execution: str = DEFAULT_BACKTEST_EXECUTION
     min_trades: int = 0
     max_combos: int = 64

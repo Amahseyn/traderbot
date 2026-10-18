@@ -15,8 +15,7 @@ from traderbot.backtesting import load_bars_csv, run_backtest, save_backtest_res
 from traderbot.data.intrahour import enrich_bars_for_csv
 from traderbot.utils.trading_costs import (
     DEFAULT_BACKTEST_EXECUTION,
-    DEFAULT_SLIPPAGE_RATE,
-    DEFAULT_TRADE_FEE_RATE,
+    resolve_cost_rates,
 )
 
 
@@ -29,8 +28,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--fee",
         type=float,
-        default=DEFAULT_TRADE_FEE_RATE,
-        help="Fee rate per trade (0–1)",
+        default=None,
+        help="Fee rate per trade (0–1); default: venue profile inferred from the CSV name",
     )
     parser.add_argument(
         "--strategy",
@@ -41,8 +40,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--slippage",
         type=float,
-        default=DEFAULT_SLIPPAGE_RATE,
-        help="Slippage rate per fill (fraction)",
+        default=None,
+        help="Slippage rate per fill (fraction); default: venue profile",
     )
     parser.add_argument(
         "--execution",
@@ -62,12 +61,13 @@ def main(argv: list[str] | None = None) -> None:
 
     namespace = namespace_for_strategy_backtest(args.strategy, args, csv_path=args.csv)
     algo = algorithm_for_id(args.strategy, **strategy_kwargs_from_namespace(args.strategy, namespace))
+    fee_rate, slippage_rate = resolve_cost_rates(source=args.csv, fee=args.fee, slippage=args.slippage)
     result = run_backtest(
         algo,
         bars,
         initial_cash=args.cash,
-        fee_rate=args.fee,
-        slippage_rate=args.slippage,
+        fee_rate=fee_rate,
+        slippage_rate=slippage_rate,
         execution=args.execution,
     )
     summary = {

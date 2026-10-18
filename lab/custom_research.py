@@ -23,8 +23,7 @@ from traderbot.utils.bars import filter_bars_by_unix_range
 from traderbot.utils.resolution import resolution_from_csv_path, resolution_minutes
 from traderbot.utils.trading_costs import (
     DEFAULT_BACKTEST_EXECUTION,
-    DEFAULT_SLIPPAGE_RATE,
-    DEFAULT_TRADE_FEE_RATE,
+    optional_rate,
 )
 
 
@@ -375,10 +374,9 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
                     csv_path=csv_path,
                     visualize=bool(body.get("visualize", True)),
                     cash=float(body.get("cash") or 10_000.0),
-                    fee=float(
-                        body.get("fee") if body.get("fee") not in (None, "") else DEFAULT_TRADE_FEE_RATE
-                    ),
-                    slippage=DEFAULT_SLIPPAGE_RATE,
+                    fee=optional_rate(body.get("fee")),
+                    slippage=optional_rate(body.get("slippage")),
+                    exchange=(str(body.get("exchange")).strip().lower() or None) if body.get("exchange") else None,
                     execution=str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION),
                     vectorbt=bool(body.get("vectorbt")),
                     strategy_namespace=strategy_namespace,

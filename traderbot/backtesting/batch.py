@@ -20,9 +20,8 @@ from traderbot.backtesting import (
 from traderbot.data.intrahour import enrich_bars_for_csv
 from traderbot.results.layout import default_strategy_batch_out, result_tree_at
 from traderbot.utils.trading_costs import (
+    resolve_cost_rates,
     DEFAULT_BACKTEST_EXECUTION,
-    DEFAULT_SLIPPAGE_RATE,
-    DEFAULT_TRADE_FEE_RATE,
 )
 
 
@@ -32,8 +31,9 @@ class StrategyBatchOptions:
     strategy_id: str
     out_dir: Path | None = None
     cash: float = 10_000.0
-    fee: float = DEFAULT_TRADE_FEE_RATE
-    slippage: float = DEFAULT_SLIPPAGE_RATE
+    fee: float | None = None
+    slippage: float | None = None
+    exchange: str | None = None
     execution: str = DEFAULT_BACKTEST_EXECUTION
     min_bars: int = 30
     visualize: bool = False
@@ -64,12 +64,18 @@ def run_strategy_batch(options: StrategyBatchOptions) -> dict[str, Any]:
         )
         kwargs = strategy_kwargs_from_namespace(options.strategy_id, per_csv_namespace)
         algo = algorithm_for_id(options.strategy_id, **kwargs)
+        fee_rate, slippage_rate = resolve_cost_rates(
+            exchange=options.exchange,
+            source=csv_path,
+            fee=options.fee,
+            slippage=options.slippage,
+        )
         result = run_backtest(
             algo,
             bars,
             initial_cash=options.cash,
-            fee_rate=options.fee,
-            slippage_rate=options.slippage,
+            fee_rate=fee_rate,
+            slippage_rate=slippage_rate,
             execution=options.execution,
         )
         vbt_extra = (
@@ -77,8 +83,8 @@ def run_strategy_batch(options: StrategyBatchOptions) -> dict[str, Any]:
                 algo,
                 bars,
                 initial_cash=options.cash,
-                fee_rate=options.fee,
-                slippage_rate=options.slippage,
+                fee_rate=fee_rate,
+                slippage_rate=slippage_rate,
                 execution=options.execution,
             )
             or {}

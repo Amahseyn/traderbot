@@ -12,9 +12,8 @@ from traderbot.backtesting import load_bars_csv
 from traderbot.backtesting.sweep import SweepOptions
 from traderbot.utils.resolution import resolution_from_csv_path
 from traderbot.utils.trading_costs import (
+    ResolvesCostRates,
     DEFAULT_BACKTEST_EXECUTION,
-    DEFAULT_SLIPPAGE_RATE,
-    DEFAULT_TRADE_FEE_RATE,
 )
 
 MIN_TUNE_BARS = 100
@@ -93,13 +92,14 @@ FULL_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
 
 
 @dataclass
-class TuneRobustOptions:
+class TuneRobustOptions(ResolvesCostRates):
     csv_paths: list[Path]
     strategy_id: str
     param_grid: dict[str, list[Any]] = field(default_factory=dict)
     cash: float = 10_000.0
-    fee: float = DEFAULT_TRADE_FEE_RATE
-    slippage: float = DEFAULT_SLIPPAGE_RATE
+    fee: float | None = None
+    slippage: float | None = None
+    exchange: str | None = None
     execution: str = DEFAULT_BACKTEST_EXECUTION
     holdout_tail_bars: int | None = None
     holdout_fraction: float = DEFAULT_HOLDOUT_FRACTION
@@ -324,8 +324,8 @@ def compare_robust_strategies(
     strategy_ids: list[str] | None = None,
     grids_by_strategy: dict[str, dict[str, list[Any]]] | None = None,
     cash: float = 10_000.0,
-    fee: float = DEFAULT_TRADE_FEE_RATE,
-    slippage: float = DEFAULT_SLIPPAGE_RATE,
+    fee: float | None = None,
+    slippage: float | None = None,
     execution: str = DEFAULT_BACKTEST_EXECUTION,
     holdout_fraction: float = DEFAULT_HOLDOUT_FRACTION,
     min_trades: int = DEFAULT_MIN_TRADES,

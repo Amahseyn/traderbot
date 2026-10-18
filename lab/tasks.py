@@ -14,8 +14,7 @@ from traderbot.data.export import run_export
 from traderbot.markets.market_data import market_symbol
 from traderbot.utils.trading_costs import (
     DEFAULT_BACKTEST_EXECUTION,
-    DEFAULT_SLIPPAGE_RATE,
-    DEFAULT_TRADE_FEE_RATE,
+    optional_rate,
 )
 
 
@@ -128,8 +127,9 @@ def run_strategy_compare_task(body: dict[str, Any], csv_path: str) -> None:
             out_dir=Path(str(out)) if out else None,
             visualize=bool(body.get("visualize", True)),
             cash=float(body.get("cash") or 10_000.0),
-            fee=float(body.get("fee") if body.get("fee") not in (None, "") else DEFAULT_TRADE_FEE_RATE),
-            slippage=DEFAULT_SLIPPAGE_RATE,
+            fee=optional_rate(body.get("fee")),
+            slippage=optional_rate(body.get("slippage")),
+            exchange=(str(body.get("exchange")).strip().lower() or None) if body.get("exchange") else None,
             execution=str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION),
             vectorbt=bool(body.get("vectorbt")),
             strategy_namespace=_strategy_namespace_from_body(body),
@@ -162,8 +162,9 @@ def run_strategy_test_task(body: dict[str, Any], csv_path: str) -> None:
             out_dir=Path(str(out)) if out else None,
             visualize=bool(body.get("visualize", True)),
             cash=float(body.get("cash") or 10_000.0),
-            fee=float(body.get("fee") if body.get("fee") not in (None, "") else DEFAULT_TRADE_FEE_RATE),
-            slippage=DEFAULT_SLIPPAGE_RATE,
+            fee=optional_rate(body.get("fee")),
+            slippage=optional_rate(body.get("slippage")),
+            exchange=(str(body.get("exchange")).strip().lower() or None) if body.get("exchange") else None,
             execution=str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION),
             vectorbt=bool(body.get("vectorbt")),
             strategy_namespace=_strategy_namespace_from_body(body),

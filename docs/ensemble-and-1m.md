@@ -23,7 +23,7 @@ Entry `all` is strict (fewer trades, less noise). Exit `any` closes when any chi
 
 ## Recommended 1m research loop
 
-Use **realistic fills** and fees before live (Hyperliquid perp tier 0: **0.045% taker**, **0% slippage** in `execution_costs`; CLI: `--exchange hyperliquid`):
+Use **realistic fills** and fees before live (Hyperliquid perp tier 0: **0.045% taker + 0.05% slippage**, **0.015% maker** with no slippage, in `execution_costs`; Nobitex: 0.35% taker + 0.1% slippage). Research tools infer the venue from the CSV name (`*IRT` → Nobitex) when `--exchange` / `--fee` are not given:
 
 ```bash
 # Export or point at your 1m CSV (e.g. BTCIRT_1.csv)

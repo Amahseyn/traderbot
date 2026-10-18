@@ -301,9 +301,8 @@ def resolve_sweep_body(connection: sqlite3.Connection, body: dict[str, Any]) -> 
         prepared["param_grid"] = param_grid
     prepared["full_grid"] = bool(body.get("full_grid"))
     prepared["cash"] = _to_job_float(body.get("cash"), default=10_000.0, field="cash", minimum=0.0)
-    from traderbot.utils.trading_costs import DEFAULT_TRADE_FEE_RATE
-
-    prepared["fee"] = _to_job_float(body.get("fee"), default=DEFAULT_TRADE_FEE_RATE, field="fee", minimum=0.0)
+    # Blank fee → per-exchange profile (resolved from exchange / CSV name at run time).
+    prepared["fee"] = _to_job_float(body.get("fee"), default=None, field="fee", minimum=0.0)
     execution = str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION).strip().lower()
     if execution not in ("close", "next_open"):
         raise JobPayloadError("execution must be close or next_open")
@@ -379,7 +378,7 @@ def _coerce_sweep_values(param_name: str, raw_values: Any) -> list[Any]:
     return values
 
 
-def _to_job_float(raw: Any, *, default: float, field: str, minimum: float) -> float:
+def _to_job_float(raw: Any, *, default: float | None, field: str, minimum: float) -> float | None:
     if raw in (None, ""):
         return default
     try:
@@ -445,8 +444,6 @@ def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str,
                 "dataset_ids required unless export_market_symbol(s) or use_all_hourly_files",
             )
 
-    from traderbot.utils.trading_costs import DEFAULT_TRADE_FEE_RATE
-
     optimize_before_compare = bool(body.get("optimize_before_compare"))
     prepared: dict[str, Any] = {
         "compare_strategies": compare_strategies,
@@ -460,14 +457,14 @@ def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str,
         "cash": body.get("cash"),
         "fee": _to_job_float(
             body.get("fee"),
-            default=DEFAULT_TRADE_FEE_RATE,
+            default=None,
             field="fee",
             minimum=0.0,
         ),
         "vectorbt": body.get("vectorbt"),
         "compare_mode": body.get("compare_mode") or "strategies",
     }
-    if prepared["fee"] >= 1:
+    if prepared["fee"] is not None and prepared["fee"] >= 1:
         raise JobPayloadError("fee must be below 1 (fraction, e.g. 0.001 for 0.1%)")
     from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION
 

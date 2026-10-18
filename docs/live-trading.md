@@ -65,7 +65,7 @@ Lab **Live** tab runs the same stack via `POST /api/jobs/terminal-live` (require
 
 ## Backtest fee defaults
 
-Shared defaults live in `traderbot/utils/trading_costs.py`: **0.045% fee** and **0.05% slippage** per fill (Hyperliquid-style taker). Override per run with CLI/Lab `fee` / `slippage`, or set `TRADERBOT_DEFAULT_FEE_RATE` / `TRADERBOT_DEFAULT_SLIPPAGE_RATE` in the environment.
+Shared defaults live in `traderbot/utils/trading_costs.py`: **0.045% fee** and **0.05% slippage** per taker fill (Hyperliquid perp), **0.015%** and no slippage for maker (resting limit) fills. Research tools (`sweep`, `live_tune`, `compare`, `batch`, `validation`, Lab jobs) resolve costs per venue via `resolve_cost_rates`: explicit `fee` / `slippage` win, else `exchange`, else the venue inferred from the CSV name (`*IRT` → Nobitex 0.35% taker + 0.1% slippage), else Hyperliquid. Override the Hyperliquid defaults with `TRADERBOT_DEFAULT_FEE_RATE` / `TRADERBOT_DEFAULT_SLIPPAGE_RATE`.
 
 ## Monitoring and incident response
 

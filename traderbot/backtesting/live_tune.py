@@ -13,7 +13,6 @@ from traderbot.backtesting.sweep import (
 from traderbot.markets.exchange import DEFAULT_LIVE_EXCHANGE, fetch_live_recent_closed_bars, normalize_live_exchange
 from traderbot.recording import try_record
 from traderbot.terminal.paper_portfolio import default_paper_initial_cash
-from traderbot.utils.trading_costs import DEFAULT_TRADE_FEE_RATE
 
 MIN_LIVE_TUNE_BARS = 40
 
@@ -105,7 +104,8 @@ def run_live_tune_sweep(
     exchange: str | None = None,
     max_bars: int = DEFAULT_LIVE_TUNE_MAX_BARS,
     holdout_tail_bars: int | None = DEFAULT_LIVE_TUNE_HOLDOUT_BARS,
-    fee: float = DEFAULT_TRADE_FEE_RATE,
+    fee: float | None = None,
+    slippage: float | None = None,
     initial_cash: float | None = None,
     full_grid: bool = False,
 ) -> dict[str, Any]:
@@ -136,6 +136,8 @@ def run_live_tune_sweep(
             bars=bars,
             cash=cash,
             fee=fee,
+            slippage=slippage,
+            exchange=live_exchange,
             holdout_tail_bars=holdout_tail_bars,
             max_bars=max_bars,
             min_trades=0,

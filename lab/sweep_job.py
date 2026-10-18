@@ -9,8 +9,7 @@ from traderbot.backtesting.optimize_select import optimize_config_from_body, run
 from traderbot.backtesting.sweep import SweepOptions
 from traderbot.utils.trading_costs import (
     DEFAULT_BACKTEST_EXECUTION,
-    DEFAULT_SLIPPAGE_RATE,
-    DEFAULT_TRADE_FEE_RATE,
+    optional_rate,
 )
 
 
@@ -64,8 +63,9 @@ def run_recorded_strategy_sweep(
             param_grid=param_grid,
             bars=bars,
             cash=float(body.get("cash") or 10_000.0),
-            fee=float(body.get("fee") if body.get("fee") not in (None, "") else DEFAULT_TRADE_FEE_RATE),
-            slippage=DEFAULT_SLIPPAGE_RATE,
+            fee=optional_rate(body.get("fee")),
+            slippage=optional_rate(body.get("slippage")),
+            exchange=(str(body.get("exchange")).strip().lower() or None) if body.get("exchange") else None,
             execution=str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION),
             holdout_tail_bars=None if holdout_raw in (None, "") else int(holdout_raw),
             min_trades=int(min_trades_raw or 0),

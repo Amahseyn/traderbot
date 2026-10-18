@@ -11,7 +11,7 @@ def test_hyperliquid_maker_cheaper_than_taker():
     assert maker.fee_rate < taker.fee_rate
     assert taker.fee_rate == HYPERLIQUID_PERP_TAKER_FEE
     assert maker.fee_rate == HYPERLIQUID_PERP_MAKER_FEE
-    assert taker.slippage_rate == 0.0
+    assert taker.slippage_rate == 0.0005
     assert maker.slippage_rate == 0.0
 
 

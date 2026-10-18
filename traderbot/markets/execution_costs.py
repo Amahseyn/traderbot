@@ -14,13 +14,17 @@ HYPERLIQUID_PERP_TAKER_FEE = 0.00045
 HYPERLIQUID_PERP_MAKER_FEE = 0.00015
 HYPERLIQUID_SPOT_TAKER_FEE = 0.0007
 HYPERLIQUID_SPOT_MAKER_FEE = 0.0004
-# Perp fills on Hyperliquid are against the book; we do not model extra slippage by default.
-HYPERLIQUID_SLIPPAGE = 0.0
+# Taker (IOC/market) fills cross the spread and walk the book; 0.05% per fill is the documented
+# research default (docs/live-trading.md). Maker fills rest at the limit price: no slippage.
+HYPERLIQUID_TAKER_SLIPPAGE = 0.0005
+HYPERLIQUID_MAKER_SLIPPAGE = 0.0
+HYPERLIQUID_SLIPPAGE = HYPERLIQUID_TAKER_SLIPPAGE
 
 # Nobitex retail spot (approximate; verify on nobitex.ir for your VIP tier).
 _NOBITEX_TAKER = 0.0035
 _NOBITEX_MAKER = 0.0025
 _NOBITEX_SLIPPAGE = 0.001
+_NOBITEX_MAKER_SLIPPAGE = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,7 +54,7 @@ def execution_cost_profile(
             exchange=venue,
             fee_role=fee_role,
             fee_rate=fee,
-            slippage_rate=HYPERLIQUID_SLIPPAGE,
+            slippage_rate=HYPERLIQUID_MAKER_SLIPPAGE if fee_role == "maker" else HYPERLIQUID_TAKER_SLIPPAGE,
             label=label,
         )
     fee = _NOBITEX_MAKER if fee_role == "maker" else _NOBITEX_TAKER
@@ -58,7 +62,7 @@ def execution_cost_profile(
         exchange=venue,
         fee_role=fee_role,
         fee_rate=fee,
-        slippage_rate=_NOBITEX_SLIPPAGE,
+        slippage_rate=_NOBITEX_MAKER_SLIPPAGE if fee_role == "maker" else _NOBITEX_SLIPPAGE,
         label=f"Nobitex {fee_role}",
     )
 

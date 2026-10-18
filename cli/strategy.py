@@ -88,7 +88,8 @@ def _add_fill_flags(parser: argparse.ArgumentParser) -> None:
         "--exchange",
         choices=["hyperliquid", "nobitex"],
         default=None,
-        help="Venue fee/slippage defaults (Hyperliquid perp: 0.045%% taker, 0%% slippage)",
+        help="Venue fee/slippage defaults (Hyperliquid perp: 0.045%% taker + 0.05%% slippage; "
+        "Nobitex: 0.35%% taker + 0.1%%). Default: inferred from CSV name (*IRT → nobitex)",
     )
     parser.add_argument(
         "--fee-role",
@@ -158,24 +159,18 @@ def _print_run_trade_logs(algo, result, *, file=sys.stderr) -> None:
     )
 
 
-def _resolve_fee_slippage(args: argparse.Namespace) -> tuple[float, float]:
-    from traderbot.utils.trading_costs import (
-        DEFAULT_SLIPPAGE_RATE,
-        DEFAULT_TRADE_FEE_RATE,
-        backtest_cost_rates,
-    )
+def _resolve_fee_slippage(args: argparse.Namespace, csv_path: Path | None = None) -> tuple[float, float]:
+    """Explicit --fee/--slippage win; else --exchange profile; else venue inferred from the CSV name."""
+    from traderbot.utils.trading_costs import resolve_cost_rates
 
-    exchange = getattr(args, "exchange", None)
-    if exchange:
-        profile_fee, profile_slip = backtest_cost_rates(
-            exchange,
-            fee_role=getattr(args, "fee_role", "taker"),
-        )
-    else:
-        profile_fee, profile_slip = DEFAULT_TRADE_FEE_RATE, DEFAULT_SLIPPAGE_RATE
-    fee = args.fee if args.fee is not None else profile_fee
-    slippage = args.slippage if args.slippage is not None else profile_slip
-    return fee, slippage
+    source = csv_path if csv_path is not None else (getattr(args, "csv", None) or getattr(args, "csv_dir", None))
+    return resolve_cost_rates(
+        exchange=getattr(args, "exchange", None) or None,
+        source=source,
+        fee=args.fee,
+        slippage=args.slippage,
+        fee_role=getattr(args, "fee_role", "taker"),
+    )
 
 
 def _run_backtest(
@@ -185,7 +180,7 @@ def _run_backtest(
     *,
     csv_path: Path | None = None,
 ):
-    fee, slippage = _resolve_fee_slippage(args)
+    fee, slippage = _resolve_fee_slippage(args, csv_path)
     algo = algorithm_for_id(strategy_id, **_algorithm_kwargs(strategy_id, args, csv_path=csv_path))
     result = run_backtest(
         algo,

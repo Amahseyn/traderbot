@@ -11,9 +11,8 @@ from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_back
 from traderbot.backtesting.holdout_window import return_pct_over_equity_tail
 from traderbot.data.intrahour import enrich_bars_for_csv
 from traderbot.utils.trading_costs import (
+    ResolvesCostRates,
     DEFAULT_BACKTEST_EXECUTION,
-    DEFAULT_SLIPPAGE_RATE,
-    DEFAULT_TRADE_FEE_RATE,
 )
 
 MAX_SWEEP_PARAMS = 2
@@ -67,14 +66,15 @@ def _parse_scalar(text: str) -> Any:
 
 
 @dataclass
-class SweepOptions:
+class SweepOptions(ResolvesCostRates):
     strategy_id: str
     param_grid: dict[str, list[Any]]
     csv_path: Path | None = None
     bars: list[dict[str, Any]] | None = None
     cash: float = 10_000.0
-    fee: float = DEFAULT_TRADE_FEE_RATE
-    slippage: float = DEFAULT_SLIPPAGE_RATE
+    fee: float | None = None
+    slippage: float | None = None
+    exchange: str | None = None
     execution: str = DEFAULT_BACKTEST_EXECUTION
     holdout_tail_bars: int | None = None
     min_trades: int = 0
