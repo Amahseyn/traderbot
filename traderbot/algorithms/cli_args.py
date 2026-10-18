@@ -81,6 +81,9 @@ def default_strategy_namespace(**overrides: Any) -> argparse.Namespace:
         "pair_hedge_ratio": 1.0,
         "mm_half_spread_pct": 0.0005,
         "mm_inventory_skew": 0.0,
+        "ensemble_preset": "1m_scalp_trend",
+        "ensemble_entry_rule": "all",
+        "ensemble_exit_rule": "any",
     }
     values.update({name: default for name, _kind, default, _help in EXTRA_STRATEGY_PARAMS})
     values.update(overrides)

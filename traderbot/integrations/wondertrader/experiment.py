@@ -20,24 +20,51 @@ def _default_log(msg: str) -> None:
     print(msg, flush=True)
 
 
+def _smoke_dist_layout(root: Path, log: LogFn) -> dict[str, Any]:
+    """Validate bundled dist layout (upstream has no smoke_test_dist.py)."""
+    bt_dir = root / "dist" / "WtBtRunner"
+    required_bt = ("configbt.yaml", "logcfgbt.yaml")
+    missing_bt = [name for name in required_bt if not (bt_dir / name).is_file()]
+    runner_exe = bt_dir / "WtBtRunner.exe"
+    runner_bin = bt_dir / "WtBtRunner"
+    has_runner = runner_exe.is_file() or runner_bin.is_file()
+    ok = not missing_bt
+    lines = [
+        f"dist/WtBtRunner: config_ok={not missing_bt}",
+        f"runner_binary={has_runner}",
+    ]
+    if missing_bt:
+        lines.append(f"missing: {missing_bt}")
+    out = "\n".join(lines)
+    log(out)
+    return {
+        "ok": ok,
+        "exit_code": 0 if ok else 1,
+        "output_tail": out,
+        "mode": "dist_layout",
+        "missing_bt_configs": missing_bt,
+        "runner_binary": has_runner,
+    }
+
+
 def run_smoke_test(log: LogFn | None = None) -> dict[str, Any]:
     log = log or _default_log
     root = wondertrader_root()
     script = root / "scripts" / "smoke_test_dist.py"
-    if not script.is_file():
-        raise FileNotFoundError(script)
-    log(f"smoke: {script}")
-    proc = subprocess.run(
-        [sys.executable, str(script)],
-        cwd=root,
-        capture_output=True,
-        text=True,
-    )
-    out = (proc.stdout or "") + (proc.stderr or "")
-    ok = proc.returncode == 0
-    if not ok:
-        log(out[-4000:])
-    return {"ok": ok, "exit_code": proc.returncode, "output_tail": out.strip()[-2000:]}
+    if script.is_file():
+        log(f"smoke: {script}")
+        proc = subprocess.run(
+            [sys.executable, str(script)],
+            cwd=root,
+            capture_output=True,
+            text=True,
+        )
+        out = (proc.stdout or "") + (proc.stderr or "")
+        ok = proc.returncode == 0
+        if not ok:
+            log(out[-4000:])
+        return {"ok": ok, "exit_code": proc.returncode, "output_tail": out.strip()[-2000:]}
+    return _smoke_dist_layout(root, log)
 
 
 def native_runner_available() -> bool:

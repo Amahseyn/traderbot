@@ -14,8 +14,11 @@ def load_shared_env() -> list[Path]:
     if tb_env.is_file():
         load_env_file(tb_env)
         loaded.append(tb_env)
-    finrl_env = finrl_trading_root() / ".env"
-    if finrl_env.is_file():
+    try:
+        finrl_env = finrl_trading_root() / ".env"
+    except FileNotFoundError:
+        finrl_env = None
+    if finrl_env is not None and finrl_env.is_file():
         load_env_file(finrl_env)
         loaded.append(finrl_env)
     return loaded
