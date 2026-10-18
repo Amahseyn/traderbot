@@ -4,11 +4,11 @@ from typing import Any
 
 from traderbot.algorithms.cli_args import default_strategy_namespace
 from traderbot.algorithms.registry import strategy_param_names
+from traderbot.backtesting.optimize_select import OptimizeSelectConfig, run_strategy_optimize
 from traderbot.backtesting.sweep import (
     DEFAULT_LIVE_TUNE_HOLDOUT_BARS,
     DEFAULT_LIVE_TUNE_MAX_BARS,
     SweepOptions,
-    run_strategy_sweep,
 )
 from traderbot.markets.exchange import DEFAULT_LIVE_EXCHANGE, fetch_live_recent_closed_bars, normalize_live_exchange
 from traderbot.recording import try_record
@@ -37,7 +37,13 @@ _LIVE_TUNE_PARAM_GRIDS: dict[str, dict[str, list[Any]]] = {
 }
 
 
-def default_live_tune_param_grid(strategy_id: str) -> dict[str, list[Any]]:
+def default_live_tune_param_grid(strategy_id: str, *, full: bool = False) -> dict[str, list[Any]]:
+    from traderbot.backtesting.robust_defaults import tune_grid_for_strategy
+
+    try:
+        return tune_grid_for_strategy(strategy_id, full=full)
+    except ValueError:
+        pass
     grid = _LIVE_TUNE_PARAM_GRIDS.get(strategy_id)
     if grid is not None:
         return {name: list(values) for name, values in grid.items()}
@@ -101,6 +107,7 @@ def run_live_tune_sweep(
     holdout_tail_bars: int | None = DEFAULT_LIVE_TUNE_HOLDOUT_BARS,
     fee: float = DEFAULT_TRADE_FEE_RATE,
     initial_cash: float | None = None,
+    full_grid: bool = False,
 ) -> dict[str, Any]:
     """Small holdout sweep on recent live-market history; records winner per symbol × resolution."""
     bar_src = (src or symbol).strip().lower()
@@ -116,13 +123,13 @@ def run_live_tune_sweep(
         interval=interval,
         max_bars=max_bars,
     )
-    param_grid = default_live_tune_param_grid(strategy_id)
+    param_grid = default_live_tune_param_grid(strategy_id, full=full_grid)
     cash = float(initial_cash) if initial_cash is not None else default_paper_initial_cash(dst)
     if cash <= 0:
         raise ValueError("initial_cash must be positive")
     if holdout_tail_bars is not None and holdout_tail_bars >= max_bars:
         holdout_tail_bars = max(1, max_bars // 5)
-    payload = run_strategy_sweep(
+    payload = run_strategy_optimize(
         SweepOptions(
             strategy_id=strategy_id,
             param_grid=param_grid,
@@ -135,11 +142,13 @@ def run_live_tune_sweep(
             max_combos=64,
         ),
         base_namespace=default_strategy_namespace(),
+        config=OptimizeSelectConfig(selection_mode="validation"),
     )
     if payload.get("bars", 0) < MIN_LIVE_TUNE_BARS:
         raise ValueError(
             f"live tune needs at least {MIN_LIVE_TUNE_BARS} bars after trim (got {payload.get('bars')})"
         )
+    payload["csv"] = f"{symbol.upper()}_{interval}.csv"
     payload["live_tune"] = {
         "symbol": symbol.upper(),
         "interval": str(interval),

@@ -150,6 +150,69 @@ def test_lab_api_strategy_compare_argv_uses_positional_csv(tmp_path: Path):
     assert body.get("mode") == "strategies"
 
 
+def test_lab_api_opportunity_discovery_job_route(tmp_path: Path):
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    from lab.app import create_app
+
+    database_path = tmp_path / "lab.db"
+    connection = open_database(database_path)
+    init_database(connection)
+    connection.close()
+
+    client = TestClient(create_app(database_path=database_path))
+
+    with patch("lab.jobs.threading.Thread", SyncThread):
+        with patch("lab.jobs.run_opportunity_discovery_task"):
+            response = client.post(
+                "/api/jobs/opportunity-discovery",
+                json={"symbols": ["btc"], "resolutions": ["60"], "strategy_ids": ["sma_cross"], "max_symbols": 1},
+            )
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "queued"
+
+    discovery_runs = client.get("/api/catalog/discovery-runs").json()
+    assert isinstance(discovery_runs, list)
+
+
+def test_lab_api_terminal_once_stores_per_strategy_payload(tmp_path: Path, monkeypatch):
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    from lab.app import create_app
+
+    database_path = tmp_path / "lab.db"
+    connection = open_database(database_path)
+    init_database(connection)
+    connection.close()
+
+    client = TestClient(create_app(database_path=database_path))
+    captured: list[dict] = []
+
+    def fake_once(body):
+        captured.append(dict(body))
+
+    with patch("lab.jobs.threading.Thread", SyncThread):
+        with patch("lab.jobs.run_terminal_once_task", side_effect=fake_once):
+            for strategy in ("sma_cross", "rsi_threshold"):
+                response = client.post(
+                    "/api/jobs/terminal-once",
+                    json={
+                        "strategy": strategy,
+                        "src": "btc",
+                        "dst": "usdt",
+                        "interval": "60",
+                        "market_symbol": "BTCUSDT",
+                        "exchange": "hyperliquid",
+                    },
+                )
+                assert response.status_code == 200
+
+    assert len(captured) == 2
+    assert {row["strategy"] for row in captured} == {"sma_cross", "rsi_threshold"}
+
+
 def test_lab_api_strategy_compare_passes_simulation_fields(tmp_path: Path):
     pytest.importorskip("fastapi")
     from fastapi.testclient import TestClient
@@ -368,6 +431,7 @@ def test_lab_api_pipelines_and_experiment_sync(tmp_path: Path):
     pipeline_ids = {row["id"] for row in pipelines}
     assert "crypto-1h-local" in pipeline_ids
     assert "full-research-strategies" in pipeline_ids
+    assert "single-market-research" in pipeline_ids
     full = next(row for row in pipelines if row["id"] == "full-research-strategies")
     assert full["full"] is True
     export = next(row for row in pipelines if row["id"] == "crypto-jobs-export")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from traderbot.algorithms.cli_args import merge_strategy_namespace
@@ -23,7 +24,7 @@ from traderbot.utils.trading_costs import (
 class ValidationOptions:
     strategy_id: str
     param_grid: dict[str, list[Any]]
-    csv_path: str | None = None
+    csv_path: str | Path | None = None
     bars: list[dict[str, Any]] | None = None
     cash: float = 10_000.0
     fee: float = DEFAULT_TRADE_FEE_RATE
@@ -58,7 +59,8 @@ def run_strategy_validation(
         if not options.csv_path:
             raise ValueError("validation requires csv_path or preloaded bars")
         csv_label = str(options.csv_path)
-        bars = enrich_bars_for_csv(load_bars_csv(options.csv_path), options.csv_path, base)
+        csv_file = Path(options.csv_path)
+        bars = enrich_bars_for_csv(load_bars_csv(csv_file), csv_file, base)
         if not bars:
             raise ValueError(f"No bars in CSV: {options.csv_path}")
 
@@ -118,7 +120,10 @@ def run_strategy_validation(
                 bars=len(validation_bars),
                 extra={"strategy_id": options.strategy_id},
             ),
-            "eligible": len(train_result.trades) >= options.min_trades,
+            "eligible": (
+                len(train_result.trades) >= options.min_trades
+                and len(validation_result.trades) >= options.min_trades
+            ),
         }
         candidates.append(row)
 
@@ -296,7 +301,10 @@ def _best_params_for_strategy_on_splits(
                 "validation_return_pct": validation_result.return_pct,
                 "train_trades": len(train_result.trades),
                 "validation_trades": len(validation_result.trades),
-                "eligible": len(train_result.trades) >= options.min_trades,
+                "eligible": (
+                    len(train_result.trades) >= options.min_trades
+                    and len(validation_result.trades) >= options.min_trades
+                ),
             }
         )
 

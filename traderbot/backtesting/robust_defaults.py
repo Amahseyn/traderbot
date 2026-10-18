@@ -9,7 +9,7 @@ from typing import Any
 from traderbot.algorithms.cli_args import default_strategy_namespace
 from traderbot.algorithms.registry import backtest_strategy_ids
 from traderbot.backtesting import load_bars_csv
-from traderbot.backtesting.sweep import SweepOptions, run_strategy_sweep
+from traderbot.backtesting.sweep import SweepOptions
 from traderbot.utils.resolution import resolution_from_csv_path
 from traderbot.utils.trading_costs import (
     DEFAULT_BACKTEST_EXECUTION,
@@ -53,6 +53,7 @@ DEFAULT_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
 FULL_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
     "sma_cross": {"fast": [3, 5, 8, 10, 12, 15, 20], "slow": [15, 20, 30, 50, 80, 100]},
     "ema_cross": {"fast": [3, 5, 8, 10, 12, 15, 20], "slow": [15, 20, 30, 50, 80, 100]},
+    "finrl_ema_intraday": {"fast": [6, 8, 10, 12, 16, 20], "slow": [24, 36, 48, 60, 96]},
     "rsi_threshold": {"period": [5, 7, 10, 14, 21], "oversold": [15, 20, 25, 30.0]},
     "macd_cross": {"fast": [6, 8, 10, 12, 15], "slow": [18, 21, 26, 30, 34]},
     "bollinger_mean_reversion": {
@@ -176,7 +177,9 @@ def tune_robust_defaults(options: TuneRobustOptions, base_namespace: Any | None 
         if bar_count < options.min_bars:
             skipped_assets.append({"csv": str(csv_path), "reason": f"only {bar_count} bars < min_bars {options.min_bars}"})
             continue
-        payload = run_strategy_sweep(
+        from traderbot.backtesting.optimize_select import OptimizeSelectConfig, run_strategy_optimize
+
+        payload = run_strategy_optimize(
             SweepOptions(
                 csv_path=Path(csv_path),
                 strategy_id=options.strategy_id,
@@ -190,6 +193,7 @@ def tune_robust_defaults(options: TuneRobustOptions, base_namespace: Any | None 
                 max_combos=options.max_combos,
             ),
             base,
+            config=OptimizeSelectConfig(selection_mode="validation"),
         )
         per_asset.append(payload)
     if not per_asset:

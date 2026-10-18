@@ -14,5 +14,5 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   } else if (normalized === "cancelled") {
     className = "bg-slate-600/80 text-slate-200";
   }
-  return <span className={`badge ${className}`}>{status}</span>;
+  return <span className={`badge ring-1 ring-white/5 ${className}`}>{status}</span>;
 }

@@ -17,4 +17,7 @@ lab_api_healthy() {
   [[ "${body}" == *'"status":"ok"'* ]] || [[ "${body}" == *'"status": "ok"'* ]] || return 1
   [[ "${body}" == *'market_catalog'* ]] || return 1
   [[ "${body}" == *'live_job_logs'* ]] || return 1
+  # Stale API processes still pass the above but miss newer routes (404 / 405 on discovery).
+  [[ "${body}" == *'opportunity_discovery'* ]] || return 1
+  [[ "${body}" == *'coinbeacon'* ]] || return 1
 }

@@ -3,6 +3,14 @@ from __future__ import annotations
 import os
 
 
+def load_lab_repo_env() -> None:
+    """Load repo-root ``.env`` into the Lab API process (does not override existing env)."""
+    from auth.envfile import load_env_file
+    from lab.store.constants import REPO_ROOT
+
+    load_env_file(REPO_ROOT / ".env")
+
+
 def lab_api_host() -> str:
     return os.environ.get("LAB_API_HOST", "127.0.0.1").strip() or "127.0.0.1"
 

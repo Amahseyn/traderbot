@@ -6,6 +6,14 @@ def test_default_paper_cash_by_dst():
     assert default_paper_initial_cash("rls") == 10_000_000.0
 
 
+def test_paper_snapshot_keeps_equity_when_mark_price_zero_after_buy():
+    portfolio = PaperPortfolio(quote_cash=1_000.0, quote_currency="usdt", fee_rate=0.0)
+    portfolio.apply_fill("buy", 50.0)
+    snap = portfolio.snapshot(0.0)
+    assert snap["quote_cash"] == 0.0
+    assert snap["equity"] > 0.0
+
+
 def test_paper_buy_sell_round_trip():
     portfolio = PaperPortfolio(quote_cash=1_000.0, quote_currency="usdt", fee_rate=0.0)
     buy = portfolio.apply_fill("buy", 100.0)

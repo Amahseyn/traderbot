@@ -2,76 +2,147 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
 body {
   @apply bg-surface text-slate-100 antialiased;
-  background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.12), transparent);
+  background-image:
+    radial-gradient(ellipse 100% 60% at 50% -20%, rgba(91, 154, 255, 0.12), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(129, 140, 248, 0.08), transparent),
+    radial-gradient(ellipse 40% 30% at 0% 100%, rgba(34, 211, 238, 0.04), transparent);
+}
+
+.bg-grid-fade {
+  background-image: linear-gradient(
+      to right,
+      rgba(148, 163, 184, 0.035) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black, transparent);
 }
 
 a {
   @apply text-accent hover:underline;
 }
 
+:focus-visible {
+  @apply outline-none ring-2 ring-accent/70 ring-offset-2 ring-offset-surface;
+}
+
+.skip-link {
+  @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-panel focus:px-4 focus:py-2.5 focus:text-sm focus:font-medium focus:text-white focus:shadow-glow focus:no-underline;
+}
+
+::selection {
+  @apply bg-accent/40 text-white;
+}
+
+.page-stack {
+  @apply space-y-8 sm:space-y-10;
+}
+
+@layer components {
+  .glass-panel {
+    @apply border border-white/[0.06] bg-panel/75 shadow-nav backdrop-blur-xl;
+  }
+
+  .nav-pill {
+    @apply rounded-full border border-white/[0.06] bg-surface/60 p-1 shadow-card backdrop-blur-sm;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-br from-white via-slate-100 to-slate-400 bg-clip-text text-transparent;
+  }
+
+  .eyebrow-pill {
+    @apply inline-flex items-center rounded-full border border-accent/25 bg-accent/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-accent;
+  }
+}
+
 table.data {
-  @apply w-full text-sm border-collapse;
+  @apply w-full text-sm border-collapse overflow-hidden rounded-lg;
 }
 
 table.data th,
 table.data td {
-  @apply border border-border px-3 py-2 text-left align-top;
+  @apply border border-border/80 px-3 py-2.5 text-left align-top;
 }
 
 table.data th {
-  @apply bg-panel text-muted font-medium;
+  @apply bg-panel-elevated/90 text-muted text-xs font-semibold uppercase tracking-wide;
 }
 
 table.data.runs-table tbody tr {
-  @apply transition-colors;
+  @apply transition-colors duration-150;
 }
 
 table.data.runs-table tbody tr:hover {
-  @apply bg-surface/70;
+  @apply bg-accent/[0.04];
 }
 
 .badge {
-  @apply inline-block rounded px-2 py-0.5 text-xs font-medium;
+  @apply inline-block rounded-md px-2 py-0.5 text-xs font-medium;
 }
 
 .badge-strategy {
-  @apply bg-emerald-900/60 text-emerald-200;
+  @apply bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/20;
 }
 
 .badge-model {
-  @apply bg-violet-900/60 text-violet-200;
+  @apply bg-violet-500/15 text-violet-200 ring-1 ring-violet-500/20;
 }
 
 .stat-card {
-  @apply rounded-xl border border-border bg-panel p-4 transition hover:border-accent/40;
+  @apply relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-b from-panel-elevated/90 to-panel/70 p-5 shadow-card transition duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow-sm no-underline hover:no-underline;
+}
+
+.stat-card::before {
+  content: "";
+  @apply pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent opacity-0 transition-opacity duration-300;
+}
+
+.stat-card:hover::before {
+  @apply opacity-100;
 }
 
 .tab-list {
-  @apply flex flex-wrap gap-1 rounded-lg border border-border bg-surface p-1;
+  @apply flex flex-wrap gap-1 rounded-xl border border-border/80 bg-surface/80 p-1 shadow-card;
 }
 
 .tab {
-  @apply rounded-md px-3 py-1.5 text-sm text-slate-300 transition;
+  @apply rounded-lg px-3.5 py-2 text-sm text-slate-300 transition duration-150;
 }
 
 .tab-active {
-  @apply bg-accent/25 text-white;
+  @apply bg-gradient-to-b from-accent/30 to-accent/15 text-white shadow-sm ring-1 ring-accent/25;
 }
 
 .workflow-card {
-  @apply rounded-xl border border-border bg-panel/80 p-4 transition hover:border-accent/50 hover:bg-panel;
+  @apply relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-panel-elevated/80 via-panel/90 to-panel/70 p-5 shadow-card transition duration-300 hover:-translate-y-0.5 hover:border-accent/45 hover:shadow-glow-sm no-underline hover:no-underline;
+}
+
+.workflow-card::after {
+  content: "";
+  @apply pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-accent/10 blur-2xl transition-opacity duration-300 opacity-0;
+}
+
+.workflow-card:hover::after {
+  @apply opacity-100;
 }
 
 .section-title {
-  @apply text-lg font-medium text-white;
+  @apply text-lg font-semibold tracking-tight text-white;
 }
 
 .section-lead {
-  @apply text-sm text-muted max-w-2xl leading-relaxed;
+  @apply max-w-2xl text-sm leading-relaxed text-muted;
 }
 
 .panel-inset {
-  @apply rounded-xl border border-border bg-panel/60 p-4;
+  @apply rounded-2xl border border-border/70 bg-panel/50 p-4 shadow-card backdrop-blur-sm;
 }

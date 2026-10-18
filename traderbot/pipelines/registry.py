@@ -12,6 +12,10 @@ from traderbot.pipelines.definitions import (
     pipeline_sma_backtest,
     pipeline_wondertrader_platform,
 )
+from traderbot.pipelines.market_research import (
+    pipeline_full_universe_research,
+    pipeline_single_market_research,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -228,6 +232,103 @@ PIPELINES: tuple[PipelineSpec, ...] = (
                 label="Run US equity rotation",
                 kind="boolean",
                 default="true",
+            ),
+        ),
+        full=True,
+    ),
+    PipelineSpec(
+        id="single-market-research",
+        title="Single market: export → Optuna → compare",
+        description=(
+            "Hyperliquid (or Nobitex) OHLC for one symbol across intervals, "
+            "Optuna-tune every rule-based strategy, then compare on the same data."
+        ),
+        fn=pipeline_single_market_research,
+        steps=_steps(
+            ("export", "Download OHLC"),
+            ("optimize", "Optuna per strategy × interval"),
+            ("compare", "Rank strategies"),
+        ),
+        inputs=(
+            PipelineInputView(
+                key="market_symbol",
+                label="Market symbol",
+                kind="text",
+                default="BTCUSDT",
+                required=True,
+            ),
+            PipelineInputView(
+                key="intervals",
+                label="Intervals",
+                kind="text",
+                default="1,5,15,60",
+                hint="Comma-separated HL resolutions.",
+            ),
+            PipelineInputView(
+                key="export_days",
+                label="Export days",
+                kind="number",
+                default="30",
+            ),
+            PipelineInputView(
+                key="optimize_n_trials",
+                label="Optuna trials",
+                kind="number",
+                default="80",
+            ),
+            PipelineInputView(
+                key="exchange",
+                label="Exchange",
+                kind="text",
+                default="hyperliquid",
+            ),
+        ),
+        full=True,
+    ),
+    PipelineSpec(
+        id="full-universe-research",
+        title="Universe: all strategies × many markets",
+        description=(
+            "Batch export for top Hyperliquid perps (or jobs file), Optuna all backtest strategies "
+            "on each file, then strategy compare. Long-running — tune top_markets and trials."
+        ),
+        fn=pipeline_full_universe_research,
+        steps=_steps(
+            ("export", "Batch OHLC"),
+            ("optimize", "Optuna all strategies"),
+            ("compare", "Per-file compare"),
+        ),
+        inputs=(
+            PipelineInputView(
+                key="top_markets",
+                label="Top markets",
+                kind="number",
+                default="30",
+                hint="From HL universe or export jobs file.",
+            ),
+            PipelineInputView(
+                key="intervals",
+                label="Intervals",
+                kind="text",
+                default="1,5,15,60",
+            ),
+            PipelineInputView(
+                key="export_days",
+                label="Export days",
+                kind="number",
+                default="30",
+            ),
+            PipelineInputView(
+                key="optimize_n_trials",
+                label="Optuna trials per combo",
+                kind="number",
+                default="60",
+            ),
+            PipelineInputView(
+                key="exchange",
+                label="Exchange",
+                kind="text",
+                default="hyperliquid",
             ),
         ),
         full=True,

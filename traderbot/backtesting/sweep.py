@@ -22,6 +22,19 @@ DEFAULT_LIVE_TUNE_MAX_BARS = 100
 DEFAULT_LIVE_TUNE_HOLDOUT_BARS = 20
 
 
+def sweep_rank_key(row: dict[str, Any], *, rank_by: str = "return_pct") -> tuple[int, float]:
+    """Rank eligible combos by the in-sample metric only.
+
+    ``holdout_return_pct`` is reported for inspection but deliberately excluded
+    from the sort key so holdout data never influences parameter selection.
+    """
+    primary = row.get(rank_by)
+    return (
+        1 if row.get("eligible") else 0,
+        float(primary) if primary is not None else float("-inf"),
+    )
+
+
 def parse_sweep_param(spec: str) -> tuple[str, list[Any]]:
     """Parse ``name=v1,v2[,v3]`` into a param name and typed values."""
     name, sep, raw_values = spec.partition("=")
@@ -164,7 +177,7 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
         row = backtest_summary_dict(
             algo,
             result,
-            bars=len(bars),
+            bars=len(train_bars),
             extra={"strategy_id": options.strategy_id, "params": params},
         )
         row["holdout_return_pct"] = holdout_return
@@ -182,21 +195,50 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
             holdout_return is not None and float(holdout_return) < 0.0
         )
 
-    def _rank_key(row: dict[str, Any]) -> tuple[int, float, float]:
-        primary = row.get(rank_by)
-        secondary = row.get("holdout_return_pct")
-        return (
-            1 if row["eligible"] else 0,
-            float(primary) if primary is not None else float("-inf"),
-            float(secondary) if secondary is not None else float("-inf"),
-        )
+    def _rank_key(row: dict[str, Any]) -> tuple[int, float]:
+        return sweep_rank_key(row, rank_by=rank_by)
 
     rows.sort(key=_rank_key, reverse=True)
     best = rows[0] if rows else None
+
+    from traderbot.backtesting.bar_windows import (
+        fit_window_utc_from_bars,
+        infer_bar_minutes,
+        sample_window_utc_from_bars,
+    )
+
+    if options.csv_path is not None:
+        try:
+            from traderbot.utils.resolution import resolution_from_csv_path, resolution_minutes
+
+            bar_minutes = resolution_minutes(resolution_from_csv_path(Path(options.csv_path).name)) or 60
+        except (ValueError, IndexError):
+            bar_minutes = infer_bar_minutes(bars)
+    else:
+        bar_minutes = infer_bar_minutes(bars)
+    optimize_start_utc, optimize_end_utc = fit_window_utc_from_bars(
+        bars,
+        bar_minutes=bar_minutes,
+        holdout_tail_bars=holdout_bars,
+    )
+    sample_start_utc, sample_end_utc = sample_window_utc_from_bars(bars, bar_minutes=bar_minutes)
+    holdout_start_utc = None
+    holdout_end_utc = None
+    if holdout_bars is not None and len(bars) > holdout_bars:
+        holdout_slice = bars[-holdout_bars:]
+        holdout_start_utc, holdout_end_utc = sample_window_utc_from_bars(holdout_slice, bar_minutes=bar_minutes)
+
     return {
         "csv": str(csv_path),
         "strategy_id": options.strategy_id,
         "bars": len(bars),
+        "bar_minutes": bar_minutes,
+        "optimize_start_utc": optimize_start_utc,
+        "optimize_end_utc": optimize_end_utc,
+        "sample_start_utc": sample_start_utc,
+        "sample_end_utc": sample_end_utc,
+        "holdout_start_utc": holdout_start_utc,
+        "holdout_end_utc": holdout_end_utc,
         "cash": options.cash,
         "fee": options.fee,
         "slippage": options.slippage,

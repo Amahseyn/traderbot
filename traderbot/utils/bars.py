@@ -10,13 +10,27 @@ _NUMERIC_BAR_KEYS = ("open", "high", "low", "close", "volume")
 
 
 def normalize_bar(row: dict[str, Any]) -> dict[str, Any]:
-    """Coerce OHLC fields to float; keeps export CSV / :mod:`market_data` shape."""
+    """Coerce OHLC fields to float; keeps export CSV / :mod:`market_data` shape.
+
+    Blank values are left untouched. Non-numeric values raise :class:`ValueError`
+    (not ``TypeError``) so callers such as the sweep can skip the offending combo.
+    """
     out = dict(row)
     if "timestamp" in out:
-        out["timestamp"] = int(out["timestamp"])
+        try:
+            out["timestamp"] = int(out["timestamp"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"invalid bar timestamp: {out['timestamp']!r}") from exc
     for key in _NUMERIC_BAR_KEYS:
-        if key in out and out[key] != "":
-            out[key] = float(out[key])
+        if key not in out:
+            continue
+        value = out[key]
+        if isinstance(value, str) and value.strip() == "":
+            continue
+        try:
+            out[key] = float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"invalid numeric bar field {key!r}: {value!r}") from exc
     return out
 
 

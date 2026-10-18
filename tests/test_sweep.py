@@ -1,7 +1,12 @@
 import pytest
 
 from traderbot.algorithms.cli_args import default_strategy_namespace
-from traderbot.backtesting.sweep import SweepOptions, parse_sweep_param, run_strategy_sweep
+from traderbot.backtesting.sweep import (
+    SweepOptions,
+    parse_sweep_param,
+    run_strategy_sweep,
+    sweep_rank_key,
+)
 
 
 def _write_csv(path, closes):
@@ -97,6 +102,19 @@ def test_sweep_raises_when_all_combos_invalid(tmp_path):
             ),
             default_strategy_namespace(),
         )
+
+
+def test_sweep_rank_key_ignores_holdout():
+    # Same in-sample return; only holdout differs. Holdout must not decide the rank.
+    strong_holdout = {"eligible": True, "return_pct": 5.0, "holdout_return_pct": 99.0}
+    weak_holdout = {"eligible": True, "return_pct": 5.0, "holdout_return_pct": -50.0}
+    assert sweep_rank_key(strong_holdout) == sweep_rank_key(weak_holdout)
+    # In-sample return is the primary metric.
+    better = {"eligible": True, "return_pct": 6.0, "holdout_return_pct": -1.0}
+    assert sweep_rank_key(better) > sweep_rank_key(strong_holdout)
+    # Ineligible combos always rank below eligible ones.
+    ineligible = {"eligible": False, "return_pct": 100.0}
+    assert sweep_rank_key(ineligible) < sweep_rank_key(strong_holdout)
 
 
 def test_strategy_param_names_follow_registry():

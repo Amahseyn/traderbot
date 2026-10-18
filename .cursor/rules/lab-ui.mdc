@@ -25,14 +25,18 @@ globs:
 - **Overview** (`/`) — research loop cards, stats, recent runs.
 - **Data** (`/data`) — Optional Nobitex export + browse/download CSVs under `data/` (`GET /api/data/csv-files`, `GET /artifact`).
 - **Lab** (`/experiments`) — one page for strategy test and compare, saved pipelines, and compare charts. `/actions` redirects here.
+- **New** (`/new`) — opportunity discovery (HL universe or catalog), job monitor, past discovery runs; links to Custom for validation.
 - **Custom** (`/custom`) — configure a full pipeline: optional export, multi-dataset, strategy compare (subset / max count), multi-model forecasts (`POST /api/jobs/custom-research`).
+- **Optimizer** (`/optimizer`) — Optuna/grid sweeps, batch Optuna on catalog CSVs, HL market research pipelines, stored params, sweep history (`POST /api/jobs/strategy-sweep`, `custom-research`, `pipeline-run`).
 - **Live** (`/live`) — Hyperliquid-first paper/live (`POST /api/jobs/terminal-once`, `terminal-live`); Nobitex spot optional.
+- **Strategies** (`/strategies`) — Ephemeral pair/grid/funding paper backtests (`POST /api/strategies/*`); venue matrix from `GET /api/strategies/exchange-catalog`. Rule strategies use **Custom** (`/custom`).
 - **Settings** (`/settings`) — Lab API token, Hyperliquid credentials; optional Nobitex (`/api/auth/*`).
 - **Research loop** — nav plus overview cards (`WorkflowCards`, `lib/workflow.ts`): Data → Lab → Runs. Do not add a second bar of the same links.
 - **Runs** / **Configurations** — read-only catalog views.
 
 ## UI conventions
 
+- **Lab API errors:** `fetchJson` in `api.ts` parses JSON `error` / `detail`. Use `ErrorState` for query failures and `JobErrorAlert` for mutation/job POST errors (both show a Settings link on 401). `LabAuthBanner` in the root layout warns when `LAB_API_TOKEN` is set but `NEXT_PUBLIC_LAB_API_TOKEN` is missing.
 - Use existing tokens from `tailwind.config.ts` (`surface`, `panel`, `border`, `accent`, `muted`) and `table.data` / `badge-*` classes in `globals.css`.
 - Prefer shared `Card`, `Button`, `Field`, `PageHeader`, `JobMonitor` over one-off styling.
 - Charts and downloads use `artifactUrl` / `artifactDownloadUrl`; normalize absolute paths with `normalizeArtifactPath` when reading stored paths.

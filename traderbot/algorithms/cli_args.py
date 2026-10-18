@@ -43,6 +43,14 @@ EXTRA_STRATEGY_PARAMS: tuple[tuple[str, type, object, str], ...] = (
     ("ml_buy_threshold", float, 0.55, "online_logistic: buy when P(up) is at least this"),
     ("ml_sell_threshold", float, 0.45, "online_logistic: sell when P(up) is at most this"),
     ("ml_warmup_samples", int, 100, "online_logistic: labelled samples before trading"),
+    (
+        "ensemble_preset",
+        str,
+        "1m_scalp_trend",
+        "ensemble: preset member set (1m_scalp_trend, 1m_pattern_ma, 1m_ml_trend, intraday_trend_stack)",
+    ),
+    ("ensemble_entry_rule", str, "all", "ensemble entry: all, majority, or primary"),
+    ("ensemble_exit_rule", str, "any", "ensemble exit: any, all, or primary"),
 )
 
 

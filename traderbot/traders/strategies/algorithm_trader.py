@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
-from traderbot.algorithms.base import Algorithm, Bar, SignalAction
-from traderbot.markets.order_limits import base_from_quote, spendable_quote
+from traderbot.algorithms.base import Algorithm, Bar, OrderSize, SignalAction
+from traderbot.traders.order_sizing import buy_quote_spend, sell_base_amount
+from traderbot.markets.order_limits import base_from_quote
 from traderbot.nobitex.client import NobitexClient, NobitexClientError
 from traderbot.nobitex.orders import (
     add_market_order,
@@ -35,6 +36,7 @@ class AlgorithmTrader(NobitexTrader):
     """
 
     name = "algorithm"
+    venue_exchange: str = "nobitex"
 
     def __init__(
         self,
@@ -61,6 +63,7 @@ class AlgorithmTrader(NobitexTrader):
         if warmup_bars:
             for warmup_bar in warmup_bars:
                 self.algorithm.on_bar(warmup_bar)
+        self.algorithm.sync_open_position(self.in_position)
         quote = "rls"
         if market_symbol and market_symbol.upper().endswith("USDT"):
             quote = "usdt"
@@ -70,6 +73,8 @@ class AlgorithmTrader(NobitexTrader):
         cap = capital_cap if capital_cap is not None else self.risk.limits.capital_cap
         self.inventory = inventory or BotInventory(quote_currency=quote, capital_cap=cap)
         self.active_stop_order_id: int | str | None = None
+        self._pending_order_size: OrderSize | None = None
+        self._session_initial_cash: float | None = None
 
     @classmethod
     def from_env(
@@ -108,6 +113,7 @@ class AlgorithmTrader(NobitexTrader):
             return
         self.prepare_for_bar(bar)
         signal = self.algorithm.on_bar(bar)
+        self._pending_order_size = self.algorithm.order_size() if signal != "hold" else None
         order_action = order_action_for_long_only(self.in_position, signal)
         if order_action is None:
             return
@@ -125,6 +131,14 @@ class AlgorithmTrader(NobitexTrader):
         elif action == "sell":
             self.in_position = False
 
+    def _initial_cash_for_sizing(self, *, equity: float) -> float:
+        if self._session_initial_cash is None:
+            self._session_initial_cash = equity if equity > 0 else self.inventory.capital_cap
+        return self._session_initial_cash
+
+    def _sync_in_position_from_holdings(self) -> None:
+        self.in_position = self.inventory.base_amount > 0
+
     def on_paper_signal(self, action: SignalAction, bar: Bar) -> None:
         """Hook for logging or sim fills when :attr:`execution` is paper mode."""
 
@@ -137,7 +151,7 @@ class AlgorithmTrader(NobitexTrader):
             return
         try:
             self._place_live_order(action, bar, symbol=symbol)
-            self.in_position = self.inventory.base_amount > 0
+            self._sync_in_position_from_holdings()
             self.last_order_error = None
         except NobitexClientError as exc:
             self.last_order_error = str(exc)
@@ -187,8 +201,19 @@ class AlgorithmTrader(NobitexTrader):
             raise NobitexClientError(f"risk blocked order: {verdict.reason}")
 
         if action == "buy":
-            spendable = spendable_quote(self.inventory.spendable_quote(wallet_quote))
+            spendable = self.inventory.spendable_quote(wallet_quote)
             spendable *= verdict.size_multiplier
+            if self._pending_order_size is not None:
+                quote_cash = wallet_quote
+                position_value = self.inventory.base_amount * close_price
+                sized_spend = buy_quote_spend(
+                    self._pending_order_size,
+                    cash=quote_cash,
+                    position=self.inventory.base_amount,
+                    fill_price=close_price,
+                    initial_cash=self._initial_cash_for_sizing(equity=equity),
+                )
+                spendable = min(spendable, sized_spend)
             if spendable <= 0:
                 raise NobitexClientError(f"no {quote} balance within bot capital cap")
             amount = base_from_quote(spendable, close_price)
@@ -209,6 +234,16 @@ class AlgorithmTrader(NobitexTrader):
 
         if action == "sell":
             sellable = self.inventory.base_amount
+            if self._pending_order_size is not None:
+                quote_cash = wallet_quote
+                sized = sell_base_amount(
+                    self._pending_order_size,
+                    cash=quote_cash,
+                    position=sellable,
+                    fill_price=close_price,
+                )
+                if sized > 0:
+                    sellable = sized
             if sellable <= 0:
                 raise NobitexClientError("bot has no inventory to sell")
             self._cancel_active_stop(symbol)

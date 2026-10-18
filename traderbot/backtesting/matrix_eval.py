@@ -108,11 +108,9 @@ def _random_window(
 
 
 def _grid_bounds_from_train(train_bars: list[dict[str, Any]]) -> tuple[float, float]:
-    closes = [float(bar["close"]) for bar in train_bars]
-    low = min(closes)
-    high = max(closes)
-    padding = (high - low) * 0.05 or high * 0.02
-    return low - padding, high + padding
+    from traderbot.algorithms.strategies.spot_grid import grid_price_bounds_from_bars
+
+    return grid_price_bounds_from_bars(train_bars)
 
 
 def _tune_single_asset(

@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from traderbot.algorithms.base import Algorithm, OrderSize, SignalAction
+from traderbot.traders.order_sizing import MIN_ORDER_CASH, buy_quote_spend, sell_base_amount
 from traderbot.utils.bars import bars_from_ohlc_rows, load_bars_csv, normalize_bar
 from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION
 
@@ -66,9 +67,6 @@ def _fill_price(raw_price: float, action: SignalAction, slippage_rate: float) ->
     return raw_price
 
 
-MIN_ORDER_CASH = 1e-9
-
-
 def _sized_fill(
     action: SignalAction,
     size: OrderSize,
@@ -80,22 +78,27 @@ def _sized_fill(
     fee_rate: float,
 ) -> tuple[float, float, float, float] | None:
     """Partial fill → ``(cash, position, fee, traded_size)``; ``None`` when nothing trades."""
-    equity = cash + position * fill_price
     if action == "buy":
-        if size.cash_fraction is not None:
-            spend = size.cash_fraction * initial_cash
-        else:
-            spend = float(size.target_exposure) * equity - position * fill_price
-        spend = min(spend, cash)
-        if spend <= MIN_ORDER_CASH:
+        spend = buy_quote_spend(
+            size,
+            cash=cash,
+            position=position,
+            fill_price=fill_price,
+            initial_cash=initial_cash,
+        )
+        if spend <= 0:
             return None
         fee = spend * fee_rate
         bought = (spend - fee) / fill_price
         return cash - spend, position + bought, fee, bought
     if action == "sell" and position > 0:
-        target = float(size.target_exposure or 0.0)
-        sell_size = min(position, max(0.0, position - target * equity / fill_price))
-        if sell_size * fill_price <= MIN_ORDER_CASH:
+        sell_size = sell_base_amount(
+            size,
+            cash=cash,
+            position=position,
+            fill_price=fill_price,
+        )
+        if sell_size <= 0:
             return None
         proceeds = sell_size * fill_price
         fee = proceeds * fee_rate

@@ -53,10 +53,16 @@ LAB_API_FEATURES = (
     "terminal_jobs",
     "catalog_api",
     "strategy_sweep",
+    "opportunity_discovery",
+    "coinbeacon",
 )
 
 
 def create_app(database_path: Path | None = None):
+    from lab.config import load_lab_repo_env
+
+    load_lab_repo_env()
+
     try:
         from fastapi import FastAPI, HTTPException, Query
         from fastapi.middleware.cors import CORSMiddleware
@@ -86,7 +92,9 @@ def create_app(database_path: Path | None = None):
     @app.on_event("startup")
     def _lab_startup() -> None:
         from lab.jobs import reconcile_orphan_lab_jobs
+        from lab.thread_local_io import ensure_thread_local_streams
 
+        ensure_thread_local_streams()
         connection = get_connection()
         try:
             init_database(connection)
@@ -291,11 +299,16 @@ def create_app(database_path: Path | None = None):
         strategy_id: str = Query(...),
         symbol: str | None = Query(default=None),
         resolution: str | None = Query(default=None),
+        horizon_label: str | None = Query(default=None),
     ):
         connection = get_connection()
         try:
             row = fetch_best_sweep(
-                connection, strategy_id=strategy_id, symbol=symbol, resolution=resolution
+                connection,
+                strategy_id=strategy_id,
+                symbol=symbol,
+                resolution=resolution,
+                horizon_label=horizon_label,
             )
         finally:
             connection.close()
@@ -468,6 +481,9 @@ def create_app(database_path: Path | None = None):
     from lab.jobs import register_job_routes
 
     register_catalog_routes(app)
+    from lab.coinbeacon_routes import register_coinbeacon_routes
+
+    register_coinbeacon_routes(app)
     register_auth_routes(app, get_connection)
     register_job_routes(app, get_connection)
     from lab.risk_routes import register_risk_routes

@@ -9,16 +9,23 @@ import { OptimizedStrategyParamsBlock } from "@/components/OptimizedStrategyPara
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, SelectInput, TextInput } from "@/components/ui/Field";
-import { api, type MarketSpec } from "@/lib/api";
+import { api, formatApiError, type LiveStrategyRankRow, type MarketSpec } from "@/lib/api";
+import { formatStrategyPerformanceLabel } from "@/lib/strategyPerformance";
 import { formatDurationMinutes, formatResolutionLabel, minutesFromResolution } from "@/lib/format";
+import {
+  buildLiveRunCombos,
+  DEFAULT_LIVE_HORIZON,
+  MAX_LIVE_BATCH_COMBOS,
+  pollSecondsForResolution,
+  resolvedHorizonsForLiveRun,
+} from "@/lib/liveRunCombos";
+import { loadLiveTradingDraft, saveLiveTradingDraft } from "@/lib/labFormCache";
 import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
 
 type ExecutionMode = "once" | "continuous";
 type OrderMode = "paper" | "live";
 type LiveExchange = "hyperliquid" | "nobitex";
 type ContinuousLimit = "until_stopped" | "max_cycles";
-
-const MAX_LIVE_BATCH_COMBOS = 16;
 
 type BatchMarket = {
   symbol: string;
@@ -89,28 +96,127 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
   const [executionMode, setExecutionMode] = useState<ExecutionMode>("once");
   const [multiRun, setMultiRun] = useState(false);
   const [batchMarkets, setBatchMarkets] = useState<BatchMarket[]>([]);
-  const [batchIntervals, setBatchIntervals] = useState<string[]>([]);
+  const [horizons, setHorizons] = useState<string[]>([DEFAULT_LIVE_HORIZON]);
   const [liveExchange, setLiveExchange] = useState<LiveExchange>("hyperliquid");
   const [orderMode, setOrderMode] = useState<OrderMode>("paper");
   const [strategyId, setStrategyId] = useState("sma_cross");
+  const [multiStrategy, setMultiStrategy] = useState(false);
+  const [batchStrategyIds, setBatchStrategyIds] = useState<string[]>(["sma_cross"]);
   const [marketSymbol, setMarketSymbol] = useState<string | null>("BTCUSDT");
   const [src, setSrc] = useState("btc");
   const [dst, setDst] = useState("usdt");
-  const [interval, setInterval] = useState("60");
   const [noBuy, setNoBuy] = useState(false);
   const [noSell, setNoSell] = useState(false);
   const [emitHolds, setEmitHolds] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [pollSec, setPollSec] = useState("60");
   const [continuousLimit, setContinuousLimit] = useState<ContinuousLimit>("until_stopped");
   const [maxSteps, setMaxSteps] = useState("24");
   const [useOptimized, setUseOptimized] = useState(false);
   const [applySweepWinner, setApplySweepWinner] = useState(false);
   const [optimizeBeforeRun, setOptimizeBeforeRun] = useState(false);
   const [strategyParams, setStrategyParams] = useState<Record<string, unknown>>({});
-  const [paperInitialCash, setPaperInitialCash] = useState("10000000");
+  const [paperInitialCash, setPaperInitialCash] = useState(() => defaultPaperCash("usdt"));
   const [liveQuoteBudget, setLiveQuoteBudget] = useState("");
   const [useLiveQuoteBudget, setUseLiveQuoteBudget] = useState(false);
+  const [formReady, setFormReady] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  useEffect(() => {
+    const draft = loadLiveTradingDraft();
+    if (draft) {
+      setExecutionMode(draft.executionMode);
+      setMultiRun(draft.multiRun);
+      setBatchMarkets(draft.batchMarkets);
+      setHorizons(draft.horizons);
+      setLiveExchange(draft.liveExchange);
+      setOrderMode(draft.orderMode);
+      setStrategyId(draft.strategyId);
+      setMultiStrategy(draft.multiStrategy);
+      setBatchStrategyIds(draft.batchStrategyIds);
+      setMarketSymbol(draft.marketSymbol);
+      setSrc(draft.src);
+      setDst(draft.dst);
+      setNoBuy(draft.noBuy);
+      setNoSell(draft.noSell);
+      setEmitHolds(draft.emitHolds);
+      setShowAdvanced(draft.showAdvanced);
+      setContinuousLimit(draft.continuousLimit);
+      setMaxSteps(draft.maxSteps);
+      setUseOptimized(draft.useOptimized);
+      setApplySweepWinner(draft.applySweepWinner);
+      setOptimizeBeforeRun(draft.optimizeBeforeRun);
+      setStrategyParams(draft.strategyParams);
+      setPaperInitialCash(draft.paperInitialCash);
+      setLiveQuoteBudget(draft.liveQuoteBudget);
+      setUseLiveQuoteBudget(draft.useLiveQuoteBudget);
+      setDraftRestored(true);
+    }
+    setFormReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!formReady) {
+      return;
+    }
+    const handle = window.setTimeout(() => {
+      saveLiveTradingDraft({
+        version: 1,
+        executionMode,
+        multiRun,
+        batchMarkets,
+        horizons,
+        liveExchange,
+        orderMode,
+        strategyId,
+        multiStrategy,
+        batchStrategyIds,
+        marketSymbol,
+        src,
+        dst,
+        noBuy,
+        noSell,
+        emitHolds,
+        showAdvanced,
+        continuousLimit,
+        maxSteps,
+        useOptimized,
+        applySweepWinner,
+        optimizeBeforeRun,
+        strategyParams,
+        paperInitialCash,
+        liveQuoteBudget,
+        useLiveQuoteBudget,
+      });
+    }, 400);
+    return () => window.clearTimeout(handle);
+  }, [
+    formReady,
+    executionMode,
+    multiRun,
+    batchMarkets,
+    horizons,
+    liveExchange,
+    orderMode,
+    strategyId,
+    multiStrategy,
+    batchStrategyIds,
+    marketSymbol,
+    src,
+    dst,
+    noBuy,
+    noSell,
+    emitHolds,
+    showAdvanced,
+    continuousLimit,
+    maxSteps,
+    useOptimized,
+    applySweepWinner,
+    optimizeBeforeRun,
+    strategyParams,
+    paperInitialCash,
+    liveQuoteBudget,
+    useLiveQuoteBudget,
+  ]);
 
   const terminalCatalogQuery = useQuery({
     queryKey: ["catalog-terminal"],
@@ -126,8 +232,62 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
         ["1", "60", "240", "D"])
       : (terminalCatalogQuery.data?.udf_resolutions ?? ["60", "240", "D"]);
 
-  const intervalMinutes = minutesFromResolution(interval);
-  const suggestedPollSec = intervalMinutes != null ? String(Math.max(15, intervalMinutes * 60)) : "60";
+  const activeHorizons = useMemo(() => resolvedHorizonsForLiveRun(horizons), [horizons]);
+  const primaryHorizon = activeHorizons[0] ?? DEFAULT_LIVE_HORIZON;
+  const previewCash = useMemo(() => {
+    const cash = Number(paperInitialCash);
+    return Number.isFinite(cash) && cash > 0 ? cash : undefined;
+  }, [paperInitialCash]);
+  const strategyRanksQuery = useQuery({
+    queryKey: ["live-strategy-ranks", liveExchange, src, dst, primaryHorizon, previewCash],
+    queryFn: () =>
+      api.liveStrategyRanks({
+        exchange: liveExchange,
+        src,
+        dst,
+        resolution: primaryHorizon,
+        initialCash: previewCash,
+      }),
+    enabled: Boolean(src && dst),
+    staleTime: 120_000,
+    retry: 1,
+    retryDelay: 2000,
+  });
+  const strategyRankById = useMemo(() => {
+    const map = new Map<string, LiveStrategyRankRow>();
+    for (const row of strategyRanksQuery.data?.ranked ?? []) {
+      map.set(row.strategy_id, row);
+    }
+    return map;
+  }, [strategyRanksQuery.data]);
+  const sortedStrategies = useMemo(() => {
+    return [...strategies].sort((left, right) => {
+      const leftRank = strategyRankById.get(left.id);
+      const rightRank = strategyRankById.get(right.id);
+      const leftReturn = leftRank?.return_pct;
+      const rightReturn = rightRank?.return_pct;
+      if (leftReturn == null && rightReturn == null) {
+        return left.id.localeCompare(right.id);
+      }
+      if (leftReturn == null) {
+        return 1;
+      }
+      if (rightReturn == null) {
+        return -1;
+      }
+      return rightReturn - leftReturn;
+    });
+  }, [strategies, strategyRankById]);
+  const intervalMinutes = minutesFromResolution(primaryHorizon);
+  const pollSecondsByHorizon = useMemo(
+    () =>
+      activeHorizons.map((horizon) => ({
+        horizon,
+        label: formatResolutionLabel(horizon),
+        seconds: pollSecondsForResolution(horizon),
+      })),
+    [activeHorizons],
+  );
 
   useEffect(() => {
     if (strategies.length === 0) {
@@ -137,12 +297,6 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
       setStrategyId(strategies[0].id);
     }
   }, [strategies, strategyId]);
-
-  useEffect(() => {
-    if (executionMode === "continuous") {
-      setPollSec(suggestedPollSec);
-    }
-  }, [executionMode, suggestedPollSec]);
 
   function selectMarket(market: MarketSpec) {
     setMarketSymbol(market.symbol);
@@ -178,64 +332,68 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
     setBatchMarkets([]);
   }
 
-  function toggleBatchInterval(resolution: string) {
-    setBatchIntervals((rows) =>
+  function toggleHorizon(resolution: string) {
+    setHorizons((rows) =>
       rows.includes(resolution) ? rows.filter((item) => item !== resolution) : [...rows, resolution],
     );
   }
 
-  const liveRunCombos = useMemo(() => {
-    if (!multiRun) {
-      return [
-        {
-          src: src.trim().toLowerCase(),
-          dst: dst.trim().toLowerCase(),
-          interval,
-          symbol: marketSymbol ?? "",
-        },
-      ];
-    }
-    const markets = batchMarkets;
-    const intervals = batchIntervals.length > 0 ? batchIntervals : [interval];
-    const combos: Array<{ src: string; dst: string; interval: string; symbol: string }> = [];
-    for (const market of markets) {
-      for (const resolution of intervals) {
-        combos.push({
-          src: market.src,
-          dst: market.dst,
-          interval: resolution,
-          symbol: market.symbol,
-        });
-      }
-    }
-    return combos;
-  }, [multiRun, batchMarkets, batchIntervals, marketSymbol, src, dst, interval]);
+  function toggleBatchStrategy(id: string) {
+    setBatchStrategyIds((rows) =>
+      rows.includes(id) ? rows.filter((item) => item !== id) : [...rows, id],
+    );
+  }
+
+  const liveRunCombos = useMemo(
+    () =>
+      buildLiveRunCombos({
+        multiRun,
+        src,
+        dst,
+        marketSymbol,
+        batchMarkets,
+        horizons,
+        multiStrategy,
+        strategyId,
+        batchStrategyIds,
+      }),
+    [
+      multiRun,
+      batchMarkets,
+      horizons,
+      marketSymbol,
+      src,
+      dst,
+      multiStrategy,
+      strategyId,
+      batchStrategyIds,
+    ],
+  );
 
   useEffect(() => {
     onSessionChange?.({
       src,
       dst,
-      interval,
+      interval: primaryHorizon,
       marketSymbol,
       exchange: liveExchange,
     });
-  }, [src, dst, interval, marketSymbol, liveExchange, onSessionChange]);
+  }, [src, dst, primaryHorizon, marketSymbol, liveExchange, onSessionChange]);
 
   const liveOrders = orderMode === "live";
 
-  const jobBody = useMemo(() => {
+  const baseJobBody = useMemo(() => {
     const body: Record<string, unknown> = {
-      strategy: strategyId,
       src: src.trim().toLowerCase(),
       dst: dst.trim().toLowerCase(),
-      interval,
+      interval: primaryHorizon,
       market_symbol: marketSymbol,
       live: liveOrders,
       no_buy: noBuy,
       no_sell: noSell,
       emit_holds: emitHolds,
       use_optimized_defaults: useOptimized || optimizeBeforeRun,
-      apply_sweep_winner: applySweepWinner,
+      apply_sweep_winner: applySweepWinner || optimizeBeforeRun,
       optimize_before_run: optimizeBeforeRun && !liveOrders,
       optimize_max_bars: 100,
       optimize_holdout_bars: 20,
@@ -252,11 +410,10 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
         body.live_quote_budget = budget;
       }
     }
-    if (!useOptimized && !optimizeBeforeRun) {
+    if (!multiStrategy && !useOptimized && !optimizeBeforeRun) {
       Object.assign(body, strategyParams);
     }
     if (executionMode === "continuous") {
-      body.poll_sec = Number(pollSec);
       if (continuousLimit === "until_stopped") {
         body.until_stopped = true;
       } else {
@@ -265,11 +422,11 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
     }
     return body;
   }, [
-    strategyId,
+    multiStrategy,
     marketSymbol,
     src,
     dst,
-    interval,
+    primaryHorizon,
     liveOrders,
     paperInitialCash,
     useLiveQuoteBudget,
@@ -283,7 +440,6 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
     liveExchange,
     strategyParams,
     executionMode,
-    pollSec,
     continuousLimit,
     maxSteps,
   ]);
@@ -309,9 +465,8 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
           throw new Error("Enter at least one cycle.");
         }
       }
-      const poll = Number(pollSec);
-      if (executionMode === "continuous" && (!Number.isFinite(poll) || poll < 5)) {
-        throw new Error("Poll interval must be at least 5 seconds.");
+      if (multiStrategy && batchStrategyIds.length === 0) {
+        throw new Error("Select at least one strategy in the batch list.");
       }
       if (liveRunCombos.length === 0) {
         throw new Error(
@@ -322,18 +477,22 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
       }
       if (liveRunCombos.length > MAX_LIVE_BATCH_COMBOS) {
         throw new Error(
-          `Too many combinations (${liveRunCombos.length}). Limit is ${MAX_LIVE_BATCH_COMBOS} (markets × horizons).`,
+          `Too many combinations (${liveRunCombos.length}). Limit is ${MAX_LIVE_BATCH_COMBOS} (markets × horizons × strategies).`,
         );
       }
       const jobType = executionMode === "once" ? "terminal-once" : "terminal-live";
       const started: Array<{ id: string; status: string }> = [];
       for (const combo of liveRunCombos) {
         const body = {
-          ...jobBody,
+          ...baseJobBody,
+          strategy: combo.strategyId,
           src: combo.src,
           dst: combo.dst,
           interval: combo.interval,
           market_symbol: combo.symbol,
+          ...(executionMode === "continuous"
+            ? { poll_sec: pollSecondsForResolution(combo.interval) }
+            : {}),
         };
         started.push(await api.postJob(jobType, body));
       }
@@ -354,22 +513,44 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
   const pairLabel = `${src.toUpperCase()}/${dst.toUpperCase()}`;
 
   const comboCount = liveRunCombos.length;
+  const optimizeComboLabels = useMemo(() => {
+    if (!optimizeBeforeRun || liveRunCombos.length === 0) {
+      return [];
+    }
+    return liveRunCombos.map((combo) => {
+      const pair =
+        combo.symbol.trim() ||
+        `${combo.src.toUpperCase()}/${combo.dst.toUpperCase()}`;
+      return `${pair} · ${formatResolutionLabel(combo.interval)} · ${combo.strategyId}`;
+    });
+  }, [optimizeBeforeRun, liveRunCombos]);
   const startLabel =
     comboCount > 1
       ? executionMode === "once"
-        ? `Run ${comboCount} single checks`
+        ? `Run ${comboCount} single checks${optimizeBeforeRun ? " (tune first)" : ""}`
         : continuousLimit === "until_stopped"
-          ? `Start ${comboCount} sessions`
-          : `Start ${comboCount} polling jobs`
+          ? `Start ${comboCount} sessions${optimizeBeforeRun ? " (tune first)" : ""}`
+          : `Start ${comboCount} polling jobs${optimizeBeforeRun ? " (tune first)" : ""}`
       : executionMode === "once"
-        ? "Run single check"
+        ? optimizeBeforeRun
+          ? "Run single check (tune first)"
+          : "Run single check"
         : continuousLimit === "until_stopped"
-          ? "Start continuous session"
-          : "Start polling job";
+          ? optimizeBeforeRun
+            ? "Start session (tune first)"
+            : "Start continuous session"
+          : optimizeBeforeRun
+            ? "Start polling job (tune first)"
+            : "Start polling job";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)]">
       <div className="space-y-4">
+        {draftRestored && (
+          <p className="text-xs text-muted">
+            Restored your last live session settings from this browser. Changes save automatically.
+          </p>
+        )}
         <Card
           title="How it works"
           description="Strategies read the latest closed candle from your chosen exchange (Hyperliquid by default)."
@@ -490,7 +671,7 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
                   id: "paper",
                   label: "Simulated live",
                   description:
-                    "Paper wallet at your chosen size — real candles, full-wallet fills, no orders.",
+                    "Paper wallet: starting cash is also the max the bot may deploy (same as live quote budget).",
                 },
                 {
                   id: "live",
@@ -550,11 +731,11 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
             {orderMode === "paper" && (
               <div className="mt-3 space-y-3">
                 <Field
-                  label="Simulated starting cash"
+                  label="Paper wallet size (also capital cap)"
                   hint={
                     dst === "usdt"
-                      ? "USDT quote wallet (default 1,000). Optimizer uses the same size."
-                      : "RLS quote wallet (default 10,000,000). Optimizer uses the same size."
+                      ? "USDT for paper trading and optimizer (default 1,000). Buys cannot exceed this total."
+                      : "RLS for paper trading and optimizer (default 10,000,000). Buys cannot exceed this total."
                   }
                 >
                   <TextInput
@@ -566,60 +747,114 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
                     onChange={(event) => setPaperInitialCash(event.target.value)}
                   />
                 </Field>
-                <label className="flex items-start gap-2 rounded-lg border border-border bg-surface/60 px-3 py-2 text-sm text-slate-200">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={optimizeBeforeRun}
-                    onChange={(event) => {
-                      const checked = event.target.checked;
-                      setOptimizeBeforeRun(checked);
-                      if (checked) {
-                        setUseOptimized(true);
-                      }
-                    }}
-                  />
-                  <span>
-                    <span className="font-medium text-white">Optimize before session</span>
-                    <span className="mt-1 block text-xs leading-snug text-muted">
-                      Quick grid on the last ~100 closed Nobitex candles (20-bar holdout),
-                      saves params per market, then runs the session. Batch runs optimize each market
-                      separately.
-                    </span>
-                  </span>
-                </label>
               </div>
             )}
           </div>
 
-          <div className="grid gap-4 border-t border-border pt-6 sm:grid-cols-2">
-            <Field label="Strategy">
-              <SelectInput
-                value={strategyId}
-                onChange={(event) => setStrategyId(event.target.value)}
-              >
-                {strategies.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name || row.id}
-                  </option>
-                ))}
-              </SelectInput>
-            </Field>
+          <div className="space-y-4 border-t border-border pt-6">
+            <div>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-medium text-white">Strategies</h3>
+                <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={multiStrategy}
+                    onChange={(event) => {
+                      const enabled = event.target.checked;
+                      setMultiStrategy(enabled);
+                      if (enabled) {
+                        setBatchStrategyIds((rows) =>
+                          rows.length > 0 ? rows : [strategyId],
+                        );
+                      }
+                    }}
+                  />
+                  Multi strategy — one job per strategy (combine with multi market)
+                </label>
+              </div>
+              {strategyRanksQuery.isSuccess && sortedStrategies.length > 0 && (
+                <p className="mb-2 text-xs text-muted">
+                  Sorted by preview return on the last {strategyRanksQuery.data?.bars ?? "—"} closed{" "}
+                  {formatResolutionLabel(primaryHorizon)} candles (default params). Top:{" "}
+                  <span className="text-slate-300">
+                    {formatStrategyPerformanceLabel(
+                      sortedStrategies[0].name || sortedStrategies[0].id,
+                      strategyRankById.get(sortedStrategies[0].id),
+                    )}
+                  </span>
+                </p>
+              )}
+              {strategyRanksQuery.isError && (
+                <p className="mb-2 text-xs text-amber-200/90">
+                  Could not rank strategies on live candles ({formatApiError(strategyRanksQuery.error)}).
+                  Restart <code className="text-slate-300">./run-lab-api.sh</code> if the endpoint is missing (404).
+                  List stays alphabetical until ranks load.
+                </p>
+              )}
+              {multiStrategy ? (
+                <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-border bg-surface/50 p-3">
+                  {strategies.length === 0 ? (
+                    <p className="text-sm text-muted">Loading strategies…</p>
+                  ) : strategyRanksQuery.isLoading && sortedStrategies.length === 0 ? (
+                    <p className="text-sm text-muted">Loading strategy rankings…</p>
+                  ) : (
+                    sortedStrategies.map((row) => {
+                      const checked = batchStrategyIds.includes(row.id);
+                      return (
+                        <label
+                          key={row.id}
+                          className={`flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm ${
+                            checked
+                              ? "border-accent/50 bg-accent/10 text-white"
+                              : "border-transparent text-slate-300 hover:bg-surface"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleBatchStrategy(row.id)}
+                          />
+                          {formatStrategyPerformanceLabel(row.name || row.id, strategyRankById.get(row.id))}
+                        </label>
+                      );
+                    })
+                  )}
+                  <p className="text-xs text-muted">
+                    {batchStrategyIds.length === 0
+                      ? "Pick at least one strategy."
+                      : `${batchStrategyIds.length} strateg${batchStrategyIds.length === 1 ? "y" : "ies"} in batch.`}
+                  </p>
+                </div>
+              ) : (
+                <Field
+                  label="Strategy"
+                  hint={
+                    strategyRanksQuery.isFetching
+                      ? "Refreshing preview ranks from exchange candles…"
+                      : strategyRanksQuery.isSuccess
+                        ? `Best preview on ${strategyRanksQuery.data?.symbol ?? pairLabel} first.`
+                        : undefined
+                  }
+                >
+                  <SelectInput
+                    value={strategyId}
+                    onChange={(event) => setStrategyId(event.target.value)}
+                  >
+                    {sortedStrategies.map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {formatStrategyPerformanceLabel(row.name || row.id, strategyRankById.get(row.id))}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </Field>
+              )}
+            </div>
 
-            <Field label="Candle size">
-              <SelectInput value={interval} onChange={(event) => setInterval(event.target.value)}>
-                {resolutions.map((value) => (
-                  <option key={value} value={value}>
-                    {value} — {formatResolutionLabel(value)}
-                  </option>
-                ))}
-              </SelectInput>
-            </Field>
           </div>
 
           <div>
             <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="text-sm font-medium text-white">Market</h3>
+              <h3 className="text-sm font-medium text-white">Market & horizons</h3>
               {marketSymbol && (
                 <span className="font-mono text-xs text-muted">
                   {marketSymbol} · {pairLabel}
@@ -635,7 +870,6 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
                   setMultiRun(enabled);
                   if (!enabled) {
                     setBatchMarkets([]);
-                    setBatchIntervals([]);
                     return;
                   }
                   if (marketSymbol) {
@@ -651,7 +885,8 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
                   }
                 }}
               />
-              Multi run — tick several markets and/or horizons (one job per combination)
+              Multi run — several markets and/or horizons (one job per market × horizon
+              {multiStrategy ? " × strategy" : ""})
             </label>
             <MarketSearchPicker
               selectedSymbol={marketSymbol}
@@ -663,61 +898,67 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
               onClearBatch={clearBatchMarkets}
               maxBatchSelect={MAX_LIVE_BATCH_COMBOS}
             />
-            {multiRun && (
-              <div className="mt-4 space-y-2 rounded-xl border border-border bg-surface/50 p-4">
-                <p className="text-xs font-medium text-slate-300">Horizons in this batch</p>
-                <div className="flex flex-wrap gap-2">
-                  {resolutions.map((resolution) => {
-                    const checked = batchIntervals.includes(resolution);
-                    return (
-                      <label
-                        key={resolution}
-                        className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs ${
-                          checked
-                            ? "border-accent bg-accent/10 text-white"
-                            : "border-border text-muted"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleBatchInterval(resolution)}
-                        />
-                        {resolution} — {formatResolutionLabel(resolution)}
-                      </label>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-muted">
-                  {batchMarkets.length === 0
-                    ? "No markets in batch yet — use the checkboxes in the table above."
-                    : `Ready to start ${comboCount} job${comboCount === 1 ? "" : "s"}`}
-                  {batchIntervals.length === 0
-                    ? ` (candle size: ${formatResolutionLabel(interval)} for every market).`
-                    : "."}
-                  {comboCount > MAX_LIVE_BATCH_COMBOS &&
-                    ` Too many combinations — remove markets or horizons (max ${MAX_LIVE_BATCH_COMBOS}).`}
-                </p>
+            <div className="mt-4 space-y-2 rounded-xl border border-border bg-surface/50 p-4">
+              <p className="text-xs font-medium text-slate-300">Horizons to test</p>
+              <p className="text-xs text-muted">
+                Each job uses the candle size for its horizon. Pick one or more — every market you
+                select runs at each checked horizon.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {resolutions.map((resolution) => {
+                  const checked = horizons.includes(resolution);
+                  return (
+                    <label
+                      key={resolution}
+                      className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs ${
+                        checked
+                          ? "border-accent bg-accent/10 text-white"
+                          : "border-border text-muted"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleHorizon(resolution)}
+                      />
+                      {resolution} — {formatResolutionLabel(resolution)}
+                    </label>
+                  );
+                })}
               </div>
-            )}
+              <p className="text-xs text-muted">
+                {horizons.length === 0
+                  ? `No horizon checked — jobs default to ${formatResolutionLabel(DEFAULT_LIVE_HORIZON)}.`
+                  : `Active: ${activeHorizons.map((h) => formatResolutionLabel(h)).join(", ")}.`}
+                {multiRun && batchMarkets.length === 0
+                  ? " Select batch markets above."
+                  : !multiRun
+                    ? ` ${comboCount} job${comboCount === 1 ? "" : "s"} for the selected market.`
+                    : ` Ready to start ${comboCount} job${comboCount === 1 ? "" : "s"}.`}
+                {comboCount > MAX_LIVE_BATCH_COMBOS &&
+                  ` Too many combinations — remove markets, horizons, or strategies (max ${MAX_LIVE_BATCH_COMBOS}).`}
+              </p>
+            </div>
           </div>
 
           {executionMode === "continuous" && (
             <div className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
               <h3 className="text-sm font-medium text-white">Polling schedule</h3>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field
-                  label="Wait between checks (seconds)"
-                  hint={`Often set near one candle (${suggestedPollSec}s for this resolution). Minimum 5.`}
-                >
-                  <TextInput
-                    type="number"
-                    min={5}
-                    step={1}
-                    value={pollSec}
-                    onChange={(event) => setPollSec(event.target.value)}
-                  />
-                </Field>
+                <div className="space-y-1 text-sm">
+                  <p className="text-slate-200">Wait between checks</p>
+                  <p className="text-xs text-muted">
+                    Set automatically from each job&apos;s horizon (~one closed bar, minimum 5s).
+                  </p>
+                  <ul className="mt-2 space-y-1 text-xs text-slate-400">
+                    {pollSecondsByHorizon.map((row) => (
+                      <li key={row.horizon}>
+                        {row.label}:{" "}
+                        <span className="font-mono text-slate-300">{row.seconds}s</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
                 <Field label="How long to run">
                   <SelectInput
                     value={continuousLimit}
@@ -747,8 +988,8 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
               )}
               {intervalMinutes != null && (
                 <p className="text-xs text-muted">
-                  Candle period: {formatDurationMinutes(intervalMinutes)}. Polling does not need to
-                  match candle length, but checking too often only repeats the same closed bar.
+                  Each job waits about one bar for its horizon before the next fetch. Checking faster
+                  would only repeat the same closed candle.
                 </p>
               )}
             </div>
@@ -756,15 +997,72 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
 
           <div className="space-y-2 border-t border-border pt-6">
             <h3 className="text-sm font-medium text-white">Strategy parameters</h3>
-            <OptimizedStrategyParamsBlock
-              strategyId={strategyId}
-              symbol={marketSymbol}
-              resolution={interval}
-              useOptimized={useOptimized}
-              onUseOptimizedChange={setUseOptimized}
-              manualValues={strategyParams}
-              onManualValuesChange={setStrategyParams}
-            />
+            {orderMode === "live" ? (
+              <p className="rounded-lg border border-border bg-surface/60 px-3 py-2 text-xs text-muted">
+                Live orders cannot run the 100-candle pre-session optimizer (API safety). Use paper with{" "}
+                <span className="text-slate-300">Optimize before session</span>, then switch to live with
+                stored params, or run a Lab sweep on catalog data.
+              </p>
+            ) : (
+              <div className="space-y-2 rounded-xl border border-border bg-surface/50 p-4">
+                <label className="flex items-start gap-2 text-sm text-slate-200">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={optimizeBeforeRun}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setOptimizeBeforeRun(checked);
+                      if (checked) {
+                        setUseOptimized(true);
+                        setApplySweepWinner(true);
+                      }
+                    }}
+                  />
+                  <span>
+                    <span className="font-medium text-white">Optimize before session</span>
+                    <span className="mt-1 block text-xs leading-snug text-muted">
+                      Each job fetches the last 100 closed candles, runs a small grid with train / validation /
+                      test selection (fallback to in-sample holdout when too short), saves the winner per market ×
+                      interval × strategy, then starts trading.
+                    </span>
+                  </span>
+                </label>
+                {optimizeBeforeRun && comboCount > 0 && (
+                  <div className="text-xs text-muted">
+                    <p className="font-medium text-slate-300">
+                      {comboCount} tune{comboCount === 1 ? "" : "s"} before run
+                      {comboCount > 1 ? " (one per job)" : ""}:
+                    </p>
+                    <ul className="mt-1 max-h-28 list-inside list-disc overflow-y-auto text-slate-400">
+                      {optimizeComboLabels.slice(0, 8).map((label) => (
+                        <li key={label}>{label}</li>
+                      ))}
+                      {optimizeComboLabels.length > 8 && (
+                        <li>…and {optimizeComboLabels.length - 8} more</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+            {multiStrategy ? (
+              <p className="text-sm text-muted">
+                Multi-strategy batches use per-strategy params from the sweep store, or{" "}
+                <span className="text-slate-300">Optimize before session</span> above to tune each
+                market × horizon × strategy job. Switch off multi strategy to edit knobs for one strategy.
+              </p>
+            ) : (
+              <OptimizedStrategyParamsBlock
+                strategyId={strategyId}
+                symbol={marketSymbol}
+                resolution={primaryHorizon}
+                useOptimized={useOptimized}
+                onUseOptimizedChange={setUseOptimized}
+                manualValues={strategyParams}
+                onManualValuesChange={setStrategyParams}
+              />
+            )}
             <label className="flex items-center gap-2 text-sm text-slate-200">
               <input
                 type="checkbox"
@@ -825,12 +1123,20 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
               {terminalCatalogQuery.isLoading ? "Loading strategies…" : submitMutation.isPending ? "Starting…" : startLabel}
             </Button>
             {terminalCatalogQuery.isError && (
-              <span className="text-sm text-red-400" role="alert">
-                Could not load strategies.{" "}
-                <button type="button" className="underline" onClick={() => terminalCatalogQuery.refetch()}>
-                  Retry
-                </button>
-              </span>
+              <ErrorState
+                title="Could not load terminal catalog"
+                error={terminalCatalogQuery.error}
+                hintAuth={false}
+                action={
+                  <button
+                    type="button"
+                    className="text-sm text-accent underline"
+                    onClick={() => terminalCatalogQuery.refetch()}
+                  >
+                    Retry
+                  </button>
+                }
+              />
             )}
           </div>
 

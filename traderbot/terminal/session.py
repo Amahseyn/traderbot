@@ -23,7 +23,7 @@ from traderbot.terminal.events import print_tick_event
 from traderbot.terminal.hyperliquid_trader import HyperliquidTerminalTrader
 from traderbot.terminal.namespace_keys import EMIT_HOLDS
 from traderbot.terminal.paper_portfolio import PaperPortfolio, default_paper_initial_cash
-from traderbot.utils.trading_costs import DEFAULT_TRADE_FEE_RATE
+from traderbot.utils.trading_costs import backtest_cost_rates
 from traderbot.terminal.trader import TerminalAlgorithmTrader
 from traderbot.terminal.utils import algorithm_from_args, execution_from_args
 from traderbot.traders.strategies.algorithm_trader import BarSource
@@ -73,10 +73,10 @@ def build_terminal_trader(
     dst = str(args.dst).strip().lower()
     if exchange == "hyperliquid" and dst in ("rls", "irt"):
         dst = "usdt"
-    capital_cap = float(getattr(args, "capital_cap", 0) or 0)
-    if capital_cap <= 0:
-        capital_cap = default_paper_initial_cash(dst)
     execution = execution_from_args(args)
+    explicit_cap = float(getattr(args, "capital_cap", 0) or 0)
+    capital_cap = explicit_cap
+    paper_initial_cash: float | None = None
     if execution.mode == "live":
         budget_raw = getattr(args, "live_quote_budget", None)
         if budget_raw is not None:
@@ -85,6 +85,17 @@ def build_terminal_trader(
                 print("live_quote_budget must be positive", file=sys.stderr)
                 raise SystemExit(1)
             capital_cap = budget
+    elif execution.mode == "paper":
+        initial_raw = getattr(args, "paper_initial_cash", None)
+        paper_initial_cash = (
+            float(initial_raw) if initial_raw is not None else default_paper_initial_cash(dst)
+        )
+        if paper_initial_cash <= 0:
+            print("paper_initial_cash must be positive", file=sys.stderr)
+            raise SystemExit(1)
+        capital_cap = paper_initial_cash
+    if capital_cap <= 0:
+        capital_cap = default_paper_initial_cash(dst)
     configure_risk_manager(
         RiskLimits(
             capital_cap=capital_cap,
@@ -128,7 +139,27 @@ def build_terminal_trader(
         )
 
     trader.strategy_id = args.strategy
+    trader.venue_exchange = exchange
     trader.emit_holds = getattr(args, EMIT_HOLDS, False)
+
+    def _refresh_closed_mark() -> float | None:
+        bars = fetch_live_recent_closed_bars(
+            exchange=exchange,
+            src=args.src,
+            dst=args.dst,
+            resolution=args.interval,
+            max_bars=1,
+        )
+        if not bars:
+            return None
+        return float(bars[-1].get("close") or 0)
+
+    trader._refresh_mark_price = _refresh_closed_mark
+    if warmup_bars:
+        last_warmup = warmup_bars[-1]
+        trader._last_mark_price = float(last_warmup.get("close") or 0)
+        if last_warmup.get("timestamp") is not None:
+            trader._last_bar_timestamp = int(last_warmup["timestamp"])
     print_tick_event(
         {
             "event": "live_exchange",
@@ -149,23 +180,24 @@ def build_terminal_trader(
             },
         )
     if execution.mode == "paper":
-        initial_raw = getattr(args, "paper_initial_cash", None)
-        initial_cash = float(initial_raw) if initial_raw is not None else default_paper_initial_cash(dst)
-        if initial_cash <= 0:
-            print("paper_initial_cash must be positive", file=sys.stderr)
-            raise SystemExit(1)
+        assert paper_initial_cash is not None
+        initial_cash = paper_initial_cash
+        paper_fee_raw = getattr(args, "paper_fee_rate", None)
+        if paper_fee_raw is not None:
+            paper_fee_rate = float(paper_fee_raw)
+        else:
+            paper_fee_rate, _slippage_rate = backtest_cost_rates(exchange)
         trader.paper_portfolio = PaperPortfolio(
             quote_cash=initial_cash,
             quote_currency=dst,
-            fee_rate=float(
-                getattr(args, "paper_fee_rate", None) or DEFAULT_TRADE_FEE_RATE
-            ),
+            fee_rate=paper_fee_rate,
         )
         print_tick_event(
             {
                 "event": "paper_wallet",
                 "quote_currency": trader.paper_portfolio.quote_currency,
                 "initial_cash": initial_cash,
+                "capital_cap": capital_cap,
                 "fee_rate": trader.paper_portfolio.fee_rate,
                 "symbol": symbol,
                 "strategy_id": args.strategy,

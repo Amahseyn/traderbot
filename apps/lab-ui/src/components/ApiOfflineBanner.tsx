@@ -17,7 +17,7 @@ export function ApiOfflineBanner() {
 
   return (
     <div
-      className="border-b border-red-900/50 bg-red-950/40 px-6 py-2 text-center text-sm text-red-200"
+      className="border-b border-red-500/30 bg-gradient-to-r from-red-950/80 via-red-900/40 to-red-950/80 px-4 py-2.5 text-center text-sm text-red-100 sm:px-6"
       role="alert"
     >
       Lab API unreachable at <code className="text-red-100">{API_BASE}</code>. Start{" "}

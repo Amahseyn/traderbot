@@ -44,10 +44,12 @@ def sync_results_tree(
             if not strategy_id:
                 counts["skipped"] += 1
                 continue
-            from traderbot.algorithms.registry import algorithm_for_id
+            from traderbot.algorithms.cli_args import default_strategy_namespace
+            from traderbot.algorithms.registry import algorithm_for_id, strategy_kwargs_from_namespace
 
             try:
-                algorithm = algorithm_for_id(strategy_id)
+                kwargs = strategy_kwargs_from_namespace(strategy_id, default_strategy_namespace())
+                algorithm = algorithm_for_id(strategy_id, **kwargs)
             except Exception:
                 counts["skipped"] += 1
                 continue

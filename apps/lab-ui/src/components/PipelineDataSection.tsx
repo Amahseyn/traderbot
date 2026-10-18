@@ -38,6 +38,26 @@ export type PipelineDataSectionState = {
   marketSearch: string;
 };
 
+export const DEFAULT_PIPELINE_DATA_STATE: PipelineDataSectionState = {
+  dataSourceMode: "download",
+  exportDays: "30",
+  exportDaysByInterval: {},
+  exportHistoryMode: "days",
+  exportSteps: "500",
+  exportStepsByInterval: {},
+  exportMarketSymbol: "",
+  exportInterval: "60",
+  exportMarketSymbols: [],
+  exportIntervals: [],
+  useAllHourly: false,
+  datasetIds: [],
+  catalogSearch: "",
+  catalogSymbol: "",
+  catalogResolution: "",
+  marketScope: "hyperliquid_all",
+  marketSearch: "",
+};
+
 type PipelineDataSectionProps = {
   state: PipelineDataSectionState;
   onChange: (patch: Partial<PipelineDataSectionState>) => void;
@@ -806,14 +826,22 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
 }
 
 export function pipelineDataSourceReady(state: PipelineDataSectionState): boolean {
-  if (state.dataSourceMode === "download") {
-    if (state.exportMarketSymbol.trim()) {
-      return true;
-    }
-    if (state.exportMarketSymbols.length > 0) {
-      return true;
-    }
-    return state.useAllHourly || state.datasetIds.length > 0;
+  return pipelineDataSourceBlockers(state).length === 0;
+}
+
+export function pipelineDataSourceBlockers(state: PipelineDataSectionState): string[] {
+  if (state.useAllHourly || state.datasetIds.length > 0) {
+    return [];
   }
-  return state.useAllHourly || state.datasetIds.length > 0;
+  if (state.dataSourceMode === "download") {
+    if (state.exportMarketSymbol.trim() || state.exportMarketSymbols.length > 0) {
+      return [];
+    }
+    return [
+      "Step 1 · Data: pick catalog file(s), tick “Include all hourly files”, or select market(s) and horizon(s) to download.",
+    ];
+  }
+  return [
+    "Step 1 · Data: select one or more catalog files, or tick “Include all hourly files”.",
+  ];
 }

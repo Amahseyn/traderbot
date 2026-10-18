@@ -147,6 +147,10 @@ def insert_sweep_session(
     best_metrics: dict[str, Any],
     config_id: str | None = None,
     manifest_path: str | None = None,
+    optimize_start_utc: str | None = None,
+    optimize_end_utc: str | None = None,
+    compare_start_utc: str | None = None,
+    compare_end_utc: str | None = None,
 ) -> str:
     session_id = sweep_id or uuid.uuid4().hex
     connection.execute(
@@ -155,8 +159,10 @@ def insert_sweep_session(
             id, strategy_id, symbol, resolution, horizon_label, csv_path, bar_count,
             rank_by, holdout_tail_bars, min_trades, cash, fee,
             param_grid_json, best_params_json, best_metrics_json,
-            config_id, manifest_path, created_at_utc
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            config_id, manifest_path,
+            optimize_start_utc, optimize_end_utc, compare_start_utc, compare_end_utc,
+            created_at_utc
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             session_id,
@@ -176,6 +182,10 @@ def insert_sweep_session(
             json.dumps(best_metrics, default=str),
             config_id,
             manifest_path,
+            optimize_start_utc,
+            optimize_end_utc,
+            compare_start_utc,
+            compare_end_utc,
             _utc_now(),
         ),
     )

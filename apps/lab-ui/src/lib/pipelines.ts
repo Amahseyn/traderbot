@@ -26,6 +26,12 @@ export const PIPELINE_GROUPS: PipelineGroup[] = [
     summary: "Download jobs, then compare strategies on hourly files already on disk.",
     pipelineIds: ["full-research-strategies", "crypto-1h-local"],
   },
+  {
+    id: "market-research",
+    title: "Hyperliquid Optuna research",
+    summary: "Export OHLC, tune every rule-based strategy with Optuna, then strategy compare.",
+    pipelineIds: ["single-market-research", "full-universe-research"],
+  },
 ];
 
 const PIPELINE_LABELS: Record<string, { title: string; detail: string }> = {
@@ -44,6 +50,14 @@ const PIPELINE_LABELS: Record<string, { title: string; detail: string }> = {
   "full-research-strategies": {
     title: "Download, then strategies only",
     detail: "Exports crypto 1h jobs, then compares rule-based strategies on each hourly file.",
+  },
+  "single-market-research": {
+    title: "One market: export → Optuna → compare",
+    detail: "Hyperliquid OHLC for one symbol across intervals; Optuna every strategy, then compare.",
+  },
+  "full-universe-research": {
+    title: "Many markets × all strategies",
+    detail: "Batch export for top perps, Optuna on each file, then per-file compare. Long-running.",
   },
 };
 
@@ -229,6 +243,61 @@ export const BUILTIN_PIPELINE_SPECS: PipelineSpecRow[] = [
         hint: "After the download, compare every hourly file. Uncheck to pick one.",
       },
       { key: "dataset", label: "Hourly file", kind: "dataset", hint: "Used only when “Every hourly file” is off." },
+    ],
+  },
+  {
+    id: "single-market-research",
+    title: "Single market: export → Optuna → compare",
+    description:
+      "Hyperliquid (or Nobitex) OHLC for one symbol across intervals, Optuna-tune every rule-based strategy, then compare.",
+    full: true,
+    steps: [
+      { id: "export", title: "Download OHLC" },
+      { id: "optimize", title: "Optuna per strategy × interval" },
+      { id: "compare", title: "Rank strategies" },
+    ],
+    inputs: [
+      { key: "market_symbol", label: "Market symbol", kind: "text", default: "BTCUSDT", required: true },
+      {
+        key: "intervals",
+        label: "Intervals",
+        kind: "text",
+        default: "1,5,15,60",
+        hint: "Comma-separated HL resolutions.",
+      },
+      { key: "export_days", label: "Export days", kind: "number", default: "30" },
+      { key: "optimize_n_trials", label: "Optuna trials", kind: "number", default: "80" },
+      { key: "exchange", label: "Exchange", kind: "text", default: "hyperliquid" },
+    ],
+  },
+  {
+    id: "full-universe-research",
+    title: "Universe: all strategies × many markets",
+    description:
+      "Batch export for top Hyperliquid perps, Optuna all backtest strategies on each file, then strategy compare.",
+    full: true,
+    steps: [
+      { id: "export", title: "Batch OHLC" },
+      { id: "optimize", title: "Optuna all strategies" },
+      { id: "compare", title: "Per-file compare" },
+    ],
+    inputs: [
+      {
+        key: "top_markets",
+        label: "Top markets",
+        kind: "number",
+        default: "30",
+        hint: "From HL universe or export jobs file.",
+      },
+      { key: "intervals", label: "Intervals", kind: "text", default: "1,5,15,60" },
+      { key: "export_days", label: "Export days", kind: "number", default: "30" },
+      {
+        key: "optimize_n_trials",
+        label: "Optuna trials per combo",
+        kind: "number",
+        default: "60",
+      },
+      { key: "exchange", label: "Exchange", kind: "text", default: "hyperliquid" },
     ],
   },
 ];

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
+import { ErrorState } from "@/components/ui/States";
 import { api, type RunAnalytics } from "@/lib/api";
 import { formatDurationMinutes, formatMoney, formatReturnPct, returnPctClassName } from "@/lib/format";
 
@@ -125,9 +126,11 @@ export function RunAnalyticsPanel({ runId }: { runId: string }) {
   if (query.isError || !query.data) {
     return (
       <Card title="Performance analytics">
-        <p className="text-sm text-red-400">
-          Could not load analytics{query.error instanceof Error ? `: ${query.error.message}` : "."}
-        </p>
+        <ErrorState
+          title={query.isError ? "Could not load analytics" : "Analytics unavailable"}
+          error={query.error}
+          hintAuth={false}
+        />
       </Card>
     );
   }

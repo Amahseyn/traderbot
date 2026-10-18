@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from traderbot.algorithms.utils import price_context_kwargs_from_namespace
 from traderbot.utils.horizons import horizon_label, price_series_from_bars, resolution_tokens_for_horizon_label
 from traderbot.utils.bars import load_bars_csv, normalize_bar
@@ -64,6 +66,19 @@ def test_normalize_bar_and_load_csv(tmp_path: Path):
     bars = load_bars_csv(csv_path)
     assert len(bars) == 1
     assert normalize_bar(bars[0])["close"] == 1.5
+
+
+def test_normalize_bar_raises_valueerror_on_non_numeric():
+    # None / junk must raise ValueError (so the sweep can skip), not TypeError.
+    for bad in ({"timestamp": 0, "close": None}, {"timestamp": 0, "close": "oops"}):
+        with pytest.raises(ValueError):
+            normalize_bar(bad)
+
+
+def test_normalize_bar_keeps_blank_fields():
+    bar = normalize_bar({"timestamp": 0, "close": "", "open": 1})
+    assert bar["open"] == 1.0
+    assert bar["close"] == ""
 
 
 def test_build_subplot_grid_shape():

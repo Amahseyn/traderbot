@@ -114,3 +114,38 @@ export function StrategyDashboardCharts({
     </div>
   );
 }
+
+type FundingBacktestChartsProps = {
+  equityCurve: SeriesPoint[];
+  fundingCurve: SeriesPoint[];
+  returnPct: number;
+  maxDrawdownPct: number;
+};
+
+export function FundingBacktestCharts({
+  equityCurve,
+  fundingCurve,
+  returnPct,
+  maxDrawdownPct,
+}: FundingBacktestChartsProps) {
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-4 text-sm">
+        <div>
+          <span className="text-muted">Return </span>
+          <span className={returnPct >= 0 ? "text-emerald-400" : "text-red-400"}>
+            {returnPct.toFixed(2)}%
+          </span>
+        </div>
+        <div>
+          <span className="text-muted">Max drawdown </span>
+          <span>{maxDrawdownPct.toFixed(2)}%</span>
+        </div>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <MiniChart title="Equity" points={equityCurve} stroke="#38bdf8" />
+        <MiniChart title="Cumulative funding PnL" points={fundingCurve} stroke="#34d399" zeroLine />
+      </div>
+    </div>
+  );
+}

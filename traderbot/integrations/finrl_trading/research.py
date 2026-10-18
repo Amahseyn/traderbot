@@ -57,33 +57,22 @@ def run_finrl_intraday_experiment(
     coin: str,
     intervals: list[str],
     max_bars: int,
+    out_dir: Path | None = None,
     log: LogFn | None = None,
 ) -> dict[str, Any]:
+    """Run the intraday EMA experiment with traderbot's vendored FinRL core."""
     log = log or _log_default
-    root = finrl_trading_root()
-    script = root / "scripts" / "run_hyperliquid_intraday_experiment.py"
-    if not script.is_file():
-        raise FileNotFoundError(script)
-    cmd = [
-        sys.executable,
-        str(script),
-        "--coin",
-        coin.upper(),
-        "--intervals",
-        ",".join(intervals),
-        "--max-bars",
-        str(max_bars),
-    ]
-    log(f"FinRL intraday: {' '.join(cmd)}")
-    proc = subprocess.run(cmd, cwd=root, capture_output=True, text=True)
-    log(proc.stdout)
-    if proc.returncode != 0:
-        log(proc.stderr)
-        raise RuntimeError(f"FinRL intraday experiment failed (exit {proc.returncode})")
-    report_path = root / "data" / "hyperliquid" / f"intraday_experiment_{coin.upper()}.json"
-    if report_path.is_file():
-        return json.loads(report_path.read_text(encoding="utf-8"))
-    return {"stdout": proc.stdout}
+    from traderbot.finrl.intraday_experiment import run_hyperliquid_intraday_experiment
+
+    resolved_out = out_dir or (traderbot_root() / "data" / "hyperliquid")
+    log(f"FinRL intraday (native): {coin.upper()} intervals={intervals} max_bars={max_bars}")
+    return run_hyperliquid_intraday_experiment(
+        coin=coin.upper(),
+        intervals=list(intervals),
+        max_bars=max_bars,
+        out_dir=resolved_out,
+        log=log,
+    )
 
 
 def run_finrl_adaptive_rotation_report(
@@ -175,8 +164,11 @@ def run_full_platform_experiment(
     log = log or _log_default
     load_shared_env()
     intervals = [hyperliquid_resolution(i) for i in (intervals or ["1", "5"])]
-    finrl_root = finrl_trading_root()
-    out_dir = finrl_root / "data" / "hyperliquid"
+    try:
+        finrl_root: Path | None = finrl_trading_root()
+    except FileNotFoundError:
+        finrl_root = None
+    out_dir = traderbot_root() / "data" / "hyperliquid"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     log("=== [1] Export Hyperliquid OHLC ===")
@@ -236,7 +228,7 @@ def run_full_platform_experiment(
         "platform": "traderbot+finrl-trading",
         "capabilities": capabilities_api_payload(),
         "traderbot_root": str(traderbot_root()),
-        "finrl_trading_root": str(finrl_root),
+        "finrl_trading_root": str(finrl_root) if finrl_root is not None else None,
         "hyperliquid": {"src": src, "dst": dst, "intervals": intervals, "max_bars": max_bars},
         "exported_csv": [str(p) for p in csv_files],
         "strategy_compare": strategy_compare,

@@ -91,11 +91,9 @@ def assert_signals_no_lookahead(strategy_id: str, *, bar_count: int = 400) -> di
 
 def assert_finrl_intraday_engine_shifted() -> dict:
     """FinRL intraday EMA positions must lag raw cross by one bar."""
-    from traderbot.integrations.finrl_trading.paths import ensure_finrl_on_path
-
-    ensure_finrl_on_path()
     import pandas as pd
-    from src.backtest.intraday_engine import ema_cross_signals
+
+    from traderbot.finrl.intraday_engine import ema_cross_signals
 
     close = pd.Series([100.0, 101, 102, 103, 104, 105, 106, 107, 108, 109] * 10, dtype=float)
     pos = ema_cross_signals(close, fast=3, slow=5)
@@ -169,6 +167,14 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:
         LOG.warning("FinRL engine shift check skipped: %s", exc)
         report["steps"].append({"finrl_intraday_engine": "skipped", "reason": str(exc)})
+
+    try:
+        from traderbot.integrations.finrl_trading.leakage_checks import run_finrl_static_leakage_checks
+
+        report["steps"].extend(run_finrl_static_leakage_checks())
+    except Exception as exc:
+        LOG.warning("FinRL static leakage checks skipped: %s", exc)
+        report["steps"].append({"finrl_static_leakage": "skipped", "reason": str(exc)})
 
     LOG.info("=== live export + platform backtest ===")
     from traderbot.integrations.finrl_trading.research import run_full_platform_experiment

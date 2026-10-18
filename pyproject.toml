@@ -20,7 +20,7 @@ build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
 viz = ["matplotlib>=3.8"]
-backtest = ["vectorbt>=1.1.1", "pandas>=2.0", "numpy>=1.24"]
+backtest = ["vectorbt>=1.1.1", "pandas>=2.0", "numpy>=1.24", "optuna>=3.6"]
 dev = ["pytest>=8.0", "httpx2>=0.1.0", "traderbot[viz]", "PyYAML>=6.0"]
 wondertrader = ["PyYAML>=6.0"]
 ui = [
@@ -30,6 +30,7 @@ ui = [
     "vectorbt>=1.1.1",
     "pandas>=2.0",
     "numpy>=1.24",
+    "optuna>=3.6",
 ]
 
 [tool.setuptools.packages.find]
@@ -38,6 +39,7 @@ include = ["traderbot*", "utils*", "lab*", "cli*", "auth*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-q -m 'not integration'"
 markers = [
     "integration: heavyweight or network-dependent tests",

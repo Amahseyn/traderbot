@@ -36,6 +36,12 @@ FINRL_EQUITY_RUNNERS: tuple[str, ...] = (
     "fundamental_portfolio_drl",
 )
 
+# Future perp RL training is external; traderbot provides PerpRlEnv + FrozenPolicySpec.
+TRADERBOT_PERP_RL_MODULES: tuple[str, ...] = (
+    "traderbot.backtesting.perp_rl_env",
+    "traderbot.integrations.finrl_trading.policy_serve",
+)
+
 
 @dataclass(frozen=True, slots=True)
 class FinrlCapability:

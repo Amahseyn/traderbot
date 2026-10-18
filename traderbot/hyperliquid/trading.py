@@ -78,3 +78,59 @@ def hyperliquid_market_close(coin: str, *, size: float | None = None, slippage: 
     if isinstance(result, dict) and result.get("status") == "err":
         raise HyperliquidTradingError(str(result.get("response")))
     return result if isinstance(result, dict) else {"response": result}
+
+
+def hyperliquid_place_stop(
+    coin: str,
+    *,
+    size: float,
+    trigger_price: float,
+    slippage: float = 0.05,
+) -> dict[str, Any]:
+    """Place a reduce-only market stop-loss for an existing long position."""
+    if size <= 0:
+        raise HyperliquidTradingError("stop size must be positive")
+    if trigger_price <= 0:
+        raise HyperliquidTradingError("stop trigger price must be positive")
+    exchange = hyperliquid_exchange_from_env()
+    trigger_px = round(float(trigger_price), 6)
+    # Reduce-only market stop-sell: trigger at trigger_px, worst-case fill at a
+    # slippage-adjusted limit so the stop can still execute on a fast move.
+    limit_px = round(trigger_px * (1.0 - abs(slippage)), 6)
+    result = exchange.order(
+        coin,
+        False,
+        size,
+        limit_px,
+        {"trigger": {"triggerPx": trigger_px, "isMarket": True, "tpsl": "sl"}},
+        reduce_only=True,
+    )
+    if isinstance(result, dict) and result.get("status") == "err":
+        raise HyperliquidTradingError(str(result.get("response")))
+    return result if isinstance(result, dict) else {"response": result}
+
+
+def hyperliquid_cancel_order(coin: str, oid: int | str) -> None:
+    """Cancel a single open order by exchange order id."""
+    exchange = hyperliquid_exchange_from_env()
+    result = exchange.cancel(coin, int(oid))
+    if isinstance(result, dict) and result.get("status") == "err":
+        raise HyperliquidTradingError(str(result.get("response")))
+
+
+def hyperliquid_order_id(response: dict[str, Any]) -> int | str | None:
+    """Extract the exchange order id from an order response, if present."""
+    try:
+        statuses = response["response"]["data"]["statuses"]
+    except (KeyError, TypeError):
+        return None
+    if not isinstance(statuses, list) or not statuses:
+        return None
+    first = statuses[0]
+    if not isinstance(first, dict):
+        return None
+    for key in ("resting", "filled", "error"):
+        entry = first.get(key)
+        if isinstance(entry, dict) and entry.get("oid") is not None:
+            return entry.get("oid")
+    return None

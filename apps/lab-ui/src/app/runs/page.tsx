@@ -3,13 +3,18 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { RunsTable } from "@/components/RunsTable";
 import { Field, SelectInput } from "@/components/ui/Field";
+import { Page } from "@/components/ui/Page";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/ui/States";
 import { api } from "@/lib/api";
+import { TablePagination } from "@/components/ui/TablePagination";
+
+const RUNS_PAGE_SIZE = 25;
+
 const RUN_HORIZON_FILTERS = [
   { value: "1m", label: "1 minute ahead" },
   { value: "5m", label: "5 minutes ahead" },
@@ -32,6 +37,7 @@ function RunsPageContent() {
   const [symbol, setSymbol] = useState(() => searchParams.get("symbol") ?? "");
   const [strategyId, setStrategyId] = useState(() => searchParams.get("strategy_id") ?? "");
   const [horizonLabel, setHorizonLabel] = useState(() => searchParams.get("horizon_label") ?? "");
+  const [runsPage, setRunsPage] = useState(1);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -54,6 +60,27 @@ function RunsPageContent() {
   });
 
   const rows = runsQuery.data ?? [];
+
+  const runsPageCount = useMemo(
+    () => Math.max(1, Math.ceil(rows.length / RUNS_PAGE_SIZE)),
+    [rows.length],
+  );
+  const runsPageClamped = Math.min(Math.max(runsPage, 1), runsPageCount);
+  const paginatedRows = useMemo(() => {
+    const start = (runsPageClamped - 1) * RUNS_PAGE_SIZE;
+    return rows.slice(start, start + RUNS_PAGE_SIZE);
+  }, [rows, runsPageClamped]);
+
+  useEffect(() => {
+    if (runsPage !== runsPageClamped) {
+      setRunsPage(runsPageClamped);
+    }
+  }, [runsPage, runsPageClamped]);
+
+  useEffect(() => {
+    setRunsPage(1);
+  }, [queryString]);
+
   const symbols = useMemo(() => {
     const values = new Set<string>();
     for (const dataset of datasetsQuery.data ?? []) {
@@ -72,7 +99,7 @@ function RunsPageContent() {
   };
 
   return (
-    <div className="space-y-6">
+    <Page>
       <PageHeader
         eyebrow="Step 3 · Review"
         title="Runs"
@@ -121,6 +148,14 @@ function RunsPageContent() {
         </Field>
       </div>
 
+      {(datasetsQuery.isError || strategiesQuery.isError) && (
+        <ErrorState
+          title="Filter catalogs unavailable"
+          error={datasetsQuery.error ?? strategiesQuery.error}
+          hintAuth={false}
+        />
+      )}
+
       {runsQuery.isLoading && <TableSkeleton rows={8} />}
       {runsQuery.isError && (
         <ErrorState
@@ -149,13 +184,20 @@ function RunsPageContent() {
       )}
 
       {rows.length > 0 && (
-        <p className="text-muted text-xs">
-          {rows.length} run{rows.length === 1 ? "" : "s"} — click a timestamp or ID to open details.
-        </p>
+        <div className="space-y-3">
+          <p className="text-muted text-xs">Click a timestamp or ID to open details.</p>
+          <RunsTable runs={paginatedRows} variant="full" />
+          <TablePagination
+            page={runsPageClamped}
+            pageCount={runsPageCount}
+            pageSize={RUNS_PAGE_SIZE}
+            totalCount={rows.length}
+            itemLabel={rows.length === 1 ? "run" : "runs"}
+            onPageChange={setRunsPage}
+          />
+        </div>
       )}
-
-      {rows.length > 0 && <RunsTable runs={rows} variant="full" />}
-    </div>
+    </Page>
   );
 }
 

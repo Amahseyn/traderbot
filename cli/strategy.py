@@ -29,7 +29,10 @@ from traderbot.results.layout import (
     result_tree_at,
 )
 from traderbot.algorithms.cli_args import add_strategy_param_flags
-from traderbot.utils.trading_costs import DEFAULT_TRADE_FEE_RATE
+from traderbot.utils.trading_costs import (
+    DEFAULT_BACKTEST_EXECUTION,
+    DEFAULT_TRADE_FEE_RATE,
+)
 
 def _add_vectorbt_flag(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
@@ -46,12 +49,13 @@ def _vectorbt_extra(
 ) -> dict[str, Any]:
     if not getattr(args, "vectorbt", False):
         return {}
+    fee, slippage = _resolve_fee_slippage(args)
     extra = vectorbt_extra_for_backtest(
         algo,
         bars,
         initial_cash=args.cash,
-        fee_rate=args.fee,
-        slippage_rate=getattr(args, "slippage", 0.0),
+        fee_rate=fee,
+        slippage_rate=slippage,
         execution=getattr(args, "execution", DEFAULT_BACKTEST_EXECUTION),
     )
     if extra is None:
@@ -77,13 +81,32 @@ def _add_fill_flags(parser: argparse.ArgumentParser) -> None:
     from traderbot.utils.trading_costs import (
         DEFAULT_BACKTEST_EXECUTION,
         DEFAULT_SLIPPAGE_RATE,
+        DEFAULT_TRADE_FEE_RATE,
     )
 
     parser.add_argument(
+        "--exchange",
+        choices=["hyperliquid", "nobitex"],
+        default=None,
+        help="Venue fee/slippage defaults (Hyperliquid perp: 0.045%% taker, 0%% slippage)",
+    )
+    parser.add_argument(
+        "--fee-role",
+        choices=["taker", "maker"],
+        default="taker",
+        help="With --exchange: maker or taker fee tier",
+    )
+    parser.add_argument(
+        "--fee",
+        type=float,
+        default=None,
+        help=f"Fee per fill (default: {DEFAULT_TRADE_FEE_RATE} or --exchange profile)",
+    )
+    parser.add_argument(
         "--slippage",
         type=float,
-        default=DEFAULT_SLIPPAGE_RATE,
-        help="Slippage rate per fill (fraction, e.g. 0.0005)",
+        default=None,
+        help=f"Slippage per fill (default: {DEFAULT_SLIPPAGE_RATE} or --exchange profile)",
     )
     parser.add_argument(
         "--execution",
@@ -135,6 +158,26 @@ def _print_run_trade_logs(algo, result, *, file=sys.stderr) -> None:
     )
 
 
+def _resolve_fee_slippage(args: argparse.Namespace) -> tuple[float, float]:
+    from traderbot.utils.trading_costs import (
+        DEFAULT_SLIPPAGE_RATE,
+        DEFAULT_TRADE_FEE_RATE,
+        backtest_cost_rates,
+    )
+
+    exchange = getattr(args, "exchange", None)
+    if exchange:
+        profile_fee, profile_slip = backtest_cost_rates(
+            exchange,
+            fee_role=getattr(args, "fee_role", "taker"),
+        )
+    else:
+        profile_fee, profile_slip = DEFAULT_TRADE_FEE_RATE, DEFAULT_SLIPPAGE_RATE
+    fee = args.fee if args.fee is not None else profile_fee
+    slippage = args.slippage if args.slippage is not None else profile_slip
+    return fee, slippage
+
+
 def _run_backtest(
     bars: list[dict],
     strategy_id: str,
@@ -142,13 +185,14 @@ def _run_backtest(
     *,
     csv_path: Path | None = None,
 ):
+    fee, slippage = _resolve_fee_slippage(args)
     algo = algorithm_for_id(strategy_id, **_algorithm_kwargs(strategy_id, args, csv_path=csv_path))
     result = run_backtest(
         algo,
         bars,
         initial_cash=args.cash,
-        fee_rate=args.fee,
-        slippage_rate=getattr(args, "slippage", 0.0) or 0.0,
+        fee_rate=fee,
+        slippage_rate=slippage,
         execution=getattr(args, "execution", DEFAULT_BACKTEST_EXECUTION) or DEFAULT_BACKTEST_EXECUTION,
     )
     return algo, result
@@ -166,7 +210,6 @@ def main(argv: list[str] | None = None) -> None:
     backtest.add_argument("csv", type=Path)
     backtest.add_argument("--strategy", choices=implemented_strategy_ids(), default="sma_cross")
     backtest.add_argument("--cash", type=float, default=10_000.0)
-    backtest.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(backtest)
     backtest.add_argument("--out", type=Path, default=None, help="Write summary JSON + charts")
     add_visualization_flags(backtest)
@@ -177,7 +220,6 @@ def main(argv: list[str] | None = None) -> None:
     batch.add_argument("csv_dir", type=Path)
     batch.add_argument("--strategy", choices=implemented_strategy_ids(), default="sma_cross")
     batch.add_argument("--cash", type=float, default=10_000.0)
-    batch.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(batch)
     batch.add_argument(
         "--out",
@@ -196,7 +238,6 @@ def main(argv: list[str] | None = None) -> None:
     )
     compare.add_argument("csv", type=Path)
     compare.add_argument("--cash", type=float, default=10_000.0)
-    compare.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(compare)
     compare.add_argument(
         "--out",
@@ -210,12 +251,11 @@ def main(argv: list[str] | None = None) -> None:
 
     sweep = sub.add_parser(
         "sweep",
-        help="Grid-sweep 1-2 params for one strategy on one CSV; rank by holdout tail",
+        help="Grid-sweep 1-2 params; default selects on validation split (train/val/test)",
     )
     sweep.add_argument("csv", type=Path)
     sweep.add_argument("--strategy", choices=implemented_strategy_ids(), default="sma_cross")
     sweep.add_argument("--cash", type=float, default=10_000.0)
-    sweep.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(sweep)
     sweep.add_argument(
         "--param",
@@ -224,9 +264,29 @@ def main(argv: list[str] | None = None) -> None:
         default=[],
         help="Repeatable: name=v1,v2[,v3] (max 2 --param flags)",
     )
+    sweep.add_argument(
+        "--selection",
+        choices=("validation", "in_sample"),
+        default="validation",
+        help="validation: pick params on validation window; in_sample: legacy train-only rank",
+    )
+    sweep.add_argument("--train-fraction", type=float, default=0.6)
+    sweep.add_argument("--validation-fraction", type=float, default=0.2)
     sweep.add_argument("--holdout-tail-bars", type=int, default=None)
     sweep.add_argument("--min-trades", type=int, default=0)
     sweep.add_argument("--max-combos", type=int, default=64)
+    sweep.add_argument(
+        "--optimize-method",
+        choices=("grid", "optuna"),
+        default="optuna",
+        help="grid: 1-2 param sweep; optuna: Bayesian search over all strategy knobs",
+    )
+    sweep.add_argument("--optimize-n-trials", type=int, default=80)
+    sweep.add_argument(
+        "--full-grid",
+        action="store_true",
+        help="Wider built-in ranges (grid lists and Optuna categorical hints)",
+    )
     sweep.add_argument("--out", type=Path, default=None, help="Write sweep_manifest.json")
     _add_param_flags(sweep)
 
@@ -237,7 +297,6 @@ def main(argv: list[str] | None = None) -> None:
     validate.add_argument("csv", type=Path)
     validate.add_argument("--strategy", choices=implemented_strategy_ids(), default="sma_cross")
     validate.add_argument("--cash", type=float, default=10_000.0)
-    validate.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(validate)
     validate.add_argument(
         "--param",
@@ -265,7 +324,6 @@ def main(argv: list[str] | None = None) -> None:
     )
     leaderboard.add_argument("--max-bars", type=int, default=2500, help="History length to download")
     leaderboard.add_argument("--cash", type=float, default=10.0)
-    leaderboard.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(leaderboard)
     leaderboard.add_argument("--test-tail-bars", type=int, default=100)
     leaderboard.add_argument("--validation-fraction", type=float, default=0.25)
@@ -311,7 +369,6 @@ def main(argv: list[str] | None = None) -> None:
     )
     batch_lb.add_argument("--max-bars", type=int, default=2500)
     batch_lb.add_argument("--cash", type=float, default=10.0)
-    batch_lb.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(batch_lb)
     batch_lb.add_argument("--test-tail-bars", type=int, default=100)
     batch_lb.add_argument("--validation-fraction", type=float, default=0.25)
@@ -350,7 +407,6 @@ def main(argv: list[str] | None = None) -> None:
         help=f"Strategy id or 'all' ({', '.join(implemented_strategy_ids())})",
     )
     tune.add_argument("--cash", type=float, default=10_000.0)
-    tune.add_argument("--fee", type=float, default=DEFAULT_TRADE_FEE_RATE)
     _add_fill_flags(tune)
     tune.add_argument(
         "--param",
@@ -523,13 +579,14 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     if args.command == "sweep":
-        from traderbot.backtesting.sweep import parse_sweep_param, run_strategy_sweep
-        from traderbot.backtesting.sweep import SweepOptions
+        from traderbot.backtesting.optimize_select import OptimizeSelectConfig, run_strategy_optimize
+        from traderbot.backtesting.sweep import SweepOptions, parse_sweep_param
 
-        if not args.params:
-            print("at least one --param name=v1,v2 is required", file=sys.stderr)
-            sys.exit(2)
         param_grid: dict[str, Any] = {}
+        if not args.params and args.optimize_method == "grid":
+            from traderbot.backtesting.robust_defaults import tune_grid_for_strategy
+
+            param_grid = tune_grid_for_strategy(args.strategy, full=bool(args.full_grid))
         for spec in args.params:
             try:
                 name, values = parse_sweep_param(spec)
@@ -540,21 +597,31 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"duplicate --param {name!r}", file=sys.stderr)
                 sys.exit(2)
             param_grid[name] = values
+        fee, slippage = _resolve_fee_slippage(args)
+        optimize_config = OptimizeSelectConfig(
+            selection_mode=args.selection,
+            train_fraction=args.train_fraction,
+            validation_fraction=args.validation_fraction,
+            optimizer_method=args.optimize_method,
+            n_trials=int(args.optimize_n_trials),
+            full_grid_hints=bool(args.full_grid),
+        )
         try:
-            payload = run_strategy_sweep(
+            payload = run_strategy_optimize(
                 SweepOptions(
                     csv_path=args.csv,
                     strategy_id=args.strategy,
                     param_grid=param_grid,
                     cash=args.cash,
-                    fee=args.fee,
-                    slippage=args.slippage,
+                    fee=fee,
+                    slippage=slippage,
                     execution=args.execution,
                     holdout_tail_bars=args.holdout_tail_bars,
                     min_trades=args.min_trades,
                     max_combos=args.max_combos,
                 ),
                 base_namespace=args,
+                config=optimize_config,
             )
         except ValueError as exc:
             print(str(exc), file=sys.stderr)
@@ -592,6 +659,7 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"duplicate --param {name!r}", file=sys.stderr)
                 sys.exit(2)
             param_grid[name] = values
+        fee, slippage = _resolve_fee_slippage(args)
         try:
             payload = run_strategy_validation(
                 ValidationOptions(
@@ -599,8 +667,8 @@ def main(argv: list[str] | None = None) -> None:
                     strategy_id=args.strategy,
                     param_grid=param_grid,
                     cash=args.cash,
-                    fee=args.fee,
-                    slippage=args.slippage,
+                    fee=fee,
+                    slippage=slippage,
                     execution=args.execution,
                     train_fraction=args.train_fraction,
                     validation_fraction=args.validation_fraction,
@@ -638,6 +706,7 @@ def main(argv: list[str] | None = None) -> None:
             print("no bars returned from Hyperliquid", file=sys.stderr)
             sys.exit(1)
         label = f"{args.src.upper()}_{args.resolution}m"
+        fee, slippage = _resolve_fee_slippage(args)
         payload = run_leakage_safe_leaderboard(
             LeaderboardOptions(
                 bars=bars,
@@ -645,8 +714,8 @@ def main(argv: list[str] | None = None) -> None:
                 validation_fraction_of_pre_test=args.validation_fraction,
                 top_n=args.top_n,
                 cash=args.cash,
-                fee=args.fee,
-                slippage=args.slippage,
+                fee=fee,
+                slippage=slippage,
                 execution=args.execution,
                 min_trades=args.min_trades,
                 max_combos=args.max_combos,
@@ -695,6 +764,7 @@ def main(argv: list[str] | None = None) -> None:
             file=sys.stderr,
             flush=True,
         )
+        fee, slippage = _resolve_fee_slippage(args)
         master = run_leaderboard_batch(
             LeaderboardBatchOptions(
                 markets=coins,
@@ -702,8 +772,8 @@ def main(argv: list[str] | None = None) -> None:
                 out_dir=args.out,
                 max_bars=args.max_bars,
                 cash=args.cash,
-                fee=args.fee,
-                slippage=args.slippage,
+                fee=fee,
+                slippage=slippage,
                 execution=args.execution,
                 test_tail_bars=args.test_tail_bars,
                 validation_fraction=args.validation_fraction,
@@ -757,6 +827,7 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"duplicate --param {name!r}", file=sys.stderr)
                 sys.exit(2)
             custom_grid[name] = values
+        fee, slippage = _resolve_fee_slippage(args)
         if args.strategy == "all":
             if custom_grid:
                 print("--param with --strategy all is not supported; tune one strategy at a time", file=sys.stderr)
@@ -765,8 +836,8 @@ def main(argv: list[str] | None = None) -> None:
                 summary = compare_robust_strategies(
                     csv_paths,
                     cash=args.cash,
-                    fee=args.fee,
-                    slippage=args.slippage,
+                    fee=fee,
+                    slippage=slippage,
                     execution=args.execution,
                     holdout_fraction=args.holdout_fraction,
                     min_trades=args.min_trades,
@@ -806,8 +877,8 @@ def main(argv: list[str] | None = None) -> None:
                     strategy_id=args.strategy,
                     param_grid=grid,
                     cash=args.cash,
-                    fee=args.fee,
-                    slippage=args.slippage,
+                    fee=fee,
+                    slippage=slippage,
                     execution=args.execution,
                     holdout_tail_bars=args.holdout_tail_bars,
                     holdout_fraction=args.holdout_fraction,

@@ -3,29 +3,13 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { JobMonitor } from "@/components/JobMonitor";
-import { LiveSessionsCharts } from "@/components/LiveSessionsCharts";
+import { LiveSessionsCharts, mergeWatchedIds } from "@/components/LiveSessionsCharts";
 import { LiveTradingPanel } from "@/components/LiveTradingPanel";
 import { RiskStatePanel } from "@/components/RiskStatePanel";
+import { Page } from "@/components/ui/Page";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ErrorState } from "@/components/ui/States";
 import { api } from "@/lib/api";
-
-const TERMINAL_JOB_TYPES = ["terminal-once", "terminal-live", "terminal-replay"];
-const MAX_WATCHED_SESSIONS = 24;
-
-function mergeWatchedIds(current: string[], additions: string[]): string[] {
-  const merged = [...additions, ...current];
-  const seen = new Set<string>();
-  const ordered: string[] = [];
-  for (const jobId of merged) {
-    if (!jobId || seen.has(jobId)) {
-      continue;
-    }
-    seen.add(jobId);
-    ordered.push(jobId);
-  }
-  return ordered.slice(0, MAX_WATCHED_SESSIONS);
-}
 
 export default function LiveTradingPage() {
   const [focusedJobId, setFocusedJobId] = useState<string | null>(null);
@@ -48,11 +32,11 @@ export default function LiveTradingPage() {
   const nobitexReady = authQuery.data?.api_keys_configured === true;
 
   return (
-    <div className="space-y-8">
+    <Page>
       <PageHeader
         eyebrow="Trade"
         title="Live trading"
-        description="Run one or many sessions in parallel — each job gets its own chart, log stream, and live candle feed (Hyperliquid by default)."
+        description="Run one or many sessions in parallel — combine multi market, multi horizon, and multi strategy (up to 16 jobs). Each job gets its own chart, log stream, and candle feed (Hyperliquid by default)."
         actions={
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <span
@@ -79,6 +63,10 @@ export default function LiveTradingPage() {
         }
       />
 
+      {authQuery.isError && (
+        <ErrorState title="Could not read credential status" error={authQuery.error} hintAuth={false} />
+      )}
+
       <RiskStatePanel />
 
       <LiveTradingPanel onJobsStarted={handleJobsStarted} />
@@ -90,19 +78,6 @@ export default function LiveTradingPage() {
         focusedJobId={focusedJobId}
         onFocusJob={setFocusedJobId}
       />
-
-      <JobMonitor
-        activeJobId={focusedJobId}
-        onSelectJob={(jobId) => {
-          setFocusedJobId(jobId);
-          setWatchedJobIds((current) => mergeWatchedIds(current, [jobId]));
-        }}
-        jobTypeFilter={TERMINAL_JOB_TYPES}
-        logMode="full"
-        alwaysShowLogPanel
-        recentJobsTitle="Recent trading jobs"
-        recentJobsDescription="Each run is a separate job — start another anytime; statuses refresh for every active session."
-      />
-    </div>
+    </Page>
   );
 }

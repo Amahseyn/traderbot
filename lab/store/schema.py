@@ -1,4 +1,4 @@
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 8
 
 CREATE_TABLES_SQL = """
 CREATE TABLE IF NOT EXISTS schema_meta (
@@ -115,8 +115,27 @@ CREATE TABLE IF NOT EXISTS sweep_sessions (
     best_metrics_json TEXT NOT NULL,
     config_id TEXT REFERENCES configurations(id),
     manifest_path TEXT,
+    optimize_start_utc TEXT,
+    optimize_end_utc TEXT,
+    compare_start_utc TEXT,
+    compare_end_utc TEXT,
     created_at_utc TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_sweep_lookup ON sweep_sessions(strategy_id, symbol, resolution);
+
+CREATE TABLE IF NOT EXISTS discovery_runs (
+    id TEXT PRIMARY KEY,
+    job_id TEXT,
+    exchange TEXT NOT NULL,
+    status TEXT NOT NULL,
+    config_json TEXT NOT NULL,
+    summary_json TEXT NOT NULL,
+    artifact_path TEXT,
+    report_json TEXT,
+    created_at_utc TEXT NOT NULL,
+    finished_at_utc TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_discovery_runs_finished ON discovery_runs(finished_at_utc DESC);
 """

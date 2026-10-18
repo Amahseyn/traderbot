@@ -14,6 +14,7 @@ from traderbot.algorithms.strategies.rsi_divergence import RsiDivergenceAlgorith
 from traderbot.algorithms.strategies.rsi_trend import RsiTrendAlgorithm
 from traderbot.algorithms.strategies.scalp_dip import ScalpDipAlgorithm
 from traderbot.algorithms.strategies.online_logistic import OnlineLogisticAlgorithm
+from traderbot.algorithms.strategies.ensemble import EnsembleAlgorithm
 
 __all__ = [
     "BollingerMeanReversionAlgorithm",
@@ -32,4 +33,5 @@ __all__ = [
     "RsiTrendAlgorithm",
     "ScalpDipAlgorithm",
     "OnlineLogisticAlgorithm",
+    "EnsembleAlgorithm",
 ]

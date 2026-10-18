@@ -5,9 +5,25 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { api, type OhlcBar } from "@/lib/api";
-import { summarizeLiveJobLog, type TradeMarker } from "@/lib/liveLog";
+import {
+  barIndexForTimestamp,
+  equityPointsToPlot,
+  polylineFromPoints,
+} from "@/lib/liveChartHelpers";
+import {
+  buyAndHoldEquity,
+  computeLiveSessionMetrics,
+  formatLiveLogPhaseSummary,
+  formatLivePositionLabel,
+  isLiveSessionInPosition,
+  parseLiveEquitySeries,
+  parseLiveTickStats,
+  summarizeLiveJobLog,
+  trimBarsFromSessionStart,
+  type TradeMarker,
+} from "@/lib/liveLog";
 import { formatMoney, formatResolutionLabel, formatUtcTimestamp } from "@/lib/format";
-import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
+import { ErrorState, Skeleton } from "@/components/ui/States";
 
 type LiveTradingChartProps = {
   jobId: string;
@@ -28,25 +44,12 @@ type LiveTradingChartProps = {
   onDismiss?: () => void;
 };
 
-const CHART_HEIGHT = 300;
-const PADDING = { top: 20, right: 64, bottom: 36, left: 12 };
-
-function barIndexForTimestamp(bars: OhlcBar[], timestamp: number): number {
-  let index = bars.findIndex((bar) => Number(bar.timestamp) === timestamp);
-  if (index >= 0) {
-    return index;
-  }
-  let best = -1;
-  let bestDelta = Number.POSITIVE_INFINITY;
-  for (let barIndex = 0; barIndex < bars.length; barIndex += 1) {
-    const delta = Math.abs(Number(bars[barIndex].timestamp) - timestamp);
-    if (delta < bestDelta) {
-      bestDelta = delta;
-      best = barIndex;
-    }
-  }
-  return best;
-}
+const CHART_HEIGHT = 268;
+const EQUITY_GAP = 10;
+const EQUITY_HEIGHT = 96;
+const SVG_HEIGHT = CHART_HEIGHT + EQUITY_GAP + EQUITY_HEIGHT;
+const PADDING = { top: 18, right: 64, bottom: 32, left: 12 };
+const EQUITY_TOP = CHART_HEIGHT + EQUITY_GAP;
 
 function formatAxisPrice(value: number, dst: string): string {
   const quote = dst.trim().toLowerCase();
@@ -62,12 +65,38 @@ function formatAxisPrice(value: number, dst: string): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
+function formatAxisEquity(value: number): string {
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(2)}M`;
+  }
+  if (value >= 10_000) {
+    return `${(value / 1_000).toFixed(1)}k`;
+  }
+  return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
 function formatBarTime(timestamp: number): string {
   const date = new Date(timestamp * 1000);
   if (Number.isNaN(date.getTime())) {
     return "—";
   }
   return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function formatSignedPct(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) {
+    return "—";
+  }
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}%`;
+}
+
+function formatSignedMoney(value: number | null, currency: string): string {
+  if (value == null || !Number.isFinite(value)) {
+    return "—";
+  }
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatMoney(value)} ${currency}`;
 }
 
 export function LiveTradingChart({
@@ -91,6 +120,7 @@ export function LiveTradingChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = useState(640);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [showBenchmark, setShowBenchmark] = useState(true);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -115,7 +145,25 @@ export function LiveTradingChart({
   });
 
   const summary = useMemo(() => summarizeLiveJobLog(logText), [logText]);
-  const bars = ohlcQuery.data?.bars ?? [];
+  const equitySeries = useMemo(() => parseLiveEquitySeries(logText), [logText]);
+  const sessionMetrics = useMemo(
+    () => computeLiveSessionMetrics(summary, equitySeries),
+    [summary, equitySeries],
+  );
+  const tickStats = useMemo(() => parseLiveTickStats(logText), [logText]);
+  const sessionTrace = useMemo(() => formatLiveLogPhaseSummary(summary), [summary]);
+  const positionLabel = useMemo(
+    () => formatLivePositionLabel(summary, sessionMetrics),
+    [summary, sessionMetrics],
+  );
+  const inPosition = isLiveSessionInPosition(summary);
+  const latestTune = summary.liveTuneEvents[summary.liveTuneEvents.length - 1];
+
+  const rawBars = ohlcQuery.data?.bars ?? [];
+  const bars = useMemo(
+    () => trimBarsFromSessionStart(rawBars, sessionMetrics.firstActivityUnix, 10),
+    [rawBars, sessionMetrics.firstActivityUnix],
+  );
 
   const lastBar = bars.length > 0 ? bars[bars.length - 1] : null;
   const prevBar = bars.length > 1 ? bars[bars.length - 2] : null;
@@ -125,6 +173,8 @@ export function LiveTradingChart({
     lastClose != null && prevClose != null && prevClose !== 0
       ? ((lastClose - prevClose) / prevClose) * 100
       : null;
+
+  const quoteCurrency = summary.paperWallet?.quote_currency ?? dst.toLowerCase();
 
   const plot = useMemo(() => {
     if (bars.length < 2) {
@@ -144,6 +194,7 @@ export function LiveTradingChart({
       PADDING.top + innerHeight - ((price - yMin) / span) * innerHeight;
     const candleWidth = innerWidth / bars.length;
     const bodyWidth = Math.max(2, candleWidth * 0.62);
+    const xForIndex = (index: number) => PADDING.left + index * candleWidth + candleWidth / 2;
 
     const yTicks = [0, 0.25, 0.5, 0.75, 1].map((fraction) => {
       const price = yMin + span * (1 - fraction);
@@ -155,7 +206,7 @@ export function LiveTradingChart({
       const close = Number(bar.close);
       const high = Number(bar.high);
       const low = Number(bar.low);
-      const xCenter = PADDING.left + index * candleWidth + candleWidth / 2;
+      const xCenter = xForIndex(index);
       const bullish = close >= open;
       return {
         index,
@@ -190,12 +241,75 @@ export function LiveTradingChart({
       });
     }
 
+    let sessionStartX: number | null = null;
+    if (sessionMetrics.firstActivityUnix != null) {
+      const idx = barIndexForTimestamp(bars, sessionMetrics.firstActivityUnix);
+      if (idx >= 0) {
+        sessionStartX = candles[idx].xCenter;
+      }
+    }
+
+    const equityInnerHeight = EQUITY_HEIGHT - 28;
+    const equityTop = EQUITY_TOP + 14;
+    const initialCash = sessionMetrics.initialCash ?? 1000;
+    const equityValues = equitySeries.map((point) => point.equity);
+    const benchmarkValues = candles.map((candle, index) => {
+      const entryIndex =
+        sessionStartX != null
+          ? candles.findIndex((row) => row.xCenter === sessionStartX)
+          : 0;
+      const entryClose = candles[Math.max(0, entryIndex)]?.close ?? candles[0].close;
+      return buyAndHoldEquity(initialCash, entryClose, candle.close);
+    });
+    const allEquityValues = [...equityValues, ...benchmarkValues, initialCash];
+    const eqMin = Math.min(...allEquityValues);
+    const eqMax = Math.max(...allEquityValues);
+    const eqPad = (eqMax - eqMin) * 0.08 || eqMax * 0.01 || 1;
+    const eqYMin = eqMin - eqPad;
+    const eqYMax = eqMax + eqPad;
+    const eqSpan = eqYMax - eqYMin || 1;
+    const yEquity = (value: number) =>
+      equityTop + equityInnerHeight - ((value - eqYMin) / eqSpan) * equityInnerHeight;
+
+    const strategyEquityPlot = equityPointsToPlot(equitySeries, bars, xForIndex).map((point) => ({
+      x: point.x,
+      y: yEquity(point.equity),
+      equity: point.equity,
+    }));
+
+    const benchmarkPlot = showBenchmark
+      ? candles.map((candle, index) => ({
+          x: candle.xCenter,
+          y: yEquity(benchmarkValues[index]),
+        }))
+      : [];
+
+    const initialLineY = yEquity(initialCash);
+
     const xLabelIndexes = [0, Math.floor(bars.length / 2), bars.length - 1].filter(
       (value, index, array) => array.indexOf(value) === index,
     );
 
-    return { candles, markers, yTicks, yMin, yMax, xLabelIndexes, innerHeight };
-  }, [bars, summary.markers, chartWidth]);
+    return {
+      candles,
+      markers,
+      yTicks,
+      sessionStartX,
+      strategyEquityPlot,
+      benchmarkPlot,
+      initialLineY,
+      xLabelIndexes,
+      xForIndex,
+    };
+  }, [
+    bars,
+    summary.markers,
+    chartWidth,
+    equitySeries,
+    sessionMetrics.firstActivityUnix,
+    sessionMetrics.initialCash,
+    showBenchmark,
+  ]);
 
   function handlePointerMove(clientX: number) {
     if (!plot || !containerRef.current) {
@@ -212,6 +326,8 @@ export function LiveTradingChart({
   }
 
   const hoverCandle = hoverIndex != null && plot ? plot.candles[hoverIndex] : null;
+  const hasPaperMetrics = !liveOrders && (summary.paperWallet != null || equitySeries.length > 0);
+  const showWalletStrip = summary.paperWallet != null;
 
   return (
     <article
@@ -245,6 +361,17 @@ export function LiveTradingChart({
               </span>
             )}
             {jobStatus && <StatusBadge status={jobStatus} />}
+            {positionLabel && (
+              <span
+                className={`rounded-md px-2 py-0.5 text-[10px] font-medium ring-1 ${
+                  inPosition
+                    ? "bg-sky-950/50 text-sky-200 ring-sky-500/30"
+                    : "bg-surface text-muted ring-border"
+                }`}
+              >
+                {positionLabel}
+              </span>
+            )}
           </div>
           {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
           {strategyId && (
@@ -299,7 +426,80 @@ export function LiveTradingChart({
         </div>
       </header>
 
-      {summary.paperWallet && (
+      {hasPaperMetrics && (
+        <div className="grid grid-cols-2 gap-2 border-b border-border/60 bg-surface/50 px-4 py-2 text-xs sm:grid-cols-3 lg:grid-cols-6">
+          <div>
+            <p className="text-muted">Session return</p>
+            <p
+              className={`font-semibold tabular-nums ${
+                (sessionMetrics.sessionReturnPct ?? 0) >= 0 ? "text-emerald-300" : "text-red-300"
+              }`}
+            >
+              {formatSignedPct(sessionMetrics.sessionReturnPct)}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted">Session P&amp;L</p>
+            <p className="font-medium tabular-nums text-slate-100">
+              {formatSignedMoney(sessionMetrics.sessionPnl, quoteCurrency)}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted">Equity</p>
+            <p className="font-medium tabular-nums text-emerald-300">
+              {sessionMetrics.currentEquity != null
+                ? `${formatMoney(sessionMetrics.currentEquity)} ${quoteCurrency}`
+                : "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted">Max drawdown</p>
+            <p className="font-medium tabular-nums text-amber-200/90">
+              {sessionMetrics.drawdownPct != null
+                ? `${sessionMetrics.drawdownPct.toFixed(2)}%`
+                : "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted">Round trips</p>
+            <p className="font-medium tabular-nums text-slate-100">
+              {sessionMetrics.roundTripCount}
+              {sessionMetrics.openBuyLegs > 0 && (
+                <span className="text-amber-200/90"> · {sessionMetrics.openBuyLegs} open</span>
+              )}
+            </p>
+            <p className="text-[10px] text-muted">
+              Signals {sessionMetrics.buyCount}/{sessionMetrics.sellCount} buy/sell
+            </p>
+          </div>
+          <div>
+            <p className="text-muted">In base</p>
+            <p className="font-medium tabular-nums text-slate-100">
+              {sessionMetrics.baseExposurePct != null
+                ? `${sessionMetrics.baseExposurePct.toFixed(1)}%`
+                : "—"}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {(sessionTrace || latestTune) && (
+        <div className="border-b border-border/60 bg-surface/30 px-4 py-2 text-xs text-slate-300">
+          {sessionTrace && (
+            <p>
+              <span className="font-medium text-slate-200">Trace: </span>
+              {sessionTrace}
+            </p>
+          )}
+          {latestTune?.best_params && Object.keys(latestTune.best_params).length > 0 && (
+            <p className="mt-1 font-mono text-[11px] text-muted">
+              Tune params: {JSON.stringify(latestTune.best_params)}
+            </p>
+          )}
+        </div>
+      )}
+
+      {showWalletStrip && summary.paperWallet && (
         <div className="grid grid-cols-2 gap-2 border-b border-border/60 bg-surface/40 px-4 py-2 text-xs sm:grid-cols-4">
           <div>
             <p className="text-muted">Cash</p>
@@ -316,20 +516,47 @@ export function LiveTradingChart({
             <p className="font-medium text-emerald-300">{formatMoney(summary.paperWallet.equity)}</p>
           </div>
           <div>
-            <p className="text-muted">Mark</p>
+            <p className="text-muted">Mark (last closed bar)</p>
             <p className="font-medium text-slate-100">{formatMoney(summary.paperWallet.mark_price)}</p>
           </div>
         </div>
       )}
 
       <div className="px-3 py-3">
-        {ohlcQuery.isLoading && <Skeleton className="h-56" />}
+        {ohlcQuery.isLoading && <Skeleton className="h-72" />}
         {ohlcQuery.isError && (
           <ErrorState
             title="Could not load candles for this session"
             error={ohlcQuery.error}
-            action={<button type="button" className="text-xs text-accent hover:underline" onClick={() => ohlcQuery.refetch()}>Retry</button>}
+            action={
+              <button
+                type="button"
+                className="text-xs text-accent hover:underline"
+                onClick={() => ohlcQuery.refetch()}
+              >
+                Retry
+              </button>
+            }
           />
+        )}
+
+        {plot && (
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+            <span>Price + session equity</span>
+            {hasPaperMetrics && (
+              <label
+                className="flex cursor-pointer items-center gap-2 text-slate-300"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <input
+                  type="checkbox"
+                  checked={showBenchmark}
+                  onChange={(event) => setShowBenchmark(event.target.checked)}
+                />
+                Buy &amp; hold benchmark
+              </label>
+            )}
+          </div>
         )}
 
         {plot && (
@@ -340,10 +567,10 @@ export function LiveTradingChart({
             onMouseLeave={() => setHoverIndex(null)}
           >
             <svg
-              viewBox={`0 0 ${chartWidth} ${CHART_HEIGHT}`}
+              viewBox={`0 0 ${chartWidth} ${SVG_HEIGHT}`}
               className="w-full rounded-xl border border-border/60 bg-surface/90"
               role="img"
-              aria-label={`Candlestick chart for ${symbol ?? title}`}
+              aria-label={`Candlestick and equity chart for ${symbol ?? title}`}
             >
               <defs>
                 <linearGradient id={`grid-fade-${jobId}`} x1="0" x2="0" y1="0" y2="1">
@@ -380,6 +607,17 @@ export function LiveTradingChart({
                   </text>
                 </g>
               ))}
+              {plot.sessionStartX != null && (
+                <line
+                  x1={plot.sessionStartX}
+                  x2={plot.sessionStartX}
+                  y1={PADDING.top}
+                  y2={SVG_HEIGHT - 16}
+                  stroke="#a78bfa"
+                  strokeDasharray="4 4"
+                  strokeOpacity={0.75}
+                />
+              )}
               {plot.candles.map((candle) => (
                 <g key={candle.timestamp}>
                   <line
@@ -406,7 +644,7 @@ export function LiveTradingChart({
                   x1={hoverCandle.xCenter}
                   x2={hoverCandle.xCenter}
                   y1={PADDING.top}
-                  y2={CHART_HEIGHT - PADDING.bottom}
+                  y2={SVG_HEIGHT - 16}
                   stroke="#64748b"
                   strokeDasharray="3 4"
                 />
@@ -445,7 +683,7 @@ export function LiveTradingChart({
                   <text
                     key={candle.timestamp}
                     x={candle.xCenter}
-                    y={CHART_HEIGHT - 8}
+                    y={CHART_HEIGHT - 6}
                     textAnchor="middle"
                     fill="#64748b"
                     fontSize={9}
@@ -454,12 +692,47 @@ export function LiveTradingChart({
                   </text>
                 );
               })}
+
+              <text x={PADDING.left} y={EQUITY_TOP + 10} fill="#94a3b8" fontSize={10}>
+                Equity ({quoteCurrency})
+              </text>
+              <line
+                x1={PADDING.left}
+                x2={chartWidth - PADDING.right}
+                y1={EQUITY_TOP}
+                y2={EQUITY_TOP}
+                stroke="#334155"
+              />
+              <line
+                x1={PADDING.left}
+                x2={chartWidth - PADDING.right}
+                y1={plot.initialLineY}
+                y2={plot.initialLineY}
+                stroke="#475569"
+                strokeDasharray="3 5"
+              />
+              {plot.strategyEquityPlot.length > 1 && (
+                <path
+                  d={polylineFromPoints(plot.strategyEquityPlot)}
+                  fill="none"
+                  stroke="#38bdf8"
+                  strokeWidth={2}
+                />
+              )}
+              {plot.benchmarkPlot.length > 1 && (
+                <path
+                  d={polylineFromPoints(plot.benchmarkPlot)}
+                  fill="none"
+                  stroke="#fbbf24"
+                  strokeWidth={1.5}
+                  strokeDasharray="5 4"
+                  opacity={0.85}
+                />
+              )}
             </svg>
 
             {hoverCandle && (
-              <div
-                className="pointer-events-none absolute left-3 top-3 rounded-lg border border-border bg-slate-950/90 px-3 py-2 text-xs shadow-xl backdrop-blur-sm"
-              >
+              <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-border bg-slate-950/90 px-3 py-2 text-xs shadow-xl backdrop-blur-sm">
                 <p className="font-medium text-white">{formatBarTime(hoverCandle.timestamp)}</p>
                 <p className="text-muted">
                   O {formatMoney(hoverCandle.open)} · H {formatMoney(hoverCandle.high)}
@@ -483,7 +756,20 @@ export function LiveTradingChart({
           <span className="inline-flex items-center gap-1">
             <span className="inline-block h-2 w-2 rounded-sm bg-red-400" /> Down
           </span>
-          <span>{summary.markers.length} trades in log</span>
+          <span className="inline-flex items-center gap-1">
+            <span className="inline-block h-0.5 w-3 bg-sky-400" /> Strategy equity
+          </span>
+          {showBenchmark && (
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-0.5 w-3 border-t border-dashed border-amber-400" /> B&amp;H
+            </span>
+          )}
+          <span>
+            {tickStats.evaluated} eval · {tickStats.noNewBar} wait · {summary.markers.length} fills logged
+          </span>
+          {sessionMetrics.firstActivityUnix != null && (
+            <span className="text-violet-300/80">Session line at first activity</span>
+          )}
           {refreshActive && (
             <span className="text-emerald-400/90">Refreshing while session runs</span>
           )}

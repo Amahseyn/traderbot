@@ -28,6 +28,20 @@ def _bucket_keys(*, resolution: str | None, horizon_label: str | None) -> list[s
     return keys
 
 
+def horizon_bucket_label_for_csv(csv_path: Path | str | None) -> str | None:
+    """Horizon folder label for defaults buckets, only when it names the dataset's bar size."""
+    if csv_path is None:
+        return None
+    from traderbot.backtesting.horizon_tune import dataset_horizon_label_for_csv
+    from traderbot.data.crypto_store import horizon_label_from_csv_dir
+
+    csv = Path(csv_path)
+    label = horizon_label_from_csv_dir(csv.parent)
+    if label is None:
+        return None
+    return label if dataset_horizon_label_for_csv(csv) == label else None
+
+
 def robust_params_for(
     strategy_id: str,
     *,
@@ -112,18 +126,12 @@ def namespace_for_strategy_backtest(
 ) -> Any:
     """Merge CLI/Lab namespace defaults with tuned params for this strategy and data path."""
     from traderbot.algorithms.cli_args import merge_strategy_namespace
-    from traderbot.data.crypto_store import horizon_label_from_csv_dir
     from traderbot.utils.resolution import resolution_from_csv_path
-
-    from traderbot.backtesting.horizon_tune import dataset_horizon_label_for_csv
 
     namespace = merge_strategy_namespace(base)
     apply_strategy_baseline_defaults(namespace, strategy_id)
     csv = Path(csv_path) if csv_path is not None else None
-    horizon_label = horizon_label_from_csv_dir(csv.parent) if csv is not None else None
-    if horizon_label and csv is not None:
-        if dataset_horizon_label_for_csv(csv) != horizon_label:
-            horizon_label = None
+    horizon_label = horizon_bucket_label_for_csv(csv)
     resolved_resolution: str | None = str(resolution) if resolution is not None else None
     if csv is not None:
         try:

@@ -12,6 +12,7 @@ import { TradeLogsTable } from "@/components/TradeLogsTable";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { JsonBlock } from "@/components/ui/JsonBlock";
+import { Page } from "@/components/ui/Page";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ErrorState, PageSkeleton } from "@/components/ui/States";
 import { api, apiUrl } from "@/lib/api";
@@ -29,7 +30,7 @@ export default function RunDetailPage() {
   }
   if (runQuery.isError || !runQuery.data) {
     return (
-      <div className="space-y-4">
+      <Page>
         <ErrorState
           title={runQuery.isError ? "Could not load this run" : "Run not found"}
           error={runQuery.error}
@@ -44,7 +45,7 @@ export default function RunDetailPage() {
             </div>
           }
         />
-      </div>
+      </Page>
     );
   }
 
@@ -55,11 +56,13 @@ export default function RunDetailPage() {
     (run.run_kind === "strategy_backtest" ? "Strategy backtest" : "Run");
 
   return (
-    <div className="space-y-8">
-      <nav aria-label="Breadcrumb" className="text-muted -mb-4 text-xs">
-        <Link href="/runs" className="hover:text-white">Runs</Link>
-        <span className="mx-1.5">/</span>
-        <span className="text-slate-300">{run.id.slice(0, 8)}</span>
+    <Page>
+      <nav aria-label="Breadcrumb" className="-mb-2 text-xs text-muted">
+        <Link href="/runs" className="rounded-md no-underline hover:text-white hover:no-underline">
+          Runs
+        </Link>
+        <span className="mx-1.5 text-border-bright">/</span>
+        <span className="font-mono text-slate-300">{run.id.slice(0, 8)}</span>
       </nav>
       <PageHeader
         eyebrow="Review"
@@ -124,6 +127,6 @@ export default function RunDetailPage() {
           </p>
         )}
       </Card>
-    </div>
+    </Page>
   );
 }

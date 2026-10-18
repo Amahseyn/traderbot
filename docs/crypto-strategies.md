@@ -28,6 +28,7 @@ entry/exit. Sized strategies (`ma_trend`, `scalp_dip`, `dca`, `grid`) skip vecto
 | `dca` | new | `1/dca_order_count` of initial cash every `dca_interval_bars`; summary has `lump_sum_benchmark` |
 | `grid` | new | anchored range, `grid_levels` exposure bands, shutdown on breakout (optional re-anchor) |
 | `momentum_shock` | new | **proxy** for news/event momentum (price + volume shock). Plug a real feed via `EventSignalSource` |
+| `ensemble` | new | Meta-strategy: preset stacks (e.g. `1m_scalp_trend` = scalp_dip + rsi_trend). See `docs/ensemble-and-1m.md` |
 
 ## Multi-symbol and data-dependent strategies
 

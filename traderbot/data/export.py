@@ -1,5 +1,6 @@
 import csv
 import json
+import re
 from pathlib import Path
 
 from traderbot.markets.market_data import fetch_ohlc_range, market_symbol
@@ -18,6 +19,20 @@ CSV_FIELDS = [
     "close",
     "volume",
 ]
+
+_SAFE_TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+def safe_export_token(value: object, *, field: str) -> str:
+    """Return ``value`` only if it is safe to use in an export filename.
+
+    Rejects path separators, parent-directory markers, and other characters
+    that would let a job write outside ``output_dir``.
+    """
+    token = str(value).strip()
+    if not token or token in {".", ".."} or not _SAFE_TOKEN_RE.match(token):
+        raise ValueError(f"unsafe export {field}: {value!r}")
+    return token
 
 
 def load_jobs(path: Path) -> list[dict]:
@@ -54,6 +69,48 @@ def write_csv(path: Path, rows: list[dict]) -> None:
         writer.writerows(rows)
 
 
+def _src_from_job_symbol(symbol: str) -> str | None:
+    upper = symbol.strip().upper()
+    if upper.endswith("USDT"):
+        return upper[:-4].lower()
+    if upper.endswith("IRT"):
+        return upper[:-3].lower()
+    return None
+
+
+def _fetch_job_rows(
+    job: dict,
+    *,
+    history_from_unix_seconds: int,
+    history_to_unix_seconds: int,
+) -> list[dict]:
+    from traderbot.markets.exchange import normalize_live_exchange
+
+    exchange = normalize_live_exchange(job.get("exchange") or "nobitex")
+    resolution = job["interval"]
+    if exchange == "hyperliquid":
+        from traderbot.hyperliquid.market_data import fetch_hyperliquid_ohlc_range
+
+        src = job.get("src")
+        if not src:
+            src = _src_from_job_symbol(str(job.get("symbol") or ""))
+        if not src:
+            raise ValueError("hyperliquid export job requires src or a USDT/IRT market symbol")
+        return fetch_hyperliquid_ohlc_range(
+            src=str(src),
+            resolution=str(resolution),
+            history_from_unix_seconds=history_from_unix_seconds,
+            history_to_unix_seconds=history_to_unix_seconds,
+        )
+    symbol = job["symbol"]
+    return fetch_ohlc_range(
+        symbol=symbol,
+        resolution=resolution,
+        history_from_unix_seconds=history_from_unix_seconds,
+        history_to_unix_seconds=history_to_unix_seconds,
+    )
+
+
 def run_export(
     jobs: list[dict],
     *,
@@ -87,9 +144,8 @@ def run_export(
         history_from_unix_seconds = (
             from_ts if from_ts is not None else to_ts - job_days * SECONDS_PER_DAY
         )
-        rows = fetch_ohlc_range(
-            symbol=symbol,
-            resolution=resolution,
+        rows = _fetch_job_rows(
+            job,
             history_from_unix_seconds=history_from_unix_seconds,
             history_to_unix_seconds=to_ts,
         )
@@ -105,12 +161,24 @@ def run_export(
             )
         max_bars = job.get("max_bars")
         if max_bars is not None and int(max_bars) >= 1:
-            rows = rows[-int(max_bars):]
-        filename = f"{symbol}_{resolution}.csv"
+            rows = rows[-int(max_bars) :]
+        if not rows:
+            from traderbot.markets.exchange import normalize_live_exchange
+
+            if normalize_live_exchange(job.get("exchange") or "nobitex") == "hyperliquid":
+                from traderbot.hyperliquid.market_data import hyperliquid_export_empty_reason
+
+                src = job.get("src") or _src_from_job_symbol(str(symbol))
+                raise ValueError(
+                    hyperliquid_export_empty_reason(str(src or symbol), resolution=str(resolution))
+                )
+            raise ValueError(f"{symbol} {resolution}: export returned 0 candles for the requested window")
+        filename = f"{safe_export_token(symbol, field='symbol')}_{safe_export_token(resolution, field='resolution')}.csv"
         path = output_dir / filename
         write_csv(path, rows)
         written.append(path)
-        print(f"{symbol} {resolution}: {len(rows)} rows -> {path}")
+        venue = job.get("exchange") or "nobitex"
+        print(f"{symbol} {resolution} ({venue}): {len(rows)} rows -> {path}")
     if written:
         manifest_dir = crypto_root if crypto_root is not None else output_dir
         _write_manifest(manifest_dir, written)
@@ -134,4 +202,3 @@ def _write_manifest(output_dir: Path, paths: list[Path]) -> None:
 def _count_csv_rows(path: Path) -> int:
     with path.open(encoding="utf-8") as f:
         return max(0, sum(1 for _ in f) - 1)
-

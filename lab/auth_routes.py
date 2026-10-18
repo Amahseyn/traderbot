@@ -10,6 +10,7 @@ from lab.auth_service import (
     fetch_hyperliquid_account,
     fetch_profile,
     login_session,
+    save_coinbeacon_api_keys,
     save_hyperliquid_credentials,
 )
 from traderbot.nobitex.client import NobitexClientError
@@ -57,6 +58,19 @@ def register_auth_routes(app, _get_connection: Callable | None = None) -> None:
     def api_auth_hyperliquid_account():
         try:
             return fetch_hyperliquid_account()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/auth/coinbeacon")
+    def api_auth_coinbeacon_save(body: dict[str, Any]):
+        if not body.get("api_key") and not body.get("api_key_alt"):
+            raise HTTPException(status_code=400, detail="api_key and/or api_key_alt required")
+        try:
+            return save_coinbeacon_api_keys(
+                api_key=body.get("api_key"),
+                api_key_alt=body.get("api_key_alt"),
+                write_env=bool(body.get("write_env", True)),
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 

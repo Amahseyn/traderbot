@@ -236,7 +236,12 @@ def _pick(*names: str) -> Callable[[Any], dict[str, Any]]:
 _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
     "sma_cross": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
     "ema_cross": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
-    "finrl_ema_intraday": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
+    "finrl_ema_intraday": lambda a: {
+        "fast": a.fast,
+        "slow": a.slow,
+        "price_confirm": a.price_confirm,
+        "signal_style": getattr(a, "signal_style", "level_lag"),
+    },
     "rsi_threshold": lambda a: {
         "period": a.period,
         "oversold": a.oversold,
@@ -426,6 +431,17 @@ def _namespace_field_for_kwarg(strategy_id: str, kwarg: str) -> str:
     if override is not None:
         return override
     return _ALGO_KWARG_TO_NAMESPACE_FIELD.get(kwarg, kwarg)
+
+
+def strategy_param_defaults(strategy_id: str) -> dict[str, Any]:
+    """Default knob values per namespace field name (includes kwargs not on CLI namespace)."""
+    from traderbot.algorithms.cli_args import default_strategy_namespace
+
+    namespace = default_strategy_namespace()
+    return {
+        _namespace_field_for_kwarg(strategy_id, key): value
+        for key, value in strategy_kwargs_from_namespace(strategy_id, namespace).items()
+    }
 
 
 def strategy_param_names(strategy_id: str) -> list[str]:

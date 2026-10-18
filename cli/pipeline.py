@@ -77,6 +77,33 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="Run every *_60.csv under crypto OHLC (no download).",
     )
+    run.add_argument(
+        "--market-symbol",
+        default="BTCUSDT",
+        help="For single-market-research: Hyperliquid/Nobitex symbol.",
+    )
+    run.add_argument(
+        "--intervals",
+        default="1,5,15,60",
+        help="Comma-separated resolutions for market research pipelines.",
+    )
+    run.add_argument(
+        "--optimize-n-trials",
+        type=int,
+        default=80,
+        help="Optuna trials per strategy × interval (market research pipelines).",
+    )
+    run.add_argument(
+        "--top-markets",
+        type=int,
+        default=30,
+        help="For full-universe-research: cap HL universe size.",
+    )
+    run.add_argument(
+        "--exchange",
+        default="hyperliquid",
+        help="Exchange for market research export jobs.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -152,6 +179,20 @@ def main(argv: list[str] | None = None) -> None:
     if pid == "wondertrader-platform":
         kwargs.setdefault("full_backtest", True)
         kwargs.setdefault("build_runner", False)
+
+    if pid == "single-market-research":
+        kwargs["market_symbol"] = args.market_symbol
+        kwargs["intervals"] = args.intervals
+        kwargs["export_days"] = args.export_days
+        kwargs["optimize_n_trials"] = args.optimize_n_trials
+        kwargs["exchange"] = args.exchange
+
+    if pid == "full-universe-research":
+        kwargs["intervals"] = args.intervals
+        kwargs["export_days"] = args.export_days
+        kwargs["optimize_n_trials"] = args.optimize_n_trials
+        kwargs["top_markets"] = args.top_markets
+        kwargs["exchange"] = args.exchange
 
     try:
         result = run_pipeline(pid, **kwargs)

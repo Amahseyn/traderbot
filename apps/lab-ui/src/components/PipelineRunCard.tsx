@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { MarketSearchPicker } from "@/components/MarketSearchPicker";
 import { Button } from "@/components/ui/Button";
 import { Field, SelectInput, TextInput } from "@/components/ui/Field";
 import { api, type PipelineInputView, type PipelineSpecRow } from "@/lib/api";
@@ -51,6 +52,8 @@ export function PipelineRunCard({
 
   const datasetId = values.dataset || datasets[0]?.id || "";
   const missingDataset = showDataset && datasets.length === 0;
+  const marketSymbolValue = values.market_symbol?.trim() || null;
+  const hasMarketSymbolInput = inputs.some((field) => field.key === "market_symbol");
 
   const body = useMemo(() => {
     const payload: Record<string, unknown> = { pipeline_id: pipeline.id };
@@ -62,6 +65,9 @@ export function PipelineRunCard({
         payload[field.key] = (values[field.key] ?? field.default) !== "false";
       }
       if (field.kind === "select") {
+        payload[field.key] = values[field.key] || field.default || "";
+      }
+      if (field.kind === "text") {
         payload[field.key] = values[field.key] || field.default || "";
       }
     }
@@ -89,8 +95,23 @@ export function PipelineRunCard({
           ))}
         </ol>
       )}
+      {hasMarketSymbolInput && (
+        <div className="mt-4 space-y-2">
+          <p className="text-xs font-medium text-slate-300">Market</p>
+          <MarketSearchPicker
+            selectedSymbol={marketSymbolValue}
+            onSelect={(market) =>
+              setValues((current) => ({ ...current, market_symbol: market.symbol }))
+            }
+            defaultMarketScope="hyperliquid_all"
+          />
+        </div>
+      )}
       <div className="mt-4 flex flex-wrap items-end gap-3">
         {inputs.map((field) => {
+          if (field.key === "market_symbol") {
+            return null;
+          }
           if (field.kind === "number") {
             return (
               <Field key={field.key} label={field.label} hint={field.hint}>
@@ -120,6 +141,18 @@ export function PipelineRunCard({
                     </option>
                   ))}
                 </SelectInput>
+              </Field>
+            );
+          }
+          if (field.kind === "text") {
+            return (
+              <Field key={field.key} label={field.label} hint={field.hint}>
+                <TextInput
+                  value={values[field.key] ?? field.default ?? ""}
+                  onChange={(event) =>
+                    setValues((current) => ({ ...current, [field.key]: event.target.value }))
+                  }
+                />
               </Field>
             );
           }

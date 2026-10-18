@@ -1,5 +1,11 @@
 import type { JobRow } from "@/lib/api";
 import { formatResolutionLabel } from "@/lib/format";
+import {
+  computeLiveSessionMetrics,
+  parseLiveEquitySeries,
+  summarizeLiveJobLog,
+  type LiveSessionMetrics,
+} from "@/lib/liveLog";
 
 export type LiveTerminalSession = {
   jobId: string;
@@ -41,6 +47,13 @@ export function liveSessionFromJob(job: JobRow): LiveTerminalSession {
     status: job.status,
     logText: job.log_text ?? "",
   };
+}
+
+export function liveSessionMetricsFromJob(job: JobRow): LiveSessionMetrics {
+  const logText = job.log_text ?? "";
+  const summary = summarizeLiveJobLog(logText);
+  const equitySeries = parseLiveEquitySeries(logText);
+  return computeLiveSessionMetrics(summary, equitySeries);
 }
 
 export function liveSessionPairLabel(session: LiveTerminalSession): string {

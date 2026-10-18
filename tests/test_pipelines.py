@@ -35,6 +35,9 @@ def test_pipeline_registry_lists_core_pipelines():
     assert get_pipeline("crypto-jobs-export").full is False
     assert "sma-backtest" in ids
     assert "crypto-1h-local" in ids
+    assert "single-market-research" in ids
+    assert "full-universe-research" in ids
+    assert get_pipeline("single-market-research").full is True
     assert "lightgbm-single-asset" not in ids
 
 

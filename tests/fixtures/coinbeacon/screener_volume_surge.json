@@ -1,0 +1,32 @@
+{
+  "preset": {"id": "volume-surge", "label": "Volume surge", "description": "test"},
+  "meta": {"updatedAt": 1, "universe": 100, "matched": 2, "count": 2, "limit": 100, "offset": 0, "snapshotDays": 15, "stale": false},
+  "rows": [
+    {
+      "base": "ETH",
+      "name": "Ethereum",
+      "rank": 2,
+      "venue": "binance-futures",
+      "symbol": "ETHUSDT",
+      "quote": "USDT",
+      "price": 2500,
+      "marketCap": 300000000000,
+      "volume24h": 1000000000,
+      "pctChange.h24": 2.5,
+      "trendScore@4h": 40
+    },
+    {
+      "base": "SOL",
+      "name": "Solana",
+      "rank": 5,
+      "venue": "binance-futures",
+      "symbol": "SOLUSDT",
+      "quote": "USDT",
+      "price": 100,
+      "marketCap": 50000000000,
+      "volume24h": 200000000,
+      "pctChange.h24": -1.2,
+      "trendScore@4h": -20
+    }
+  ]
+}

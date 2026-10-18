@@ -75,6 +75,9 @@ def main(argv: list[str] | None = None) -> None:
         except ImportError:
             print("Install UI dependencies: pip install -e '.[ui]'", file=sys.stderr)
             sys.exit(1)
+        from lab.config import load_lab_repo_env
+
+        load_lab_repo_env()
         connection = open_database(args.db)
         init_database(connection)
         from lab.store.catalog import backfill_datasets, ensure_market_catalog

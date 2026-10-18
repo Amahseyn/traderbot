@@ -8,7 +8,20 @@ pairs when liquidity allows limit-style fills near the close.
 
 from __future__ import annotations
 
+from typing import Any
+
 from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+
+
+def grid_price_bounds_from_bars(bars: list[dict[str, Any]]) -> tuple[float, float]:
+    """Train-window style bounds for backtests when grid limits are not set explicitly."""
+    if not bars:
+        raise ValueError("grid_price_bounds_from_bars requires at least one bar")
+    closes = [float(bar["close"]) for bar in bars]
+    low = min(closes)
+    high = max(closes)
+    padding = (high - low) * 0.05 or high * 0.02
+    return low - padding, high + padding
 
 
 def _linear_grid_levels(start_price: float, end_price: float, grid_count: int) -> list[float]:

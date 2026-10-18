@@ -1,0 +1,19 @@
+{
+  "compare_strategies": true,
+  "compare_mode": "strategies",
+  "optimize_before_compare": true,
+  "apply_sweep_winner": true,
+  "use_optimized_strategy_params": true,
+  "optimize_method": "optuna",
+  "optimize_n_trials": 60,
+  "optimize_selection_mode": "validation",
+  "full_grid": true,
+  "visualize": false,
+  "export_market_symbols": ["BTCUSDT", "ETHUSDT", "ARBUSDT", "SOLUSDT"],
+  "export_intervals": ["1", "5", "15", "60"],
+  "export_days": 30,
+  "exchange": "hyperliquid",
+  "out": "data",
+  "fee": 0.00045,
+  "cash": 10000
+}

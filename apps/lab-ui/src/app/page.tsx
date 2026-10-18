@@ -7,6 +7,7 @@ import { WorkflowCards } from "@/components/WorkflowCards";
 import { OverviewResearchAnalytics } from "@/components/OverviewResearchAnalytics";
 import { RunsTable } from "@/components/RunsTable";
 import { Button } from "@/components/ui/Button";
+import { Page } from "@/components/ui/Page";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState, ErrorState, PageSkeleton, TableSkeleton } from "@/components/ui/States";
 
@@ -22,7 +23,7 @@ export default function DashboardPage() {
   }
   if (statsQuery.isError) {
     return (
-      <div className="space-y-6">
+      <Page>
         <PageHeader title="Research overview" />
         <ErrorState
           title={`Cannot reach Lab API (${API_BASE})`}
@@ -33,7 +34,7 @@ export default function DashboardPage() {
             </Button>
           }
         />
-      </div>
+      </Page>
     );
   }
 
@@ -41,21 +42,21 @@ export default function DashboardPage() {
   const recentRuns = runsQuery.data ?? [];
 
   return (
-    <div className="space-y-8">
+    <Page>
       <PageHeader
         eyebrow="Overview"
         title="Research overview"
         description="Export market data, run backtests from Custom research, then review runs and trade logs."
         actions={
-          <Link href="/custom">
-            <Button>New research job</Button>
+          <Link href="/new">
+            <Button>New job</Button>
           </Link>
         }
       />
 
       <WorkflowCards />
 
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-3">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Link href="/runs" className="stat-card block">
           <div className="text-muted text-xs uppercase tracking-wide">Runs</div>
           <div className="text-2xl font-semibold mt-1 text-white">{stats.run_count}</div>
@@ -91,13 +92,13 @@ export default function DashboardPage() {
             action={
               <div className="flex flex-wrap justify-center gap-2">
                 <Link href="/data"><Button variant="secondary">Export data</Button></Link>
-                <Link href="/custom"><Button>Start research</Button></Link>
+                <Link href="/new"><Button>Start discovery</Button></Link>
               </div>
             }
           />
         )}
         {recentRuns.length > 0 && <RunsTable runs={recentRuns} variant="compact" />}
       </section>
-    </div>
+    </Page>
   );
 }

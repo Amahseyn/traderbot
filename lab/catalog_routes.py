@@ -44,6 +44,7 @@ def register_catalog_routes(app) -> None:
         symbol: str | None = None,
         resolution: str | None = None,
         dataset_id: str | None = None,
+        horizon_label: str | None = None,
     ):
         from lab.store import open_database
         from traderbot.algorithms.optimized_params import optimized_strategy_values
@@ -51,6 +52,7 @@ def register_catalog_routes(app) -> None:
         csv_path = None
         market_symbol = symbol.strip().upper() if symbol else None
         bar_resolution = resolution
+        dataset_horizon = None
         if dataset_id:
             from lab.store.catalog import fetch_dataset
 
@@ -62,6 +64,7 @@ def register_catalog_routes(app) -> None:
             if row is None:
                 raise HTTPException(status_code=404, detail=f"dataset not found: {dataset_id}")
             csv_path = row.get("repo_path")
+            dataset_horizon = row.get("horizon_label")
             if not market_symbol and row.get("symbol"):
                 market_symbol = str(row["symbol"]).upper()
             if not bar_resolution and row.get("resolution"):
@@ -72,6 +75,7 @@ def register_catalog_routes(app) -> None:
                 symbol=market_symbol,
                 resolution=bar_resolution,
                 csv_path=csv_path,
+                horizon_label=horizon_label or dataset_horizon,
             )
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -122,6 +126,49 @@ def register_catalog_routes(app) -> None:
                 kind = "string"
             fields.append({"name": name, "kind": kind, "default": default})
         return {"strategy_id": strategy_id, "params": fields}
+
+    @app.get("/api/catalog/discovery-runs")
+    def api_catalog_discovery_runs(limit: int = Query(50, ge=1, le=200)):
+        from lab.store import open_database
+        from lab.store.discovery import list_discovery_runs
+
+        connection = open_database()
+        try:
+            return list_discovery_runs(connection, limit=limit)
+        finally:
+            connection.close()
+
+    @app.get("/api/catalog/discovery-runs/by-job/{job_id}")
+    def api_catalog_discovery_run_by_job(job_id: str):
+        from fastapi import HTTPException
+
+        from lab.store import open_database
+        from lab.store.discovery import fetch_discovery_run_by_job_id
+
+        connection = open_database()
+        try:
+            row = fetch_discovery_run_by_job_id(connection, job_id)
+        finally:
+            connection.close()
+        if row is None:
+            raise HTTPException(status_code=404, detail="discovery run not found for job")
+        return row
+
+    @app.get("/api/catalog/discovery-runs/{run_id}")
+    def api_catalog_discovery_run(run_id: str):
+        from fastapi import HTTPException
+
+        from lab.store import open_database
+        from lab.store.discovery import fetch_discovery_run
+
+        connection = open_database()
+        try:
+            row = fetch_discovery_run(connection, run_id)
+        finally:
+            connection.close()
+        if row is None:
+            raise HTTPException(status_code=404, detail="discovery run not found")
+        return row
 
     @app.get("/api/catalog/live-strategy-ranks")
     def api_catalog_live_strategy_ranks(

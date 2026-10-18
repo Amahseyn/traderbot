@@ -2,6 +2,7 @@
 
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { JobMonitor } from "@/components/JobMonitor";
 import { LiveTradingChart } from "@/components/LiveTradingChart";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -14,11 +15,14 @@ import {
   liveSessionSubtitle,
   type LiveTerminalSession,
 } from "@/lib/liveSession";
-import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
+import { Skeleton } from "@/components/ui/States";
 
 const TERMINAL_JOB_TYPES = new Set(["terminal-once", "terminal-live", "terminal-replay"]);
+const TERMINAL_JOB_TYPE_LIST = ["terminal-once", "terminal-live", "terminal-replay"];
 const LIVE_JOB_POLL_MS = 500;
 const MAX_WATCHED_SESSIONS = 24;
+const LIVE_JOBS_LIST_LIMIT = 200;
+const LIVE_JOBS_PAGE_SIZE = 10;
 
 type LiveSessionsChartsProps = {
   watchedJobIds: string[];
@@ -52,8 +56,8 @@ export function LiveSessionsCharts({
   const [showCompleted, setShowCompleted] = useState(true);
 
   const jobsQuery = useQuery({
-    queryKey: ["jobs"],
-    queryFn: () => api.jobs(80),
+    queryKey: ["jobs", LIVE_JOBS_LIST_LIMIT],
+    queryFn: () => api.jobs(LIVE_JOBS_LIST_LIMIT),
     refetchInterval: (query) => {
       const rows = query.state.data ?? [];
       return rows.some(
@@ -118,14 +122,19 @@ export function LiveSessionsCharts({
     }
   }
 
+  function selectJob(jobId: string) {
+    onFocusJob(jobId);
+    onMergeWatchedJobIds([jobId]);
+  }
+
   return (
     <Card
-      title="Live session charts"
-      description="One chart per trading job — each polls its own market, horizon, and log while running."
+      title="Live sessions"
+      description="Recent jobs, streaming logs, and per-session charts in one place. Select a job to focus its log and chart."
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-surface px-2.5 py-1 text-xs text-muted ring-1 ring-border">
-            {activeCount} active · {sessions.length} shown
+            {activeCount} active · {sessions.length} chart{sessions.length === 1 ? "" : "s"}
           </span>
           <Button
             type="button"
@@ -133,51 +142,80 @@ export function LiveSessionsCharts({
             className="text-xs"
             onClick={() => setShowCompleted((value) => !value)}
           >
-            {showCompleted ? "Hide finished" : "Show finished"}
+            {showCompleted ? "Hide finished charts" : "Show finished charts"}
           </Button>
         </div>
       }
     >
-      {watchedJobIds.length === 0 && (
-        <p className="text-sm text-muted">
-          Start a session above to see candles and trade markers here. Multi-run starts several charts
-          at once.
-        </p>
-      )}
+      <JobMonitor
+        activeJobId={focusedJobId}
+        onSelectJob={selectJob}
+        onWatchJob={(jobId) => onMergeWatchedJobIds([jobId])}
+        jobTypeFilter={TERMINAL_JOB_TYPE_LIST}
+        recentJobsTitle="Recent trading jobs"
+        recentJobsDescription="Sort by return or time. Return, equity, and trades come from each job log. Use Restart to re-run a finished job with the same settings."
+        logMode="full"
+        alwaysShowLogPanel
+        embedded
+        showSessionMetrics
+        jobsListLimit={LIVE_JOBS_LIST_LIMIT}
+        jobsPageSize={LIVE_JOBS_PAGE_SIZE}
+      />
 
-      {watchedJobIds.length > 0 && visibleSessions.length === 0 && (
-        <div className="grid gap-4 lg:grid-cols-2"><Skeleton className="h-72 rounded-xl" /><Skeleton className="h-72 rounded-xl" /></div>
-      )}
-
-      {visibleSessions.length > 0 && (
-        <div
-          className={`grid gap-6 ${
-            visibleSessions.length > 1 ? "lg:grid-cols-2" : "grid-cols-1"
-          }`}
-        >
-          {visibleSessions.map((session) => (
-            <LiveTradingChart
-              key={session.jobId}
-              jobId={session.jobId}
-              src={session.src}
-              dst={session.dst}
-              interval={session.interval}
-              symbol={session.marketSymbol}
-              logText={session.logText}
-              refreshActive={isActiveTerminalJobStatus(session.status)}
-              jobStatus={session.status}
-              strategyId={session.strategyId}
-              liveOrders={session.liveOrders}
-              exchange={session.exchange}
-              title={liveSessionPairLabel(session)}
-              subtitle={liveSessionSubtitle(session)}
-              focused={focusedJobId === session.jobId}
-              onFocus={() => onFocusJob(session.jobId)}
-              onDismiss={() => dismissSession(session.jobId)}
-            />
-          ))}
+      <section className="pt-6">
+        <div className="mb-4">
+          <h3 className="text-sm font-medium text-white">Session charts</h3>
+          <p className="mt-1 text-xs text-muted">
+            One chart per watched job — all sessions shown below. Candles from the exchange, equity from
+            the job log. Click a chart to match the focused job above.
+          </p>
         </div>
-      )}
+
+        {watchedJobIds.length === 0 && (
+          <p className="text-sm text-muted">
+            Start a session above to see charts here. Multi-run starts several at once.
+          </p>
+        )}
+
+        {watchedJobIds.length > 0 && visibleSessions.length === 0 && (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Skeleton className="h-72 rounded-xl" />
+            <Skeleton className="h-72 rounded-xl" />
+          </div>
+        )}
+
+        {visibleSessions.length > 0 && (
+          <div
+            className={`grid gap-6 ${
+              visibleSessions.length > 1 ? "lg:grid-cols-2" : "grid-cols-1"
+            }`}
+          >
+            {visibleSessions.map((session) => (
+              <LiveTradingChart
+                key={session.jobId}
+                jobId={session.jobId}
+                src={session.src}
+                dst={session.dst}
+                interval={session.interval}
+                symbol={session.marketSymbol}
+                logText={session.logText}
+                refreshActive={isActiveTerminalJobStatus(session.status)}
+                jobStatus={session.status}
+                strategyId={session.strategyId}
+                liveOrders={session.liveOrders}
+                exchange={session.exchange}
+                title={liveSessionPairLabel(session)}
+                subtitle={liveSessionSubtitle(session)}
+                focused={focusedJobId === session.jobId}
+                onFocus={() => selectJob(session.jobId)}
+                onDismiss={() => dismissSession(session.jobId)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
     </Card>
   );
 }
+
+export { mergeWatchedIds };

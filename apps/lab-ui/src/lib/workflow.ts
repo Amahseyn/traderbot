@@ -33,9 +33,9 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
     id: "research",
     label: "Custom research",
     short: "2 · Research",
-    description: "Export, multi-dataset backtests, strategy compare, and sweeps.",
+    description: "Export, multi-dataset backtests, compare, sweeps. Start discovery on New.",
     href: "/custom",
-    matchPrefixes: ["/custom", "/actions"],
+    matchPrefixes: ["/custom", "/optimizer", "/actions", "/new"],
   },
   {
     id: "results",

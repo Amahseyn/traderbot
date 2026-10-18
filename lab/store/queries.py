@@ -121,6 +121,17 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
         LIMIT 8
         """
     ).fetchall()
+    strategy_catalog_stats = connection.execute(
+        f"""
+        SELECT c.strategy_id, COUNT(*) AS n,
+               MAX({_RETURN_PCT_SQL}) AS best_return,
+               AVG({_RETURN_PCT_SQL}) AS avg_return
+        {_STRATEGY_BACKTEST_FROM}
+          AND c.strategy_id IS NOT NULL
+        GROUP BY c.strategy_id
+        ORDER BY best_return DESC NULLS LAST
+        """
+    ).fetchall()
     return {
         "run_count": run_count,
         "config_count": config_count,
@@ -129,6 +140,7 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
         "experiment_count": experiment_count,
         "backtest_summary": backtest_summary,
         "top_strategies": [dict(row) for row in top_strategies],
+        "strategy_catalog_stats": [dict(row) for row in strategy_catalog_stats],
         "top_markets": [dict(row) for row in top_markets],
         "top_intervals": [dict(row) for row in top_intervals],
     }
@@ -344,6 +356,10 @@ def _sweep_session_to_api(row: sqlite3.Row) -> dict[str, Any]:
         "best_metrics": json.loads(row["best_metrics_json"]),
         "config_id": row["config_id"],
         "manifest_path": row["manifest_path"],
+        "optimize_start_utc": row["optimize_start_utc"],
+        "optimize_end_utc": row["optimize_end_utc"],
+        "compare_start_utc": row["compare_start_utc"],
+        "compare_end_utc": row["compare_end_utc"],
         "created_at_utc": row["created_at_utc"],
     }
 
@@ -372,24 +388,42 @@ def list_sweep_sessions(
     return [_sweep_session_to_api(row) for row in rows]
 
 
+def _horizon_filter_tiers(horizon_label: str | None) -> list[tuple[str | None, list[Any]]]:
+    """Horizon filters in lookup order: exact label, then unlabeled rows, then any row."""
+    tiers: list[tuple[str | None, list[Any]]] = []
+    label = str(horizon_label or "").strip()
+    if label:
+        tiers.append(("horizon_label = ?", [label]))
+    tiers.append(("(horizon_label IS NULL OR horizon_label = '')", []))
+    tiers.append((None, []))
+    return tiers
+
+
 def fetch_best_sweep(
     connection: sqlite3.Connection,
     *,
     strategy_id: str,
     symbol: str | None = None,
     resolution: str | None = None,
+    horizon_label: str | None = None,
 ) -> dict[str, Any] | None:
-    clauses = ["strategy_id = ?"]
-    params: list[Any] = [strategy_id]
-    if symbol:
-        clauses.append("symbol = ?")
-        params.append(symbol.upper())
-    if resolution:
-        clauses.append("resolution = ?")
-        params.append(resolution)
-    row = connection.execute(
-        f"SELECT * FROM sweep_sessions WHERE {' AND '.join(clauses)}"
-        " ORDER BY created_at_utc DESC LIMIT 1",
-        params,
-    ).fetchone()
-    return _sweep_session_to_api(row) if row is not None else None
+    for horizon_clause, horizon_params in _horizon_filter_tiers(horizon_label):
+        clauses = ["strategy_id = ?"]
+        params: list[Any] = [strategy_id]
+        if symbol:
+            clauses.append("symbol = ?")
+            params.append(symbol.upper())
+        if resolution:
+            clauses.append("resolution = ?")
+            params.append(resolution)
+        if horizon_clause is not None:
+            clauses.append(horizon_clause)
+            params.extend(horizon_params)
+        row = connection.execute(
+            f"SELECT * FROM sweep_sessions WHERE {' AND '.join(clauses)}"
+            " ORDER BY created_at_utc DESC LIMIT 1",
+            params,
+        ).fetchone()
+        if row is not None:
+            return _sweep_session_to_api(row)
+    return None

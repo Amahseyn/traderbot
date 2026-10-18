@@ -1,18 +1,101 @@
 from __future__ import annotations
 
 import math
+import os
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from traderbot.algorithms.registry import normalize_strategy_mode, strategy_ids_for_mode
 from traderbot.utils.resolution import resolution_minutes
 from lab.store.catalog import fetch_dataset, fetch_market
+from lab.store.constants import REPO_ROOT
 from lab.store.queries import fetch_experiment
 
 
 class JobPayloadError(ValueError):
     pass
+
+
+def _apply_optimize_selection_fields(prepared: dict[str, Any], body: dict[str, Any]) -> None:
+    from traderbot.backtesting.optimize_select import (
+        DEFAULT_OPTIMIZE_SELECTION_MODE,
+        DEFAULT_TRAIN_FRACTION,
+        DEFAULT_VALIDATION_FRACTION,
+        normalize_optimize_selection_mode,
+    )
+
+    raw_mode = body.get("optimize_selection_mode")
+    if raw_mode in (None, ""):
+        prepared["optimize_selection_mode"] = DEFAULT_OPTIMIZE_SELECTION_MODE
+    else:
+        try:
+            prepared["optimize_selection_mode"] = normalize_optimize_selection_mode(raw_mode)
+        except ValueError as exc:
+            raise JobPayloadError(str(exc)) from exc
+
+    train_raw = body.get("train_fraction")
+    validation_raw = body.get("validation_fraction")
+    try:
+        train_fraction = float(train_raw if train_raw not in (None, "") else DEFAULT_TRAIN_FRACTION)
+        validation_fraction = float(
+            validation_raw if validation_raw not in (None, "") else DEFAULT_VALIDATION_FRACTION
+        )
+    except (TypeError, ValueError) as exc:
+        raise JobPayloadError("train_fraction and validation_fraction must be numbers") from exc
+    if train_fraction <= 0 or validation_fraction <= 0 or train_fraction + validation_fraction >= 1:
+        raise JobPayloadError("train_fraction and validation_fraction must be positive and sum to < 1")
+    prepared["train_fraction"] = train_fraction
+    prepared["validation_fraction"] = validation_fraction
+
+
+_CSV_SUFFIXES = {".csv"}
+_CONFIG_SUFFIXES = {".json", ".yaml", ".yml"}
+
+
+def _path_roots_from_env() -> list[Path]:
+    raw = os.environ.get("TRADERBOT_LAB_PATH_ROOTS", "").strip()
+    if not raw:
+        return []
+    return [Path(part).expanduser().resolve() for part in raw.split(os.pathsep) if part.strip()]
+
+
+def _allowed_lab_roots() -> list[Path]:
+    import tempfile
+
+    roots = [REPO_ROOT.resolve(), Path(tempfile.gettempdir()).resolve()]
+    for root in _path_roots_from_env():
+        if root not in roots:
+            roots.append(root)
+    return roots
+
+
+def resolve_lab_file(raw: Any, *, suffixes: set[str], field: str) -> str:
+    """Validate a user-supplied Lab file path.
+
+    Rejects parent-directory traversal, NUL bytes, unexpected file types, and
+    paths outside the allowed roots (the repo root, the system temp dir, and any
+    roots in ``TRADERBOT_LAB_PATH_ROOTS`` — ``os.pathsep``-separated). This stops
+    a job body from reading arbitrary files off the host.
+    """
+    text = str(raw).strip()
+    if not text or "\x00" in text:
+        raise JobPayloadError(f"{field} must be a non-empty path")
+    candidate = Path(text).expanduser()
+    if not candidate.is_absolute():
+        candidate = REPO_ROOT / candidate
+    if any(part == ".." for part in candidate.parts):
+        raise JobPayloadError(f"{field} may not contain '..' path segments")
+    resolved = candidate.resolve()
+    if resolved.suffix.lower() not in suffixes:
+        allowed = ", ".join(sorted(suffixes))
+        raise JobPayloadError(f"{field} must be one of {allowed}: {text!r}")
+    if not resolved.is_file():
+        raise JobPayloadError(f"{field} does not exist: {text!r}")
+    if not any(resolved == root or root in resolved.parents for root in _allowed_lab_roots()):
+        raise JobPayloadError(f"{field} is outside the allowed Lab roots: {text!r}")
+    return str(resolved)
 
 
 def parse_run_bound_utc(raw: Any) -> int | None:
@@ -53,7 +136,7 @@ def resolve_csv_from_body(connection: sqlite3.Connection, body: dict[str, Any]) 
         return str(row["repo_path"])
     csv_path = body.get("csv")
     if csv_path:
-        return str(csv_path)
+        return resolve_lab_file(csv_path, suffixes=_CSV_SUFFIXES, field="csv")
     raise JobPayloadError("dataset_id or csv required")
 
 
@@ -123,6 +206,19 @@ def resolve_pipeline_run_body(connection: sqlite3.Connection, body: dict[str, An
                 prepared[field.key] = int(raw_number)
             except (TypeError, ValueError) as exc:
                 raise JobPayloadError(f"{field.key} must be an integer") from exc
+        elif field.kind == "text":
+            raw = body.get(field.key)
+            if raw is None or raw == "":
+                raw = field.default
+            prepared[field.key] = str(raw)
+        elif field.kind == "boolean":
+            raw = body.get(field.key)
+            if raw is None or raw == "":
+                prepared[field.key] = str(field.default).lower() in ("true", "1", "yes")
+            elif isinstance(raw, bool):
+                prepared[field.key] = raw
+            else:
+                prepared[field.key] = str(raw).lower() in ("true", "1", "yes")
 
     if spec.days_kw is not None:
         raw_days = body.get("days")
@@ -142,11 +238,16 @@ def resolve_pipeline_run_body(connection: sqlite3.Connection, body: dict[str, An
 def resolve_sweep_body(connection: sqlite3.Connection, body: dict[str, Any]) -> dict[str, Any]:
     """Validate a strategy-sweep job body (grid optimizer over 1-2 params)."""
     from traderbot.algorithms.cli_args import default_strategy_namespace
+    from traderbot.algorithms.registry import strategy_param_names
+    from traderbot.backtesting.robust_defaults import tune_grid_for_strategy
     from traderbot.backtesting.sweep import MAX_SWEEP_PARAMS, parse_sweep_param
+    from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION
 
     prepared = apply_strategy_mode(connection, body, strategy_required=True)
     csv_path = resolve_csv_from_body(connection, body)
+    strategy_id = str(prepared["strategy_id"])
     allowed_params = set(vars(default_strategy_namespace()))
+    strategy_params = set(strategy_param_names(strategy_id))
 
     param_grid: dict[str, list[Any]] = {}
     raw_params = body.get("params")
@@ -174,17 +275,39 @@ def resolve_sweep_body(connection: sqlite3.Connection, body: dict[str, Any]) -> 
             if param_name in param_grid:
                 raise JobPayloadError(f"duplicate sweep param {param_name!r}")
             param_grid[param_name] = list(values)
-    if not param_grid:
-        raise JobPayloadError("sweep requires params {name: [values]} or param_specs [name=v1,v2]")
-    if len(param_grid) > MAX_SWEEP_PARAMS:
+    from traderbot.backtesting.optimize_select import normalize_optimize_method
+
+    optimize_method = normalize_optimize_method(
+        body.get("optimize_method", body.get("optimizer_method"))
+    )
+    prepared["optimize_method"] = optimize_method
+    if not param_grid and optimize_method == "grid":
+        try:
+            param_grid = tune_grid_for_strategy(strategy_id, full=bool(body.get("full_grid")))
+        except ValueError as exc:
+            raise JobPayloadError(str(exc)) from exc
+    if optimize_method == "grid" and not param_grid:
+        raise JobPayloadError("sweep requires param grid values or built-in tune grid")
+    if optimize_method == "grid" and len(param_grid) > MAX_SWEEP_PARAMS:
         raise JobPayloadError(f"sweep requires 1-{MAX_SWEEP_PARAMS} params")
+    for param_name in param_grid:
+        if param_name not in allowed_params:
+            raise JobPayloadError(f"unknown sweep param {param_name!r}")
+        if param_name not in strategy_params:
+            raise JobPayloadError(f"sweep param {param_name!r} is not used by strategy {strategy_id!r}")
 
     prepared["csv"] = csv_path
-    prepared["param_grid"] = param_grid
+    if param_grid:
+        prepared["param_grid"] = param_grid
+    prepared["full_grid"] = bool(body.get("full_grid"))
     prepared["cash"] = _to_job_float(body.get("cash"), default=10_000.0, field="cash", minimum=0.0)
-    from traderbot.utils.trading_costs import DEFAULT_SLIPPAGE_RATE, DEFAULT_TRADE_FEE_RATE
+    from traderbot.utils.trading_costs import DEFAULT_TRADE_FEE_RATE
 
     prepared["fee"] = _to_job_float(body.get("fee"), default=DEFAULT_TRADE_FEE_RATE, field="fee", minimum=0.0)
+    execution = str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION).strip().lower()
+    if execution not in ("close", "next_open"):
+        raise JobPayloadError("execution must be close or next_open")
+    prepared["execution"] = execution
     holdout_raw = body.get("holdout_tail_bars")
     if holdout_raw in (None, ""):
         prepared["holdout_tail_bars"] = None
@@ -212,6 +335,7 @@ def resolve_sweep_body(connection: sqlite3.Connection, body: dict[str, Any]) -> 
             prepared[key] = body[key]
     if body.get("out") not in (None, ""):
         prepared["out"] = str(body.get("out"))
+    _apply_optimize_selection_fields(prepared, body)
     return prepared
 
 
@@ -276,10 +400,10 @@ def resolve_config_path_from_body(connection: sqlite3.Connection, body: dict[str
         config_path = experiment.get("config_path")
         if not config_path:
             raise JobPayloadError(f"experiment has no config_path: {experiment_id}")
-        return str(config_path)
+        return resolve_lab_file(config_path, suffixes=_CONFIG_SUFFIXES, field="config_path")
     config_path = body.get("config_path")
     if config_path:
-        return str(config_path)
+        return resolve_lab_file(config_path, suffixes=_CONFIG_SUFFIXES, field="config_path")
     raise JobPayloadError("experiment_id or config_path required")
 
 
@@ -298,6 +422,8 @@ def _coerce_string_list(raw: Any) -> list[str]:
 
 
 def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str, Any]) -> dict[str, Any]:
+    from traderbot.algorithms.cli_args import default_strategy_namespace
+
     compare_strategies = bool(body.get("compare_strategies"))
     use_all_hourly_files = bool(body.get("use_all_hourly_files"))
     dataset_ids = body.get("dataset_ids")
@@ -319,12 +445,18 @@ def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str,
                 "dataset_ids required unless export_market_symbol(s) or use_all_hourly_files",
             )
 
-    from traderbot.utils.trading_costs import DEFAULT_SLIPPAGE_RATE, DEFAULT_TRADE_FEE_RATE
+    from traderbot.utils.trading_costs import DEFAULT_TRADE_FEE_RATE
 
+    optimize_before_compare = bool(body.get("optimize_before_compare"))
     prepared: dict[str, Any] = {
         "compare_strategies": compare_strategies,
         "use_all_hourly_files": use_all_hourly_files,
         "visualize": bool(body.get("visualize", True)),
+        "use_optimized_strategy_params": bool(body.get("use_optimized_strategy_params", True)),
+        "optimize_before_compare": optimize_before_compare,
+        "apply_sweep_winner": bool(body.get("apply_sweep_winner")) or optimize_before_compare,
+        "allow_full_history_optimize": bool(body.get("allow_full_history_optimize")),
+        "full_grid": bool(body.get("full_grid")),
         "cash": body.get("cash"),
         "fee": _to_job_float(
             body.get("fee"),
@@ -332,19 +464,11 @@ def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str,
             field="fee",
             minimum=0.0,
         ),
-        "slippage": _to_job_float(
-            body.get("slippage"),
-            default=DEFAULT_SLIPPAGE_RATE,
-            field="slippage",
-            minimum=0.0,
-        ),
         "vectorbt": body.get("vectorbt"),
         "compare_mode": body.get("compare_mode") or "strategies",
     }
     if prepared["fee"] >= 1:
         raise JobPayloadError("fee must be below 1 (fraction, e.g. 0.001 for 0.1%)")
-    if prepared["slippage"] >= 1:
-        raise JobPayloadError("slippage must be below 1 (fraction, e.g. 0.0005)")
     from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION
 
     execution = str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION).strip().lower()
@@ -435,8 +559,17 @@ def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str,
     if has_batch_export:
         if not export_intervals:
             export_intervals = ["60"]
-        if len(export_market_symbols) * len(export_intervals) > 24:
-            raise JobPayloadError("too many market × horizon combos (max 24 per run)")
+        try:
+            max_export_combos = int(body.get("max_export_combos") if body.get("max_export_combos") not in (None, "") else 24)
+        except (TypeError, ValueError) as exc:
+            raise JobPayloadError("max_export_combos must be an integer") from exc
+        if max_export_combos < 1:
+            raise JobPayloadError("max_export_combos must be at least 1")
+        prepared["max_export_combos"] = max_export_combos
+        if len(export_market_symbols) * len(export_intervals) > max_export_combos:
+            raise JobPayloadError(
+                f"too many market × horizon combos (max {max_export_combos} per run; set max_export_combos)"
+            )
         prepared["export_days"] = export_days
         prepared["export_days_by_interval"] = days_by_interval
         export_jobs: list[dict[str, Any]] = []
@@ -477,36 +610,105 @@ def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str,
             raise JobPayloadError("max_strategies must be at least 1")
         prepared["max_strategies"] = max_value
 
-    for key in ("fast", "slow", "signal", "period", "context_bars"):
-        if key in body and body[key] not in (None, ""):
-            prepared[key] = body[key]
-    for key in ("oversold", "overbought", "num_std", "fee"):
+    allowed_params = set(vars(default_strategy_namespace()))
+    for key in allowed_params:
         if key in body and body[key] not in (None, ""):
             prepared[key] = body[key]
     if "price_confirm" in body:
         prepared["price_confirm"] = bool(body["price_confirm"])
 
+    for field_name, body_key in (
+        ("optimize_holdout_tail_bars", "optimize_holdout_tail_bars"),
+        ("optimize_min_trades", "optimize_min_trades"),
+        ("optimize_max_combos", "optimize_max_combos"),
+    ):
+        raw = body.get(body_key)
+        if raw in (None, ""):
+            continue
+        try:
+            value = int(raw)
+        except (TypeError, ValueError) as exc:
+            raise JobPayloadError(f"{body_key} must be an integer") from exc
+        if body_key.endswith("_tail_bars") and value < 1:
+            raise JobPayloadError(f"{body_key} must be at least 1")
+        if body_key.endswith("_min_trades") and value < 0:
+            raise JobPayloadError(f"{body_key} must be at least 0")
+        if body_key.endswith("_max_combos") and value < 1:
+            raise JobPayloadError(f"{body_key} must be at least 1")
+        prepared[field_name] = value
+
     apply_run_window_to_prepared(body, prepared)
 
+    from traderbot.backtesting.research_windows import (
+        ResearchWindowError,
+        validate_research_optimizer_windows,
+    )
+
+    try:
+        validate_research_optimizer_windows(prepared)
+    except ResearchWindowError as exc:
+        raise JobPayloadError(str(exc)) from exc
+
+    _apply_optimize_selection_fields(prepared, body)
+    from traderbot.backtesting.optimize_select import normalize_optimize_method
+
+    prepared["optimize_method"] = normalize_optimize_method(
+        body.get("optimize_method", body.get("optimizer_method", "optuna"))
+    )
+    raw_trials = body.get("optimize_n_trials", body.get("n_trials"))
+    if raw_trials not in (None, ""):
+        try:
+            prepared["optimize_n_trials"] = int(raw_trials)
+        except (TypeError, ValueError) as exc:
+            raise JobPayloadError("optimize_n_trials must be an integer") from exc
+    raw_export_jobs = body.get("export_jobs")
+    if isinstance(raw_export_jobs, list) and raw_export_jobs:
+        prepared["export_jobs"] = [dict(item) for item in raw_export_jobs]
     return prepared
 
 
+def validate_terminal_job_body(body: dict[str, Any]) -> dict[str, Any]:
+    from traderbot.backtesting.research_windows import (
+        ResearchWindowError,
+        validate_terminal_optimizer_no_research_dates,
+    )
+
+    try:
+        validate_terminal_optimizer_no_research_dates(body)
+    except ResearchWindowError as exc:
+        raise JobPayloadError(str(exc)) from exc
+    return body
+
+
 def resolve_export_argv_fields(connection: sqlite3.Connection, body: dict[str, Any]) -> dict[str, Any]:
+    from traderbot.markets.exchange import exchange_for_catalog_scope, normalize_live_exchange
+
+    def _with_exchange(fields: dict[str, Any]) -> dict[str, Any]:
+        raw_exchange = body.get("exchange")
+        if raw_exchange not in (None, ""):
+            fields["exchange"] = normalize_live_exchange(str(raw_exchange))
+        elif "exchange" not in fields:
+            fields["exchange"] = "nobitex"
+        return fields
+
     market_symbol = body.get("market_symbol")
     if market_symbol:
         market = fetch_market(connection, str(market_symbol))
         if market is None:
             raise JobPayloadError(f"market not in catalog: {market_symbol}")
-        return {
-            "src": market["src"],
-            "dst": market["dst"],
-            "interval": body.get("interval"),
-            "days": body.get("days"),
-            "max_bars": body.get("max_bars"),
-            "out": body.get("out"),
-            "crypto_layout": body.get("crypto_layout"),
-        }
-    return {
+        return _with_exchange(
+            {
+                "src": market["src"],
+                "dst": market["dst"],
+                "interval": body.get("interval"),
+                "days": body.get("days"),
+                "max_bars": body.get("max_bars"),
+                "out": body.get("out"),
+                "crypto_layout": body.get("crypto_layout"),
+                "exchange": exchange_for_catalog_scope(market.get("catalog_scope")),
+            }
+        )
+    fields = {
         "src": body.get("src"),
         "dst": body.get("dst"),
         "interval": body.get("interval"),
@@ -515,3 +717,11 @@ def resolve_export_argv_fields(connection: sqlite3.Connection, body: dict[str, A
         "out": body.get("out"),
         "crypto_layout": body.get("crypto_layout"),
     }
+    if body.get("exchange") not in (None, ""):
+        fields["exchange"] = normalize_live_exchange(str(body.get("exchange")))
+    elif fields.get("dst", "").lower() == "usdt" and fields.get("src"):
+        # CLI-style src/dst without catalog: USDT pairs default to Hyperliquid perps.
+        fields["exchange"] = "hyperliquid"
+    else:
+        fields["exchange"] = "nobitex"
+    return fields

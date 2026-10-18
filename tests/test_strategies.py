@@ -159,6 +159,8 @@ def test_strategy_compare(tmp_path):
     assert manifest["bars"] == len(closes)
     assert len(manifest["strategies"]) == len(implemented_strategy_ids())
     assert manifest["best_strategy_id"] in {s["strategy_id"] for s in manifest["strategies"]}
+    assert "buy_and_hold_return_pct" in manifest
+    assert all("excess_vs_buy_hold_pct" in row for row in manifest["strategies"])
     assert "visualization" not in manifest
 
 

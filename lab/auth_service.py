@@ -22,9 +22,11 @@ from traderbot.nobitex.profile import nobitex_keys_configured
 
 def auth_status() -> dict[str, Any]:
     from lab.config import lab_api_auth_enabled
+    from traderbot.integrations.coinbeacon.keys import load_coinbeacon_api_keys
 
     load_env_file()
     token = os.environ.get("NOBITEX_AUTH_TOKEN", "").strip()
+    coinbeacon_keys = load_coinbeacon_api_keys()
     return {
         "api_keys_configured": nobitex_keys_configured(),
         "auth_token_configured": bool(token),
@@ -33,6 +35,8 @@ def auth_status() -> dict[str, Any]:
         "live_exchange_default": "hyperliquid",
         "lab_api_auth_enabled": lab_api_auth_enabled(),
         "lab_api_token_configured": bool(os.environ.get("LAB_API_TOKEN", "").strip()),
+        "coinbeacon_configured": len(coinbeacon_keys) > 0,
+        "coinbeacon_key_count": len(coinbeacon_keys),
     }
 
 
@@ -46,6 +50,39 @@ def fetch_hyperliquid_account() -> dict[str, Any]:
         "account_value_usd": float(margin.get("accountValue") or 0.0),
         "total_margin_used": float(margin.get("totalMarginUsed") or 0.0),
         "positions": state.get("assetPositions") or [],
+    }
+
+
+def save_coinbeacon_api_keys(
+    *,
+    api_key: str | None = None,
+    api_key_alt: str | None = None,
+    write_env: bool = True,
+    env_file: Path | None = None,
+) -> dict[str, Any]:
+    from lab.store.constants import REPO_ROOT
+    from traderbot.integrations.coinbeacon.keys import load_coinbeacon_api_keys
+
+    load_env_file(REPO_ROOT / ".env")
+    updates: dict[str, str] = {}
+    if api_key is not None and str(api_key).strip():
+        updates["COINBEACON_API_KEY"] = str(api_key).strip()
+    if api_key_alt is not None and str(api_key_alt).strip():
+        updates["COINBEACON_API_KEY_ALT"] = str(api_key_alt).strip()
+    if not updates:
+        raise ValueError("Provide api_key and/or api_key_alt")
+    target = env_file or (REPO_ROOT / ".env")
+    if write_env:
+        upsert_env_vars(target, updates)
+        load_env_file(target)
+        for key, value in updates.items():
+            os.environ[key] = value
+    keys = load_coinbeacon_api_keys()
+    return {
+        "ok": True,
+        "saved_to_env": write_env,
+        "coinbeacon_configured": len(keys) > 0,
+        "coinbeacon_key_count": len(keys),
     }
 
 

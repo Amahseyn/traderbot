@@ -46,8 +46,8 @@ def test_terminal_run_max_steps(keys, monkeypatch):
 
     monkeypatch.setenv("NOBITEX_API_PUBLIC_KEY", pub)
     monkeypatch.setenv("NOBITEX_API_PRIVATE_KEY", priv)
-    monkeypatch.setattr("traderbot.markets.exchange.fetch_live_recent_closed_bars", lambda **_k: [])
-    monkeypatch.setattr("traderbot.markets.exchange.fetch_live_closed_bars_after", lambda **_k: [])
+    monkeypatch.setattr("traderbot.terminal.session.fetch_live_recent_closed_bars", lambda **_k: [])
+    monkeypatch.setattr("traderbot.terminal.session.fetch_live_closed_bars_after", lambda **_k: [])
     monkeypatch.setattr("traderbot.markets.market_data.fetch_latest_closed_bar", lambda **_k: bar)
     monkeypatch.setattr("traderbot.terminal.live.Bot", FakeBot)
 
@@ -210,6 +210,7 @@ def test_terminal_trader_updates_bar_volatility_for_risk():
 
 
 def test_terminal_trader_tick_on_no_new_bar(capsys):
+    from traderbot.terminal.paper_portfolio import PaperPortfolio
     from traderbot.terminal.trader import TerminalAlgorithmTrader
     from traderbot.algorithms.base import Algorithm, Bar, SignalAction
 
@@ -224,11 +225,20 @@ def test_terminal_trader_tick_on_no_new_bar(capsys):
         market_symbol="ARBUSDT",
     )
     trader.strategy_id = "sma_cross"
+    trader.paper_portfolio = PaperPortfolio(quote_cash=1000.0, quote_currency="usdt", base_amount=1.0)
+    trader._last_mark_price = 8.0607
+    trader._last_bar_timestamp = 1792100100
+    trader._refresh_mark_price = lambda: 8.25
     trader.step()
     row = json.loads(capsys.readouterr().out)
     assert row["event"] == "tick"
     assert row["status"] == "no_new_bar"
     assert row["poll"] == 1
+    assert row["symbol"] == "ARBUSDT"
+    assert row["close"] == 8.25
+    assert row["bar_timestamp"] == 1792100100
+    assert row["portfolio"]["mark_price"] == 8.25
+    assert row["portfolio"]["base_value"] == round(1.0 * 8.25, 4)
 
 
 def test_terminal_trader_tick_on_hold_without_emit(capsys):

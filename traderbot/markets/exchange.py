@@ -22,6 +22,14 @@ LIVE_EXCHANGES = ("hyperliquid", "nobitex")
 DEFAULT_LIVE_EXCHANGE = "hyperliquid"
 
 
+def exchange_for_catalog_scope(catalog_scope: str | None) -> str:
+    """Map Lab ``market_catalog.catalog_scope`` to a live data venue."""
+    scope = (catalog_scope or "").strip().lower()
+    if scope == "hyperliquid_all":
+        return "hyperliquid"
+    return "nobitex"
+
+
 def normalize_live_exchange(exchange: str | None) -> str:
     raw = (exchange or os.environ.get("TRADERBOT_LIVE_EXCHANGE") or DEFAULT_LIVE_EXCHANGE).strip().lower()
     if raw not in LIVE_EXCHANGES:

@@ -1,0 +1,28 @@
+{
+  "exchange": "binance-futures",
+  "sort": "1d",
+  "dir": "desc",
+  "total": 2,
+  "count": 2,
+  "items": [
+    {
+      "symbol": "BTCUSDT",
+      "exchange": "binance-futures",
+      "price": 77000,
+      "computedAt": 1789240000000,
+      "scores": {
+        "1d": {"score": 55, "direction": "bull", "persistence": 0.8},
+        "4h": {"score": 30, "direction": "bull", "persistence": 0.5}
+      }
+    },
+    {
+      "symbol": "ETHUSDT",
+      "exchange": "binance-futures",
+      "price": 2500,
+      "computedAt": 1789240000000,
+      "scores": {
+        "1d": {"score": 40, "direction": "bull", "persistence": 0.6}
+      }
+    }
+  ]
+}

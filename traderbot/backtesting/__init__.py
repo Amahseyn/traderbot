@@ -23,6 +23,10 @@ from traderbot.backtesting.robust_defaults import (
     tune_robust_defaults,
     write_robust_defaults_file,
 )
+from traderbot.backtesting.optimize_select import (
+    OptimizeSelectConfig,
+    run_strategy_optimize,
+)
 from traderbot.backtesting.sweep import SweepOptions, parse_sweep_param, run_strategy_sweep
 from traderbot.backtesting.vectorbt import (
     entry_exit_series,
@@ -51,6 +55,8 @@ __all__ = [
     "normalize_bar",
     "parse_sweep_param",
     "run_backtest",
+    "OptimizeSelectConfig",
+    "run_strategy_optimize",
     "run_strategy_sweep",
     "run_strategy_validation",
     "save_backtest_result",

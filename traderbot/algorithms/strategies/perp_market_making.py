@@ -20,6 +20,10 @@ class PerpMarketMakingAlgorithm(Algorithm):
     def reset(self) -> None:
         self._in_position = False
 
+    def sync_open_position(self, in_position: bool) -> None:
+        """Match paper/live inventory after warmup (history replay does not trade)."""
+        self._in_position = in_position
+
     def on_bar(self, bar: Bar) -> SignalAction:
         close = float(bar["close"])
         low = float(bar.get("low", close))

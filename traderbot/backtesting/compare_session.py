@@ -29,6 +29,7 @@ from traderbot.results.layout import (
     default_strategy_compare_out,
     result_tree_at,
 )
+from traderbot.backtesting.metrics import buy_and_hold_return_pct
 from traderbot.utils.trading_costs import (
     DEFAULT_BACKTEST_EXECUTION,
     DEFAULT_SLIPPAGE_RATE,
@@ -61,6 +62,27 @@ class StrategyCompareOptions:
     run_start_unix_seconds: int | None = None
     run_end_unix_seconds: int | None = None
     use_optimized_strategy_params: bool = True
+    apply_sweep_winner: bool = False
+
+
+def strategy_ids_for_compare(
+    mode: str | None,
+    *,
+    strategy_ids: frozenset[str] | None = None,
+    max_strategies: int | None = None,
+) -> list[str]:
+    """Strategy ids that ``run_strategy_compare`` would backtest."""
+    normalized = normalize_strategy_mode(mode)
+    plan = strategy_compare_plan(normalized)
+    if strategy_ids:
+        plan = [entry for entry in plan if entry[0] in strategy_ids]
+    if max_strategies is not None:
+        if max_strategies < 1:
+            raise ValueError("max_strategies must be at least 1")
+        plan = plan[:max_strategies]
+    if not plan:
+        raise ValueError("no strategies selected for compare")
+    return [entry[0] for entry in plan]
 
 
 def _log(log: LogFn | None, message: str) -> None:
@@ -87,20 +109,43 @@ def _vectorbt_extra(algo, bars: list[dict], options: StrategyCompareOptions) -> 
 
 
 def _algorithm_kwargs(strategy_id: str, options: StrategyCompareOptions) -> dict[str, Any]:
+    from traderbot.algorithms.optimized_params import resolve_best_sweep_params
+    from traderbot.algorithms.strategy_defaults import namespace_for_strategy_backtest
+
     if options.use_optimized_strategy_params:
         namespace = resolve_optimized_namespace(
             strategy_id,
             options.strategy_namespace,
             csv_path=options.csv_path,
+            apply_sweep_winner=options.apply_sweep_winner,
         )
     else:
-        from traderbot.algorithms.strategy_defaults import namespace_for_strategy_backtest
-
         namespace = namespace_for_strategy_backtest(
             strategy_id,
             options.strategy_namespace,
             csv_path=options.csv_path,
         )
+        if options.apply_sweep_winner and options.csv_path is not None:
+            from traderbot.algorithms.optimized_params import (
+                horizon_label_from_csv_path,
+                symbol_from_csv_path,
+            )
+
+            market_symbol = symbol_from_csv_path(options.csv_path)
+            try:
+                bar_resolution = resolution_from_csv_path(Path(options.csv_path).name)
+            except (ValueError, IndexError):
+                bar_resolution = None
+            sweep_params, _matched = resolve_best_sweep_params(
+                strategy_id,
+                symbol=market_symbol,
+                resolution=bar_resolution,
+                horizon_label=horizon_label_from_csv_path(options.csv_path),
+            )
+            if sweep_params:
+                for name, value in sweep_params.items():
+                    if hasattr(namespace, name):
+                        setattr(namespace, name, value)
     return strategy_kwargs_from_namespace(strategy_id, namespace)
 
 
@@ -143,7 +188,18 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
     tree = result_tree_at(compare_root, run_id=csv_path.stem) if compare_root is not None else None
     viz = compare_root is not None and options.visualize
     compare_session_id = str(uuid.uuid4())
+    buy_and_hold_pct = round(
+        buy_and_hold_return_pct(
+            bars,
+            initial_cash=options.cash,
+            fee_rate=options.fee,
+            slippage_rate=options.slippage,
+            execution=options.execution,
+        ),
+        4,
+    )
     _log(log, f"compare: {mode} mode, {len(plan)} strategies on {csv_path.name} ({len(bars)} bars, {options.execution} fills)")
+    _log(log, f"compare: buy-and-hold return {buy_and_hold_pct}% (same window, fees, execution)")
 
     for index, (strategy_id, algorithm_id, extra) in enumerate(plan, start=1):
         _log(log, f"compare: [{index}/{len(plan)}] {strategy_id}")
@@ -165,10 +221,12 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
             bars=len(bars),
             extra={"strategy_id": strategy_id, **_vectorbt_extra(algo, bars, options)},
         )
+        row["excess_vs_buy_hold_pct"] = round(float(row["return_pct"]) - buy_and_hold_pct, 4)
         ranked.append(row)
         _log(
             log,
-            f"compare: [{index}/{len(plan)}] {strategy_id} return {row['return_pct']}%",
+            f"compare: [{index}/{len(plan)}] {strategy_id} return {row['return_pct']}% "
+            f"(vs buy-hold {row['excess_vs_buy_hold_pct']:+.4f}%)",
         )
         if tree is not None:
             run_dir = tree.run_dir_flat(strategy_id)
@@ -198,6 +256,7 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
         "slippage": options.slippage,
         "execution": options.execution,
         "best_strategy_id": best["strategy_id"] if best else None,
+        "buy_and_hold_return_pct": buy_and_hold_pct,
         "strategies": ranked,
     }
     if tree is not None:

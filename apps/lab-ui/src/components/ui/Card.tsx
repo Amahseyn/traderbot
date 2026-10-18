@@ -10,12 +10,18 @@ type CardProps = {
 
 export function Card({ title, description, actions, children, className = "" }: CardProps) {
   return (
-    <section className={`rounded-xl border border-border bg-panel p-5 shadow-sm ${className}`}>
+    <section
+      className={`relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-b from-panel-elevated/90 to-panel/75 p-5 shadow-card sm:p-6 ${className}`}
+    >
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"
+        aria-hidden
+      />
       {(title || description || actions) && (
-        <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            {title && <h2 className="text-base font-semibold text-white">{title}</h2>}
-            {description && <p className="text-muted mt-1 text-sm">{description}</p>}
+        <header className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            {title && <h2 className="text-base font-semibold tracking-tight text-white sm:text-lg">{title}</h2>}
+            {description && <p className="text-sm leading-relaxed text-muted">{description}</p>}
           </div>
           {actions && <div className="shrink-0">{actions}</div>}
         </header>

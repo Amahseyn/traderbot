@@ -24,6 +24,12 @@ export type DashboardStats = {
     best_return: number | null;
     avg_return: number | null;
   }>;
+  strategy_catalog_stats?: Array<{
+    strategy_id: string;
+    n: number;
+    best_return: number | null;
+    avg_return: number | null;
+  }>;
   top_markets: Array<{ symbol: string; n: number; best_return: number | null; avg_return: number | null }>;
   top_intervals: Array<
     { interval_label: string; n: number; best_return: number | null; avg_return: number | null }
@@ -205,6 +211,7 @@ export type OptimizedStrategyParams = {
   sweep_meta?: {
     requested_symbol: string | null;
     sweep_symbol: string | null;
+    sweep_horizon_label?: string | null;
     sweep_fallback: boolean;
     optimize_start_utc?: string | null;
     optimize_end_utc?: string | null;
@@ -221,6 +228,8 @@ export type AuthStatus = {
   live_exchange_default?: string;
   lab_api_auth_enabled?: boolean;
   lab_api_token_configured?: boolean;
+  coinbeacon_configured?: boolean;
+  coinbeacon_key_count?: number;
 };
 
 export type JobRow = {
@@ -292,7 +301,7 @@ function labAuthHeaders(): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
 
-function withLabAuth(init?: RequestInit): RequestInit {
+export function withLabAuth(init?: RequestInit): RequestInit {
   const headers = new Headers(init?.headers ?? undefined);
   for (const [key, value] of Object.entries(labAuthHeaders())) {
     headers.set(key, value);
@@ -529,6 +538,12 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }),
+  authSaveCoinbeacon: (body: Record<string, unknown>) =>
+    fetchJson<Record<string, unknown>>("/api/auth/coinbeacon", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
   authHyperliquidAccount: () => fetchJson<Record<string, unknown>>("/api/auth/hyperliquid"),
   authSaveHyperliquid: (body: Record<string, unknown>) =>
     fetchJson<Record<string, unknown>>("/api/auth/hyperliquid", {
@@ -678,6 +693,70 @@ export const api = {
         ...body,
       }),
     }),
+  coinbeaconStatus: () =>
+    fetchJson<{
+      configured: boolean;
+      key_count?: number;
+      usage?: Record<string, unknown> | null;
+      credits?: { remaining?: number | null; limit?: number | null };
+      error?: string;
+    }>("/api/coinbeacon/status"),
+  coinbeaconScreenerPresets: () =>
+    fetchJson<{
+      presets: Array<{ id: string; label: string; description: string }>;
+    }>("/api/coinbeacon/screener/presets"),
+  coinbeaconScreener: (preset: string) =>
+    fetchJson<Record<string, unknown>>(`/api/coinbeacon/screener?preset=${encodeURIComponent(preset)}`),
+  coinbeaconTrendScanner: (params: {
+    exchange?: string;
+    sort?: string;
+    dir?: string;
+    quote?: string;
+  }) => {
+    const search = new URLSearchParams();
+    if (params.exchange) search.set("exchange", params.exchange);
+    if (params.sort) search.set("sort", params.sort);
+    if (params.dir) search.set("dir", params.dir);
+    if (params.quote) search.set("quote", params.quote);
+    return fetchJson<Record<string, unknown>>(`/api/coinbeacon/trend-scanner?${search.toString()}`);
+  },
+  discoveryRuns: (limit = 50) =>
+    fetchJson<
+      Array<{
+        id: string;
+        job_id: string | null;
+        exchange: string;
+        status: string;
+        summary: Record<string, unknown>;
+        config?: Record<string, unknown>;
+        scan_kind?: string;
+        artifact_path: string | null;
+        finished_at_utc: string | null;
+      }>
+    >(`/api/catalog/discovery-runs?limit=${limit}`),
+  discoveryRun: (runId: string) =>
+    fetchJson<{
+      id: string;
+      job_id: string | null;
+      exchange: string;
+      status: string;
+      summary: Record<string, unknown>;
+      config?: Record<string, unknown>;
+      artifact_path: string | null;
+      report?: import("@/lib/opportunityDiscoveryLog").OpportunityDiscoveryReport;
+      finished_at_utc: string | null;
+    }>(`/api/catalog/discovery-runs/${encodeURIComponent(runId)}`),
+  discoveryRunByJob: (jobId: string) =>
+    fetchJson<{
+      id: string;
+      job_id: string | null;
+      exchange: string;
+      status: string;
+      summary: Record<string, unknown>;
+      artifact_path: string | null;
+      report?: import("@/lib/opportunityDiscoveryLog").OpportunityDiscoveryReport;
+      finished_at_utc: string | null;
+    }>(`/api/catalog/discovery-runs/by-job/${encodeURIComponent(jobId)}`),
   postJob: async (jobType: string, body: Record<string, unknown>) => {
     const response = await fetch(
       `${API_BASE}/api/jobs/${jobType}`,
@@ -688,8 +767,13 @@ export const api = {
       }),
     );
     if (!response.ok) {
+      if (response.status === 404 || response.status === 405) {
+        throw new Error(
+          "Lab API is outdated or missing this job route (404/405). Stop the process on port 8765 and run ./run-lab.sh or ./run-lab-api.sh again.",
+        );
+      }
       const detail = await response.text();
-      throw new Error(detail || `${response.status} ${response.statusText}`);
+      throw new Error(parseApiErrorBody(detail, response.status) || `${response.status} ${response.statusText}`);
     }
     return response.json() as Promise<{ id: string; status: string }>;
   },

@@ -56,3 +56,17 @@ Documented for US equity multi-asset rotation; run via platform pipeline step 4,
 ## Live trading
 
 Use **paper** first: `traderbot terminal run --strategy finrl_ema_intraday --exchange hyperliquid`. Set `HYPERLIQUID_PRIVATE_KEY` for live orders. FinRL rotation remains a **research/backtest** path until wired to a broker executor.
+
+## Causality audit (completed)
+
+| Area | Status |
+|------|--------|
+| `finrl_ema_intraday` | Default `signal_style=level_lag` matches FinRL `ema_cross_signals` shift; backtests use `execution=next_open` + HL `execution_cost_profile`. |
+| FinRL `intraday_engine` | Open-to-open PnL with lagged position; per-bar Sharpe in window metrics (not annualized). |
+| ML `ml_strategy` | Train-only imputation; min-variance `as_of_date`; `y_return_provisional` rows excluded from supervised train/val. |
+| DRL portfolio | Covariance window ends at `i-1`; model pick on validation tail with locked holdout segment (`rl_model.select_best_drl_model`). |
+| Perp RL | Research scaffold: `traderbot.backtesting.perp_rl_env.PerpRlEnv` (fees/funding/slippage); serving hook `integrations/finrl_trading/policy_serve.py`. |
+
+Validation: `python scripts/validate_finrl_platform.py` runs traderbot + FinRL static leakage checks when `FINRL_TRADING_ROOT` is set.
+
+**Not portable to HL live:** quarterly ML, `fundamental_portfolio_drl`, adaptive rotation — US equity research only. Training new perp policies requires an external job + frozen checkpoint wired through `FrozenPolicySpec`.

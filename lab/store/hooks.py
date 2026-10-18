@@ -5,6 +5,7 @@ from typing import Any
 
 from traderbot.algorithms.base import Algorithm
 from traderbot.backtesting.engine import BacktestResult
+from traderbot.data.crypto_store import horizon_label_from_csv_dir
 from lab.store.canonical import (
     build_strategy_parameters,
     parse_symbol_resolution_from_csv,
@@ -23,6 +24,13 @@ from lab.store.record import (
     upsert_experiment,
 )
 from lab.store.catalog import upsert_dataset
+
+
+def _horizon_label_for_csv(csv_path: Path | str | None) -> str | None:
+    """Horizon folder label for a dataset path (``.../horizons/12h/SYM_60.csv`` → ``12h``)."""
+    if not csv_path:
+        return None
+    return horizon_label_from_csv_dir(Path(csv_path).parent)
 
 
 def _commit_record(connection, callback):
@@ -51,6 +59,7 @@ def record_strategy_backtest(
     strategy_id = extra.get("strategy_id") or getattr(algorithm, "name", None)
     csv_path = extra.get("csv")
     symbol, resolution = parse_symbol_resolution_from_csv(csv_path)
+    horizon_label = _horizon_label_for_csv(csv_path)
     parameters = build_strategy_parameters(algorithm)
     data_context = {
         "csv": csv_path,
@@ -76,7 +85,7 @@ def record_strategy_backtest(
             model_id=None,
             symbol=symbol,
             resolution=resolution,
-            horizon_label=None,
+            horizon_label=horizon_label,
             parameters=parameters,
             data_context=data_context,
         )
@@ -135,6 +144,13 @@ def record_sweep_session(
         csv_text = str(sweep_payload.get("csv", ""))
         strategy_id = str(sweep_payload.get("strategy_id", ""))
         symbol, resolution = parse_symbol_resolution_from_csv(csv_text)
+        horizon_label = _horizon_label_for_csv(csv_text)
+        live_tune = sweep_payload.get("live_tune")
+        if isinstance(live_tune, dict):
+            if live_tune.get("symbol"):
+                symbol = str(live_tune["symbol"]).upper()
+            if live_tune.get("interval"):
+                resolution = str(live_tune["interval"])
         if csv_text:
             upsert_dataset(
                 connection,
@@ -150,13 +166,25 @@ def record_sweep_session(
             model_id=None,
             symbol=symbol,
             resolution=resolution,
-            horizon_label=None,
+            horizon_label=horizon_label,
             parameters={"strategy_id": strategy_id, **best_params},
             data_context={
                 "csv": csv_text,
                 "bars": sweep_payload.get("bars"),
                 "rank_by": sweep_payload.get("rank_by"),
+                "selection_mode": sweep_payload.get("selection_mode_applied")
+                or sweep_payload.get("selection_mode"),
+                "test": sweep_payload.get("test"),
+                "splits": sweep_payload.get("splits"),
                 "holdout_tail_bars": sweep_payload.get("holdout_tail_bars"),
+                "optimize_start_utc": sweep_payload.get("optimize_start_utc"),
+                "optimize_end_utc": sweep_payload.get("optimize_end_utc"),
+                "compare_start_utc": sweep_payload.get("compare_start_utc"),
+                "compare_end_utc": sweep_payload.get("compare_end_utc"),
+                "sample_start_utc": sweep_payload.get("sample_start_utc"),
+                "sample_end_utc": sweep_payload.get("sample_end_utc"),
+                "holdout_start_utc": sweep_payload.get("holdout_start_utc"),
+                "holdout_end_utc": sweep_payload.get("holdout_end_utc"),
             },
         )
         return insert_sweep_session(
@@ -164,7 +192,7 @@ def record_sweep_session(
             strategy_id=strategy_id,
             symbol=symbol,
             resolution=resolution,
-            horizon_label=None,
+            horizon_label=horizon_label,
             csv_path=csv_text,
             bar_count=sweep_payload.get("bars"),
             rank_by=str(sweep_payload.get("rank_by", "")),
@@ -180,6 +208,10 @@ def record_sweep_session(
             },
             config_id=config_id,
             manifest_path=str(manifest_path) if manifest_path else None,
+            optimize_start_utc=sweep_payload.get("optimize_start_utc"),
+            optimize_end_utc=sweep_payload.get("optimize_end_utc"),
+            compare_start_utc=sweep_payload.get("compare_start_utc"),
+            compare_end_utc=sweep_payload.get("compare_end_utc"),
         )
 
     try:

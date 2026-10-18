@@ -34,6 +34,7 @@ from lab.job_resolvers import (
     resolve_sweep_body,
 )
 from lab.task_log import CancellableJobLogWriter
+from lab.thread_local_io import bind_job_output
 from lab.tasks import (
     run_export_task,
     run_named_pipeline_task,
@@ -42,6 +43,7 @@ from lab.tasks import (
     run_strategy_sweep_task,
     run_strategy_test_task,
     run_custom_research_task,
+    run_opportunity_discovery_task,
     run_finrl_platform_task,
     run_wondertrader_platform_task,
 )
@@ -200,9 +202,8 @@ def _run_inprocess_job(
             connection.close()
         writer.write(f"task: {task_name}\n")
         writer.flush()
-        from contextlib import redirect_stderr, redirect_stdout
 
-        with redirect_stdout(writer), redirect_stderr(writer):
+        with bind_job_output(writer):
             runner()
         writer.flush()
         log_text = writer.getvalue()
@@ -215,7 +216,10 @@ def _run_inprocess_job(
         connection = connection_factory()
         _update_job(connection, job_id, status=JOB_STATUS_CANCELLED, log_text=log_text, finished=True)
     except Exception as exc:
-        writer.write(f"\n[lab] {exc}\n")
+        import traceback
+
+        writer.write(f"\n[lab] {type(exc).__name__}: {exc}\n")
+        writer.write(traceback.format_exc())
         writer.flush()
         log_text = writer.getvalue()
         connection = connection_factory()
@@ -290,32 +294,6 @@ def register_job_routes(app, get_connection: Callable) -> None:
             return list_jobs(connection, limit=limit)
         finally:
             connection.close()
-
-    @app.get("/api/jobs/{job_id}")
-    def get_job(job_id: str):
-        connection = get_connection()
-        try:
-            row = _fetch_job(connection, job_id)
-        finally:
-            connection.close()
-        if row is None:
-            raise HTTPException(status_code=404, detail="job not found")
-        return row
-
-    @app.post("/api/jobs/{job_id}/stop")
-    def stop_job(job_id: str):
-        connection = get_connection()
-        try:
-            try:
-                result = stop_lab_job(connection, job_id)
-            except ValueError as exc:
-                detail = str(exc)
-                if detail == "job not found":
-                    raise HTTPException(status_code=404, detail=detail) from exc
-                raise HTTPException(status_code=400, detail=detail) from exc
-        finally:
-            connection.close()
-        return result
 
     @app.post("/api/jobs/export")
     def job_export(body: dict[str, Any]):
@@ -496,6 +474,22 @@ def register_job_routes(app, get_connection: Callable) -> None:
         )
         return {"id": job_id, "status": JOB_STATUS_QUEUED}
 
+    @app.post("/api/jobs/opportunity-discovery")
+    def job_opportunity_discovery(body: dict[str, Any]):
+        connection = get_connection()
+        try:
+            job_id = _insert_job(connection, "opportunity-discovery", body)
+        finally:
+            connection.close()
+        task_body = {**body, "job_id": job_id}
+        _start_inprocess(
+            get_connection,
+            job_id,
+            "opportunity-discovery",
+            lambda: run_opportunity_discovery_task(task_body),
+        )
+        return {"id": job_id, "status": JOB_STATUS_QUEUED}
+
     @app.post("/api/jobs/custom-research")
     def job_custom_research(body: dict[str, Any]):
         connection = get_connection()
@@ -580,3 +574,29 @@ def register_job_routes(app, get_connection: Callable) -> None:
             lambda: run_terminal_live_task(task_body),
         )
         return {"id": job_id, "status": JOB_STATUS_QUEUED}
+
+    @app.get("/api/jobs/{job_id}")
+    def get_job(job_id: str):
+        connection = get_connection()
+        try:
+            row = _fetch_job(connection, job_id)
+        finally:
+            connection.close()
+        if row is None:
+            raise HTTPException(status_code=404, detail="job not found")
+        return row
+
+    @app.post("/api/jobs/{job_id}/stop")
+    def stop_job(job_id: str):
+        connection = get_connection()
+        try:
+            try:
+                result = stop_lab_job(connection, job_id)
+            except ValueError as exc:
+                detail = str(exc)
+                if detail == "job not found":
+                    raise HTTPException(status_code=404, detail=detail) from exc
+                raise HTTPException(status_code=400, detail=detail) from exc
+        finally:
+            connection.close()
+        return result

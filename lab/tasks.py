@@ -197,6 +197,13 @@ def run_custom_research_task(body: dict[str, Any]) -> None:
     run_custom_research(body)
 
 
+def run_opportunity_discovery_task(body: dict[str, Any]) -> None:
+    from lab.discovery_job import run_opportunity_discovery_task as run_discovery
+
+    job_id = str(body.get("job_id") or "") or None
+    run_discovery(body, job_id=job_id, log=print)
+
+
 def run_named_pipeline_task(body: dict[str, Any]) -> None:
     import json
 
@@ -218,7 +225,13 @@ def run_named_pipeline_task(body: dict[str, Any]) -> None:
             if field.kind == "text" and field.default:
                 kwargs[field.key] = field.default
             continue
-        kwargs[field.key] = body[field.key]
+        raw = body[field.key]
+        if field.kind == "number":
+            kwargs[field.key] = int(raw)
+        elif field.kind == "boolean":
+            kwargs[field.key] = raw is True or (isinstance(raw, str) and raw.lower() not in ("false", "0", ""))
+        else:
+            kwargs[field.key] = str(raw)
     if "all_assets" in body:
         kwargs["all_assets"] = bool(body["all_assets"])
         if kwargs["all_assets"]:

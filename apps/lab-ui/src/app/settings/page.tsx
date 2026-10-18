@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, TextInput } from "@/components/ui/Field";
 import { JsonBlock } from "@/components/ui/JsonBlock";
+import { Page } from "@/components/ui/Page";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { JobErrorAlert } from "@/components/JobErrorAlert";
+import { labUiTokenConfigured } from "@/components/LabApiAuth";
 import { ErrorState, Skeleton } from "@/components/ui/States";
 import { api } from "@/lib/api";
-
-const labUiTokenConfigured = Boolean(process.env.NEXT_PUBLIC_LAB_API_TOKEN?.trim());
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
@@ -23,12 +24,29 @@ export default function SettingsPage() {
   const [createTotp, setCreateTotp] = useState("");
   const [hlWallet, setHlWallet] = useState("");
   const [hlPrivateKey, setHlPrivateKey] = useState("");
+  const [coinbeaconKey, setCoinbeaconKey] = useState("");
+  const [coinbeaconKeyAlt, setCoinbeaconKeyAlt] = useState("");
 
   const hyperliquidQuery = useQuery({
     queryKey: ["auth-hyperliquid"],
     queryFn: api.authHyperliquidAccount,
     enabled: statusQuery.data?.hyperliquid_wallet_configured === true,
     retry: false,
+  });
+
+  const saveCoinbeaconMutation = useMutation({
+    mutationFn: () =>
+      api.authSaveCoinbeacon({
+        api_key: coinbeaconKey || undefined,
+        api_key_alt: coinbeaconKeyAlt || undefined,
+        write_env: true,
+      }),
+    onSuccess: () => {
+      setCoinbeaconKey("");
+      setCoinbeaconKeyAlt("");
+      void queryClient.invalidateQueries({ queryKey: ["auth-status"] });
+      void queryClient.invalidateQueries({ queryKey: ["coinbeacon-status"] });
+    },
   });
 
   const saveHyperliquidMutation = useMutation({
@@ -89,7 +107,7 @@ export default function SettingsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 sm:space-y-8">
+    <Page className="mx-auto max-w-4xl">
       <PageHeader
         eyebrow="Configuration"
         title="Settings"
@@ -134,6 +152,18 @@ export default function SettingsPage() {
               <code className="text-xs">NEXT_PUBLIC_LAB_API_TOKEN</code> in UI build:{" "}
               <span className={labUiTokenConfigured ? "text-emerald-300" : "text-muted"}>
                 {labUiTokenConfigured ? "set" : "not set"}
+              </span>
+            </li>
+            <li>
+              CoinBeacon keys in repo <code className="text-xs">.env</code>:{" "}
+              <span
+                className={
+                  statusQuery.data.coinbeacon_configured ? "text-emerald-300" : "text-muted"
+                }
+              >
+                {statusQuery.data.coinbeacon_configured
+                  ? `yes (${statusQuery.data.coinbeacon_key_count ?? 1} key(s))`
+                  : "not set"}
               </span>
             </li>
           </ul>
@@ -196,6 +226,45 @@ export default function SettingsPage() {
       </Card>
 
       <Card
+        title="CoinBeacon"
+        description="Discovery on /new. Keys are written to repo .env on the Lab API host only (never in the browser bundle)."
+      >
+        <form
+          className="space-y-3 max-w-md"
+          onSubmit={(event) => {
+            event.preventDefault();
+            saveCoinbeaconMutation.mutate();
+          }}
+        >
+          <Field label="COINBEACON_API_KEY">
+            <TextInput
+              type="password"
+              value={coinbeaconKey}
+              onChange={(event) => setCoinbeaconKey(event.target.value)}
+              placeholder="Leave blank to keep existing primary"
+              autoComplete="off"
+            />
+          </Field>
+          <Field label="COINBEACON_API_KEY_ALT" hint="Second key for 429 / low-credit failover.">
+            <TextInput
+              type="password"
+              value={coinbeaconKeyAlt}
+              onChange={(event) => setCoinbeaconKeyAlt(event.target.value)}
+              placeholder="Leave blank to keep existing alt"
+              autoComplete="off"
+            />
+          </Field>
+          {saveCoinbeaconMutation.isError && <JobErrorAlert error={saveCoinbeaconMutation.error} />}
+          {saveCoinbeaconMutation.isSuccess && (
+            <p className="text-sm text-emerald-300/90">Saved to .env. Discovery can use keys immediately.</p>
+          )}
+          <Button type="submit" variant="secondary" disabled={saveCoinbeaconMutation.isPending}>
+            Save CoinBeacon keys
+          </Button>
+        </form>
+      </Card>
+
+      <Card
         title="Hyperliquid"
         description="Wallet address for charts and account state; private key required for live perp orders."
       >
@@ -223,13 +292,7 @@ export default function SettingsPage() {
               autoComplete="off"
             />
           </Field>
-          {saveHyperliquidMutation.isError && (
-            <p className="text-sm text-red-400">
-              {saveHyperliquidMutation.error instanceof Error
-                ? saveHyperliquidMutation.error.message
-                : "Save failed."}
-            </p>
-          )}
+          {saveHyperliquidMutation.isError && <JobErrorAlert error={saveHyperliquidMutation.error} />}
           {saveHyperliquidMutation.isSuccess && (
             <p className="text-sm text-emerald-300/90">Saved to .env on the Lab API host.</p>
           )}
@@ -243,9 +306,7 @@ export default function SettingsPage() {
         <Card title="Profile (API key)">
           {profileQuery.isLoading && <Skeleton className="h-16" />}
           {profileQuery.isError && (
-            <p className="text-sm text-red-400">
-              {profileQuery.error instanceof Error ? profileQuery.error.message : "Profile failed."}
-            </p>
+            <ErrorState title="Could not load profile" error={profileQuery.error} hintAuth={false} />
           )}
           {profileQuery.data && <JsonBlock value={profileQuery.data} />}
         </Card>
@@ -273,11 +334,7 @@ export default function SettingsPage() {
           <Field label="2FA (optional)">
             <TextInput value={totp} onChange={(e) => setTotp(e.target.value)} placeholder="6-digit TOTP" />
           </Field>
-          {loginMutation.isError && (
-            <p className="text-sm text-red-400">
-              {loginMutation.error instanceof Error ? loginMutation.error.message : "Login failed."}
-            </p>
-          )}
+          {loginMutation.isError && <JobErrorAlert error={loginMutation.error} />}
           {loginMutation.isSuccess && (
             <p className="text-sm text-emerald-300/90">Login submitted — check status above.</p>
           )}
@@ -304,11 +361,7 @@ export default function SettingsPage() {
           <Field label="2FA (required)">
             <TextInput value={createTotp} onChange={(e) => setCreateTotp(e.target.value)} />
           </Field>
-          {createKeyMutation.isError && (
-            <p className="text-sm text-red-400">
-              {createKeyMutation.error instanceof Error ? createKeyMutation.error.message : "Create failed."}
-            </p>
-          )}
+          {createKeyMutation.isError && <JobErrorAlert error={createKeyMutation.error} />}
           {createKeyMutation.data && <JsonBlock value={createKeyMutation.data} />}
           <Button type="submit" disabled={createKeyMutation.isPending || !createTotp}>
             Create API key
@@ -321,6 +374,6 @@ export default function SettingsPage() {
           <JsonBlock value={keysQuery.data} />
         </Card>
       )}
-    </div>
+    </Page>
   );
 }

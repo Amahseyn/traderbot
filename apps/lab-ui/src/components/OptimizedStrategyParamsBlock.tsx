@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { StrategyParamFields } from "@/components/StrategyParamFields";
+import { ErrorState } from "@/components/ui/States";
 import { api } from "@/lib/api";
 
 type OptimizedStrategyParamsBlockProps = {
@@ -75,8 +76,13 @@ export function OptimizedStrategyParamsBlock({
           checked={useOptimized}
           onChange={(event) => onUseOptimizedChange(event.target.checked)}
         />
-        Use robust optimized defaults (sweep winner requires separate approval)
+        Use stored sweep / robust defaults for this market and candle size
       </label>
+      <p className="text-xs text-muted">
+        Loads a prior grid result from the Lab store. It does not fetch new candles — use{" "}
+        <span className="text-slate-300">Optimize before session</span> below to fit on the last 100
+        closed bars (per market × interval) before trading starts.
+      </p>
       {useOptimized && optimizedQuery.data?.sweep_meta?.sweep_fallback && (
         <p className="text-sm text-amber-200/90">
           No sweep stored for {optimizedQuery.data.sweep_meta.requested_symbol ?? "this market"} yet —
@@ -84,6 +90,20 @@ export function OptimizedStrategyParamsBlock({
           session” or a Lab sweep on this pair to tune locally.
         </p>
       )}
+      {useOptimized &&
+        optimizedQuery.data?.sweep_meta?.optimize_start_utc &&
+        optimizedQuery.data?.sweep_meta?.optimize_end_utc && (
+          <p className="text-sm text-muted">
+            Params fit on {optimizedQuery.data.sweep_meta.optimize_start_utc} →{" "}
+            {optimizedQuery.data.sweep_meta.optimize_end_utc}
+            {optimizedQuery.data.sweep_meta.compare_start_utc
+              ? ` (compare window ${optimizedQuery.data.sweep_meta.compare_start_utc} → ${
+                  optimizedQuery.data.sweep_meta.compare_end_utc ?? "…"
+                })`
+              : null}
+            .
+          </p>
+        )}
       {useOptimized && !symbol && !datasetId && (
         <p className="text-sm text-amber-200/90">Select a market or dataset to load tuned values.</p>
       )}
@@ -91,11 +111,7 @@ export function OptimizedStrategyParamsBlock({
         <p className="text-sm text-muted">Loading optimized parameters…</p>
       )}
       {useOptimized && optimizedQuery.isError && (
-        <p className="text-sm text-red-400">
-          {optimizedQuery.error instanceof Error
-            ? optimizedQuery.error.message
-            : "Could not load optimized parameters."}
-        </p>
+        <ErrorState title="Could not load optimized parameters" error={optimizedQuery.error} />
       )}
       {fields.length > 0 && (
         <StrategyParamFields

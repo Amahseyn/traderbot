@@ -23,9 +23,13 @@ def algorithm_from_args(args: argparse.Namespace) -> Algorithm:
     use_optimized = getattr(args, "use_optimized_defaults", False)
     apply_sweep = getattr(args, "apply_sweep_winner", False)
     if use_optimized or apply_sweep:
-        src = getattr(args, "src", None)
-        dst = getattr(args, "dst", None)
-        symbol = market_symbol(str(src), str(dst)) if src and dst else None
+        raw_market_symbol = getattr(args, "market_symbol", None)
+        if raw_market_symbol and str(raw_market_symbol).strip():
+            symbol = str(raw_market_symbol).strip().upper()
+        else:
+            src = getattr(args, "src", None)
+            dst = getattr(args, "dst", None)
+            symbol = market_symbol(str(src), str(dst)) if src and dst else None
         csv_path = getattr(args, "csv", None)
         namespace = resolve_optimized_namespace(
             args.strategy,

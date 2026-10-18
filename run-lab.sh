@@ -49,7 +49,7 @@ if ! lab_api_healthy "${health_url}"; then
     exit 1
   fi
 else
-  echo "Lab API already running."
+  echo "Lab API already running (current feature set)."
 fi
 
 if [[ "${LAB_KILL_UI_PORT:-1}" != "0" ]] && _port_in_use "${ui_port}"; then

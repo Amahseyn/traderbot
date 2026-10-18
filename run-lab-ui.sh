@@ -9,6 +9,10 @@ ui_host="${LAB_UI_HOST:-127.0.0.1}"
 
 # shellcheck source=scripts/kill-listen-port.sh
 source "${repo_root}/scripts/kill-listen-port.sh"
+# shellcheck source=scripts/lab-dev-env.sh
+source "${repo_root}/scripts/lab-dev-env.sh"
+
+prepare_lab_dev_env "${repo_root}"
 # shellcheck source=scripts/ensure-lab-api.sh
 source "${repo_root}/scripts/ensure-lab-api.sh"
 
