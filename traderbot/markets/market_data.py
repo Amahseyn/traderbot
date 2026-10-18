@@ -7,8 +7,8 @@ import requests
 
 from traderbot.nobitex.client import BASE_URL, USER_AGENT
 from traderbot.markets.http_client import http_get_with_retries
-from traderbot.markets.utils import history_to_timestamp, trim_forming_candle
-from traderbot.utils.bars import one_minute_bars_known_at, one_minute_history_to_timestamp
+from traderbot.markets.utils import history_to_timestamp, resolution_seconds, trim_forming_candle
+from traderbot.utils.bars import one_minute_bars_known_at
 from traderbot.utils.constants import (
     NOBITEX_HTTP_TIMEOUT_SECONDS,
     NOBITEX_PAGE_DELAY_SECONDS,
@@ -167,7 +167,8 @@ def fetch_latest_closed_bar(
     rows = ohlc_rows(payload, symbol=symbol, resolution=resolution)
     if not rows:
         return None
-    closed_bars = trim_forming_candle(rows)
+    now = time.time() if known_at_unix_seconds is None else known_at_unix_seconds
+    closed_bars = trim_forming_candle(rows, bar_seconds=resolution_seconds(resolution), now_unix_seconds=now)
     if not closed_bars:
         return None
     return closed_bars[-1]
@@ -183,7 +184,7 @@ def fetch_one_minute_bars(
     """Closed 1m OHLC for ``symbol`` at ``known_at_unix_seconds`` (oldest first, up to ``max_bars``)."""
     if max_bars < 1:
         return []
-    history_to_unix_seconds = one_minute_history_to_timestamp(known_at_unix_seconds)
+    history_to_unix_seconds = history_to_timestamp(ONE_MINUTE_RESOLUTION, known_at_unix_seconds)
     payload = fetch_ohlc_page(
         symbol=symbol,
         resolution=ONE_MINUTE_RESOLUTION,
@@ -192,7 +193,7 @@ def fetch_one_minute_bars(
         session=session,
     )
     rows = ohlc_rows(payload, symbol=symbol, resolution=ONE_MINUTE_RESOLUTION)
-    closed_bars = one_minute_bars_known_at(trim_forming_candle(rows), known_at_unix_seconds)
+    closed_bars = one_minute_bars_known_at(rows, known_at_unix_seconds)
     return closed_bars[-max_bars:]
 
 
@@ -215,7 +216,7 @@ def fetch_recent_closed_bars(
         session=session,
     )
     rows = ohlc_rows(payload, symbol=symbol, resolution=resolution)
-    closed_bars = trim_forming_candle(rows)
+    closed_bars = trim_forming_candle(rows, bar_seconds=resolution_seconds(resolution))
     return closed_bars[-max_bars:]
 
 
@@ -235,7 +236,7 @@ def fetch_closed_bars_after(
         history_to_unix_seconds=history_to_unix_seconds,
         session=session,
     )
-    closed = trim_forming_candle(rows)
+    closed = trim_forming_candle(rows, bar_seconds=resolution_seconds(resolution))
     return [bar for bar in closed if int(bar["timestamp"]) > after_open_unix_seconds]
 
 
@@ -247,23 +248,34 @@ def incremental_bar_source(
     last_bar_open_unix_seconds: int | None = None,
     pending_bars: list[dict[str, Any]] | None = None,
 ) -> Callable[[], dict[str, Any] | None]:
-    """Callable that yields each closed bar once (for live ``AlgorithmTrader`` loops)."""
+    """Callable that yields each closed bar once, oldest first (for live trader loops).
+
+    When the loop falls behind (slow step, network hiccup) every missed closed bar is
+    fetched and replayed in order instead of skipping to the latest one. ``source.pending()``
+    tells the loop that more bars are queued so it can step again without sleeping.
+    """
     seen_last = last_bar_open_unix_seconds
     queue: list[dict[str, Any]] = list(pending_bars or [])
+    bar_seconds = resolution_seconds(resolution)
 
     def source() -> dict[str, Any] | None:
         nonlocal seen_last
-        if queue:
-            bar = queue.pop(0)
-            seen_last = int(bar["timestamp"])
-            return bar
-        bar = fetch_latest_closed_bar(symbol=symbol, resolution=resolution, session=session)
-        if bar is None:
-            return None
-        bar_open_unix_seconds = int(bar["timestamp"])
-        if seen_last is not None and bar_open_unix_seconds <= seen_last:
-            return None
-        seen_last = bar_open_unix_seconds
+        if not queue:
+            bar = fetch_latest_closed_bar(symbol=symbol, resolution=resolution, session=session)
+            if bar is None:
+                return None
+            bar_open_unix_seconds = int(bar["timestamp"])
+            if seen_last is not None and bar_open_unix_seconds <= seen_last:
+                return None
+            if seen_last is not None and bar_open_unix_seconds - seen_last > bar_seconds:
+                missed = fetch_closed_bars_after(
+                    symbol=symbol, resolution=resolution, after_open_unix_seconds=seen_last, session=session
+                )
+                queue.extend(b for b in missed if int(b["timestamp"]) < bar_open_unix_seconds)
+            queue.append(bar)
+        bar = queue.pop(0)
+        seen_last = int(bar["timestamp"])
         return bar
 
+    source.pending = lambda: len(queue)  # type: ignore[attr-defined]
     return source

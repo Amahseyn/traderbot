@@ -88,7 +88,7 @@ def test_capital_cap_limits_live_buy_spend(keys, monkeypatch):
     )
     monkeypatch.setattr(
         "traderbot.traders.strategies.algorithm_trader.wait_for_order_fill",
-        lambda _client, _order_id: {"matchedAmount": recorded[-1][1]},
+        lambda _client, _order_id, **_kwargs: {"matchedAmount": recorded[-1][1]},
     )
     monkeypatch.setattr(
         "traderbot.traders.strategies.algorithm_trader.list_wallets",

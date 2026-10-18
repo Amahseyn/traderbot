@@ -33,7 +33,18 @@ def add_loop_flags(parser: argparse.ArgumentParser) -> None:
         "--poll-sec",
         type=float,
         default=60.0,
-        help="Seconds between loop iterations (live run only)",
+        help="Max seconds between loop iterations (live run only)",
+    )
+    parser.add_argument(
+        "--align-to-bar",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Wake right after each bar close instead of every --poll-sec (default: on)",
+    )
+    parser.add_argument(
+        "--ws",
+        action="store_true",
+        help="Hyperliquid: stream candles over the public websocket (REST fallback when stale)",
     )
     parser.add_argument(
         "--max-steps",

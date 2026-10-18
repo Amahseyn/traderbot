@@ -100,7 +100,9 @@ def test_one_minute_history_to_timestamp_is_one_minute_before_known_at():
     assert one_minute_history_to_timestamp(known_at_unix_seconds) == known_at_unix_seconds - 60
 
 
-def test_fetch_one_minute_bars_uses_history_to_one_minute_before(monkeypatch):
+def test_fetch_one_minute_bars_uses_current_bar_start_as_history_to(monkeypatch):
+    # Nobitex UDF returns bars whose open is strictly before ``to`` (checked against the
+    # public API), so ``to`` = start of the forming bar yields every closed bar.
     known_at_unix_seconds = 1_000
     captured: dict[str, int] = {}
 
@@ -108,7 +110,7 @@ def test_fetch_one_minute_bars_uses_history_to_one_minute_before(monkeypatch):
         captured["history_to_unix_seconds"] = kwargs["history_to_unix_seconds"]
         return {
             "s": "ok",
-            "t": [880, 940, 1000],
+            "t": [840, 900, 960],
             "o": [1, 1, 1],
             "h": [1, 1, 1],
             "l": [1, 1, 1],
@@ -118,18 +120,19 @@ def test_fetch_one_minute_bars_uses_history_to_one_minute_before(monkeypatch):
 
     monkeypatch.setattr("traderbot.markets.market_data.fetch_ohlc_page", fake_page)
     rows = fetch_one_minute_bars(symbol="BTCIRT", known_at_unix_seconds=known_at_unix_seconds, max_bars=10)
-    assert captured["history_to_unix_seconds"] == known_at_unix_seconds - 60
-    assert [r["timestamp"] for r in rows] == [880, 940]
+    assert captured["history_to_unix_seconds"] == 960
+    # 960 is still forming at t=1000 (closes at 1020) and is filtered out by time.
+    assert [r["timestamp"] for r in rows] == [840, 900]
 
 
 def test_fetch_latest_closed_bar_known_at(monkeypatch):
-    known_at_unix_seconds = 3_700
+    known_at_unix_seconds = 3 * 3600 + 100
 
     def fake_page(**kwargs):
-        assert kwargs["history_to_unix_seconds"] == known_at_unix_seconds - 3600
+        assert kwargs["history_to_unix_seconds"] == 3 * 3600
         return {
             "s": "ok",
-            "t": [100, 200, 300],
+            "t": [0, 3600, 7200],
             "o": [1, 1, 1],
             "h": [1, 1, 1],
             "l": [1, 1, 1],
@@ -140,7 +143,8 @@ def test_fetch_latest_closed_bar_known_at(monkeypatch):
     monkeypatch.setattr("traderbot.markets.market_data.fetch_ohlc_page", fake_page)
     bar = fetch_latest_closed_bar(symbol="BTCIRT", resolution="60", known_at_unix_seconds=known_at_unix_seconds)
     assert bar is not None
-    assert bar["timestamp"] == 200
+    # The last row is closed (7200 + 3600 <= known_at) and must not be trimmed.
+    assert bar["timestamp"] == 7200
 
 
 def test_incremental_bar_source_dedupes(monkeypatch):
@@ -166,3 +170,28 @@ def test_incremental_bar_source_dedupes(monkeypatch):
     assert source() is None
     assert source()["timestamp"] == 200
     assert source() is None
+
+
+def test_incremental_bar_source_replays_missed_bars(monkeypatch):
+    def bar(ts):
+        return {"symbol": "BTCIRT", "resolution": "1", "timestamp": ts, "open": 1.0, "high": 1.0, "low": 1.0,
+                "close": 1.0, "volume": 1.0}
+
+    monkeypatch.setattr("traderbot.markets.market_data.fetch_latest_closed_bar", lambda **_k: bar(300))
+    monkeypatch.setattr(
+        "traderbot.markets.market_data.fetch_closed_bars_after",
+        lambda **kwargs: [bar(t) for t in (120, 180, 240, 300) if t > kwargs["after_open_unix_seconds"]],
+    )
+    source = incremental_bar_source(symbol="BTCIRT", resolution="1", last_bar_open_unix_seconds=120)
+    assert source()["timestamp"] == 180
+    assert source.pending() == 2
+    assert [source()["timestamp"], source()["timestamp"]] == [240, 300]
+    assert source() is None
+
+
+def test_trim_forming_candle_is_time_based_when_bar_seconds_given():
+    from traderbot.markets.utils import trim_forming_candle
+
+    bars = [{"timestamp": 0}, {"timestamp": 60}]
+    assert [b["timestamp"] for b in trim_forming_candle(list(bars), bar_seconds=60, now_unix_seconds=120)] == [0, 60]
+    assert [b["timestamp"] for b in trim_forming_candle(list(bars), bar_seconds=60, now_unix_seconds=119)] == [0]

@@ -47,6 +47,7 @@ class TerminalAlgorithmTrader(AlgorithmTrader):
         self._poll_count = poll
 
         bar = self.bar_source() if self.bar_source else None
+        self.last_step_got_bar = bar is not None
         if bar is None:
             self._sync_mark_from_closed_bar()
             tick_no_bar: dict[str, object] = {

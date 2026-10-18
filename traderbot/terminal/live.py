@@ -19,7 +19,15 @@ def run_live(args: argparse.Namespace) -> None:
         )
 
     should_stop = getattr(args, "should_stop", None)
-    bot = Bot([trader], interval_sec=args.poll_sec)
+    bar_seconds = None
+    if getattr(args, "align_to_bar", False):
+        from traderbot.markets.utils import resolution_seconds
+
+        try:
+            bar_seconds = resolution_seconds(str(args.interval))
+        except (KeyError, ValueError, TypeError):
+            bar_seconds = None
+    bot = Bot([trader], interval_sec=args.poll_sec, bar_seconds=bar_seconds)
     try:
         bot.run(max_steps=args.max_steps, should_stop=should_stop)
     except KeyboardInterrupt:

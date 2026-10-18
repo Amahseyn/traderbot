@@ -180,7 +180,7 @@ def fetch_hyperliquid_ohlc_range(
             continue
         seen.add(timestamp)
         deduped.append(bar)
-    closed = trim_forming_candle(deduped)
+    closed = trim_forming_candle(deduped, bar_seconds=bar_seconds)
     return [bar for bar in closed if history_from_unix_seconds <= int(bar["timestamp"]) <= history_to_unix_seconds]
 
 
@@ -201,7 +201,7 @@ def fetch_hyperliquid_recent_closed_bars(
     if not candles:
         return []
     bars = [_normalize_candle(row, coin=coin, resolution=resolution) for row in candles]
-    closed_bars = trim_forming_candle(bars)
+    closed_bars = trim_forming_candle(bars, bar_seconds=bar_seconds, now_unix_seconds=end_ms / 1000)
     return closed_bars[-max_bars:]
 
 
@@ -219,7 +219,22 @@ def fetch_hyperliquid_closed_bars_after(
         return []
     candles = hyperliquid_info().candles_snapshot(coin, interval, start_ms, end_ms)
     bars = [_normalize_candle(row, coin=coin, resolution=resolution) for row in candles or []]
-    return trim_forming_candle(bars)
+    closed = trim_forming_candle(bars, bar_seconds=_bar_duration_seconds(resolution), now_unix_seconds=end_ms / 1000)
+    return [bar for bar in closed if int(bar["timestamp"]) > after_open_unix_seconds]
+
+
+def hyperliquid_candle_stream(*, src: str, resolution: str):
+    """Started websocket candle stream for ``src`` (``None`` if it cannot connect)."""
+    from traderbot.hyperliquid.ws_candles import HyperliquidCandleStream
+
+    coin = hyperliquid_coin_from_src(src)
+    stream = HyperliquidCandleStream(
+        coin=coin,
+        interval=hyperliquid_interval(resolution),
+        bar_seconds=_bar_duration_seconds(resolution),
+        normalize=lambda candle: _normalize_candle(candle, coin=coin, resolution=resolution),
+    )
+    return stream if stream.start() else None
 
 
 def hyperliquid_incremental_bar_source(
@@ -228,28 +243,43 @@ def hyperliquid_incremental_bar_source(
     resolution: str,
     last_bar_open_unix_seconds: int | None = None,
     pending_bars: list[dict[str, Any]] | None = None,
+    stream: Any | None = None,
 ) -> Callable[[], dict[str, Any] | None]:
-    coin = hyperliquid_coin_from_src(src)
+    """Each closed bar once, oldest first; missed bars are replayed, not skipped.
+
+    ``stream`` (a :class:`~traderbot.hyperliquid.ws_candles.HyperliquidCandleStream`) delivers
+    bars the moment they close; when it is absent or unhealthy the source polls REST.
+    ``source.pending()`` reports queued bars so the loop can step again without sleeping.
+    """
     symbol = hyperliquid_market_symbol(src, "usdt")
     seen_last = last_bar_open_unix_seconds
     queue = list(pending_bars or [])
 
+    def _rest_bars() -> list[dict[str, Any]]:
+        if seen_last is None:
+            return fetch_hyperliquid_recent_closed_bars(src=src, resolution=resolution, max_bars=1)
+        return fetch_hyperliquid_closed_bars_after(src=src, resolution=resolution, after_open_unix_seconds=seen_last)
+
     def source() -> dict[str, Any] | None:
         nonlocal seen_last
-        if queue:
-            bar = queue.pop(0)
-            seen_last = int(bar["timestamp"])
-            return bar
-        bars = fetch_hyperliquid_recent_closed_bars(src=src, resolution=resolution, max_bars=2)
-        if not bars:
+        if not queue:
+            fresh: list[dict[str, Any]] = []
+            if stream is not None and stream.healthy():
+                fresh = stream.drain_closed()
+                if fresh and seen_last is not None and int(fresh[0]["timestamp"]) - seen_last > _bar_duration_seconds(resolution):
+                    fresh = _rest_bars()  # gap while reconnecting: backfill from REST
+            else:
+                fresh = _rest_bars()
+            queue.extend(b for b in fresh if seen_last is None or int(b["timestamp"]) > seen_last)
+            queue.sort(key=lambda b: int(b["timestamp"]))
+        while queue and seen_last is not None and int(queue[0]["timestamp"]) <= seen_last:
+            queue.pop(0)
+        if not queue:
             return None
-        bar = bars[-1]
-        bar_open = int(bar["timestamp"])
-        if seen_last is not None and bar_open <= seen_last:
-            return None
-        seen_last = bar_open
-        bar = dict(bar)
+        bar = dict(queue.pop(0))
+        seen_last = int(bar["timestamp"])
         bar["symbol"] = symbol
         return bar
 
+    source.pending = lambda: len(queue)  # type: ignore[attr-defined]
     return source

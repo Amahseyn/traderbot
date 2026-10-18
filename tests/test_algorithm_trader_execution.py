@@ -47,7 +47,7 @@ def test_live_sell_keeps_inventory_when_order_rejected(keys, monkeypatch):
     def fake_add_market_order(_client, *, symbol, side, amount, price):
         return {"order": {"id": 99}}
 
-    def reject_fill(_client, _order_id):
+    def reject_fill(_client, _order_id, **_kwargs):
         raise NobitexClientError("order 99 ended with status rejected")
 
     monkeypatch.setattr(

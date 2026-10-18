@@ -51,7 +51,10 @@ def wait_for_order_fill(
     *,
     poll_interval_sec: float = 1.0,
     timeout_sec: float = 60.0,
+    raise_on_timeout: bool = True,
 ) -> dict[str, Any]:
+    """Poll an order until done. With ``raise_on_timeout=False`` the last status is returned
+    instead of raising, so a live loop is not blocked for long by a slow fill."""
     deadline = time.monotonic() + timeout_sec
     last: dict[str, Any] | None = None
     while time.monotonic() < deadline:
@@ -62,6 +65,8 @@ def wait_for_order_fill(
         if status in ("canceled", "cancelled", "rejected"):
             raise NobitexClientError(f"order {order_id} ended with status {status}", body=last)
         time.sleep(poll_interval_sec)
+    if not raise_on_timeout:
+        return last or {}
     raise NobitexClientError(f"order {order_id} not filled within {timeout_sec}s", body=last)
 
 

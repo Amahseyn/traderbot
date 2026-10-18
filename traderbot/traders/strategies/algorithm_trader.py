@@ -21,6 +21,11 @@ from traderbot.traders.execution import ExecutionPolicy
 from traderbot.traders.inventory_reconcile import base_currency_for_symbol, sync_inventory_to_exchange_base
 from traderbot.traders.nobitex import NobitexTrader
 from traderbot.traders.position import order_action_for_long_only
+from typing import Any
+
+#: Max seconds a live market order may block the loop waiting for its fill (was 60s).
+NOBITEX_FILL_WAIT_SEC = 5.0
+NOBITEX_FILL_POLL_SEC = 0.5
 
 BarSource = Callable[[], Bar | None]
 
@@ -195,6 +200,38 @@ class AlgorithmTrader(NobitexTrader):
             return upper[:-4].lower()
         raise NobitexClientError(f"unsupported market symbol for orders: {symbol!r}")
 
+    def _await_market_fill(self, order_id: int | str | None, order: Any, requested: float) -> tuple[float, float | None]:
+        """(matched base, average price or None) without blocking the loop for long.
+
+        Market orders normally fill at once; if not, return what matched so far after a short
+        wait. The next bar's wallet reconcile picks up anything that fills later.
+        """
+        if order_id is None:
+            filled = order if isinstance(order, dict) else {}
+        else:
+            filled = wait_for_order_fill(
+                self.client,
+                order_id,
+                poll_interval_sec=NOBITEX_FILL_POLL_SEC,
+                timeout_sec=NOBITEX_FILL_WAIT_SEC,
+                raise_on_timeout=False,
+            )
+        status = str(filled.get("status", "")).lower() if isinstance(filled, dict) else ""
+        matched_raw = filled.get("matchedAmount") if isinstance(filled, dict) else None
+        if matched_raw not in (None, ""):
+            matched = float(matched_raw)
+        else:
+            matched = requested if status in ("done", "filled") or order_id is None else 0.0
+        if status not in ("done", "filled") and order_id is not None:
+            logger.warning("order %s not fully filled after %ss (status=%s, matched=%s); reconciling next bar",
+                           order_id, NOBITEX_FILL_WAIT_SEC, status or "unknown", matched)
+        avg_raw = filled.get("averagePrice") if isinstance(filled, dict) else None
+        try:
+            avg = float(avg_raw) if avg_raw not in (None, "") else None
+        except (TypeError, ValueError):
+            avg = None
+        return matched, (avg if avg and avg > 0 else None)
+
     def _place_live_order(self, action: SignalAction, bar: Bar, *, symbol: str) -> None:
         close_price = float(bar["close"])
         if close_price <= 0:
@@ -233,10 +270,14 @@ class AlgorithmTrader(NobitexTrader):
             )
             order = response.get("order") if isinstance(response, dict) else None
             order_id = order.get("id") if isinstance(order, dict) else None
-            filled = wait_for_order_fill(self.client, order_id) if order_id is not None else order
-            matched = float(filled.get("matchedAmount") or amount) if isinstance(filled, dict) else amount
-            self.inventory.record_buy(quote_spent=spendable, base_received=matched, price=close_price)
-            self._maybe_place_stop(symbol, base_amount=matched, entry_price=close_price)
+            matched, avg_price = self._await_market_fill(order_id, order, float(amount))
+            if matched <= 0:
+                return
+            fill_price = avg_price or close_price
+            quote_spent = spendable * min(1.0, matched / float(amount)) if float(amount) > 0 else spendable
+            self.inventory.record_buy(quote_spent=quote_spent, base_received=matched, price=fill_price)
+            self.last_fill_price = fill_price
+            self._maybe_place_stop(symbol, base_amount=matched, entry_price=fill_price)
             return
 
         if action == "sell":
@@ -263,13 +304,10 @@ class AlgorithmTrader(NobitexTrader):
             )
             order = response.get("order") if isinstance(response, dict) else None
             order_id = order.get("id") if isinstance(order, dict) else None
-            filled = (
-                wait_for_order_fill(self.client, order_id)
-                if order_id is not None
-                else order
-            )
-            matched = float(filled.get("matchedAmount") or sellable) if isinstance(filled, dict) else sellable
-            self.inventory.record_sell(base_sold=matched)
+            matched, avg_price = self._await_market_fill(order_id, order, float(sellable))
+            if matched > 0:
+                self.inventory.record_sell(base_sold=matched)
+                self.last_fill_price = avg_price or close_price
 
     def _cancel_active_stop(self, symbol: str) -> None:
         if self.active_stop_order_id is None:

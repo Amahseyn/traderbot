@@ -33,7 +33,7 @@ def test_terminal_run_max_steps(keys, monkeypatch):
         return bar if len(seen) == 1 else None
 
     class FakeBot:
-        def __init__(self, traders, interval_sec=60.0):
+        def __init__(self, traders, interval_sec=60.0, **_kwargs):
             self.traders = traders
 
         def run(self, max_steps=None, should_stop=None):

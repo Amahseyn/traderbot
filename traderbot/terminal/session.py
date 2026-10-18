@@ -69,6 +69,7 @@ def build_terminal_trader(
             resolution=args.interval,
             last_bar_open_unix_seconds=last_timestamp,
             pending_bars=missed_bars,
+            use_websocket=bool(getattr(args, "ws", False)),
         )
     dst = str(args.dst).strip().lower()
     if exchange == "hyperliquid" and dst in ("rls", "irt"):

@@ -93,13 +93,20 @@ def live_incremental_bar_source(
     resolution: str,
     last_bar_open_unix_seconds: int | None = None,
     pending_bars: list[dict[str, Any]] | None = None,
+    use_websocket: bool = False,
 ):
     if normalize_live_exchange(exchange) == "hyperliquid":
+        stream = None
+        if use_websocket:
+            from traderbot.hyperliquid.market_data import hyperliquid_candle_stream
+
+            stream = hyperliquid_candle_stream(src=src, resolution=resolution)
         return hyperliquid_incremental_bar_source(
             src=src,
             resolution=resolution,
             last_bar_open_unix_seconds=last_bar_open_unix_seconds,
             pending_bars=pending_bars,
+            stream=stream,
         )
     symbol = nobitex_market_symbol(src, dst)
     return nobitex_incremental_bar_source(
