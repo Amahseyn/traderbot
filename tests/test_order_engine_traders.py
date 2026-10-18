@@ -178,3 +178,17 @@ def test_live_manager_requotes_pmm_each_bar_post_only():
     assert limits[-1][3] == pytest.approx(99.8)
     # Previous quote cancelled before the new one is posted.
     assert sum(1 for c in api.calls if c[0] == "cancel") == len(limits) - 1
+
+
+def test_hyperliquid_trader_injects_live_spread(monkeypatch):
+    from traderbot.terminal import hyperliquid_trader as mod
+    from traderbot.traders.strategies.algorithm_trader import AlgorithmTrader
+
+    monkeypatch.setattr(mod, "hyperliquid_best_bid_ask", lambda coin: (99.9, 100.1))
+    monkeypatch.setattr(AlgorithmTrader, "prepare_for_bar", lambda self, bar: None)
+    trader = object.__new__(mod.HyperliquidTerminalTrader)
+    trader.algorithm = ScalpDipAlgorithm(max_spread_pct=0.001)
+    trader.hyperliquid_coin = "BTC"
+    bar = {"close": 100.0}
+    trader.prepare_for_bar(bar)
+    assert bar["spread_pct"] == pytest.approx(0.002)

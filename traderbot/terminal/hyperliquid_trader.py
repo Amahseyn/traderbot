@@ -9,6 +9,7 @@ from traderbot.hyperliquid.trading import (
     HyperliquidTradingError,
     first_order_status,
     hyperliquid_account_value_usd,
+    hyperliquid_best_bid_ask,
     hyperliquid_cancel_order,
     hyperliquid_market_close,
     hyperliquid_market_open,
@@ -121,6 +122,18 @@ class HyperliquidTerminalTrader(TerminalAlgorithmTrader):
                 "bracket": manager.bracket is not None,
             }
         )
+
+    def prepare_for_bar(self, bar: Bar) -> None:
+        """Annotate the bar with the live book spread when the strategy filters on it."""
+        if float(getattr(self.algorithm, "max_spread_pct", 0.0) or 0.0) > 0 and "spread_pct" not in bar:
+            try:
+                bid, ask = hyperliquid_best_bid_ask(self._coin())
+                mid = (bid + ask) / 2.0
+                if bid > 0 and ask > 0 and mid > 0:
+                    bar["spread_pct"] = (ask - bid) / mid
+            except Exception as exc:  # public book read; trading continues without the filter
+                logger.debug("spread read failed: %s", exc)
+        super().prepare_for_bar(bar)
 
     def perp_equity(self, account_value: float) -> float:
         """Perp equity = account value (already includes the position's unrealised PnL)."""
