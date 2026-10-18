@@ -44,7 +44,18 @@ def test_sweep_ranks_and_caps_combos(tmp_path):
     )
     payload = run_strategy_sweep(options, default_strategy_namespace())
     assert payload["combinations"] == 4
-    assert payload["rank_by"] == "return_pct"
+    assert payload["rank_by"] == "edge"
+    legacy = run_strategy_sweep(
+        SweepOptions(
+            csv_path=csv_path,
+            strategy_id="sma_cross",
+            param_grid={"fast": [2, 5], "slow": [10, 20]},
+            holdout_tail_bars=10,
+            rank_by="return_pct",
+        ),
+        default_strategy_namespace(),
+    )
+    assert legacy["rank_by"] == "return_pct"
     assert set(payload["best_params"]) == {"fast", "slow"}
     assert payload["rows"][0]["holdout_return_pct"] is not None
 

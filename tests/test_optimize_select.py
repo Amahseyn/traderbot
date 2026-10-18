@@ -37,7 +37,8 @@ def test_validation_mode_produces_sweep_shape() -> None:
     )
     assert payload["selection_mode_applied"] == "validation"
     assert payload["best_params"]
-    assert payload["rank_by"] == "validation_return_pct"
+    # Default ranking is edge (significance, then net avg per trade); return_pct stays available.
+    assert payload["rank_by"] == "validation_edge"
     assert payload.get("test") is not None
     assert payload.get("splits")
 
@@ -73,7 +74,7 @@ def test_in_sample_explicit_mode() -> None:
         config=OptimizeSelectConfig(selection_mode="in_sample"),
     )
     assert payload["selection_mode_applied"] == "in_sample"
-    assert payload["rank_by"] == "return_pct"
+    assert payload["rank_by"] == "edge"
 
 
 def test_optimize_winner_depends_on_price_series() -> None:

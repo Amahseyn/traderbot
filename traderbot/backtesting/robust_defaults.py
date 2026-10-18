@@ -10,15 +10,15 @@ from traderbot.algorithms.cli_args import default_strategy_namespace
 from traderbot.algorithms.registry import backtest_strategy_ids
 from traderbot.backtesting import load_bars_csv
 from traderbot.backtesting.sweep import SweepOptions
+from traderbot.backtesting.trade_stats import DEFAULT_MIN_TRADES
 from traderbot.utils.resolution import resolution_from_csv_path
 from traderbot.utils.trading_costs import (
-    ResolvesCostRates,
     DEFAULT_BACKTEST_EXECUTION,
+    ResolvesCostRates,
 )
 
 MIN_TUNE_BARS = 100
 DEFAULT_HOLDOUT_FRACTION = 0.2
-from traderbot.backtesting.trade_stats import DEFAULT_MIN_TRADES  # noqa: E402  (30)
 
 DEFAULT_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
     "sma_cross": {"fast": [5, 10, 20], "slow": [20, 50, 100]},
@@ -89,6 +89,19 @@ FULL_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
         "ensemble_entry_rule": ["all", "majority", "primary"],
     },
 }
+
+
+def _scalar_metric_column(rank_by: str) -> str:
+    """Per-row numeric column used to average a combo across assets.
+
+    Edge ranking is a sort key, not a column, so cross-asset aggregation uses the closest
+    scalar: out-of-sample return for validation selection, net average per trade otherwise.
+    """
+    if rank_by == "validation_edge":
+        return "validation_return_pct"
+    if rank_by == "edge":
+        return "avg_trade_net_pct"
+    return rank_by
 
 
 @dataclass
@@ -200,12 +213,13 @@ def tune_robust_defaults(options: TuneRobustOptions, base_namespace: Any | None 
         raise ValueError("tune_robust_defaults found no usable CSVs")
 
     rank_by = per_asset[0]["rank_by"]
+    metric_column = _scalar_metric_column(rank_by)
     aggregated: dict[str, dict[str, Any]] = {}
     for payload in per_asset:
         for row in payload["rows"]:
             key = _combo_key(dict(row["params"]))
             entry = aggregated.setdefault(key, {"params": dict(row["params"]), "samples": []})
-            metric = row.get(rank_by)
+            metric = row.get(metric_column)
             entry["samples"].append(
                 {
                     "csv": payload["csv"],
@@ -263,13 +277,13 @@ def tune_robust_defaults(options: TuneRobustOptions, base_namespace: Any | None 
     best_csv: str | None = None
     for payload in per_asset:
         for row in payload["rows"]:
-            metric = row.get(rank_by)
+            metric = row.get(metric_column)
             if metric is None:
                 continue
             if best_row is None:
                 best_row, best_csv = row, payload["csv"]
                 continue
-            current = (1 if best_row.get("eligible") else 0, float(best_row.get(rank_by)))  # type: ignore[arg-type]
+            current = (1 if best_row.get("eligible") else 0, float(best_row.get(metric_column)))  # type: ignore[arg-type]
             challenger = (1 if row.get("eligible") else 0, float(metric))
             if challenger > current:
                 best_row, best_csv = row, payload["csv"]
@@ -294,6 +308,7 @@ def tune_robust_defaults(options: TuneRobustOptions, base_namespace: Any | None 
         "asset_count": len(per_asset),
         "skipped_assets": skipped_assets,
         "rank_by": rank_by,
+        "metric_column": metric_column,
         "param_grid": {name: list(values) for name, values in param_grid.items()},
         "min_trades": options.min_trades,
         "cash": options.cash,
