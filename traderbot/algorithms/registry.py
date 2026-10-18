@@ -363,7 +363,7 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "ml_sell_threshold",
         "ml_warmup_samples",
     ),
-    "ensemble": _pick("ensemble_preset", "ensemble_entry_rule", "ensemble_exit_rule"),
+    "ensemble": _pick("ensemble_preset", "ensemble_entry_rule", "ensemble_exit_rule", "ensemble_filter_mode"),
 }
 
 
