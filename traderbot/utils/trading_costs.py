@@ -147,3 +147,20 @@ def optional_rate(raw: object) -> float | None:
     if raw in (None, ""):
         return None
     return float(raw)  # type: ignore[arg-type]
+
+
+# Known (taker, maker) fee pairs so a run configured with only the taker fee still charges
+# the venue's maker fee on resting limit fills.
+_MAKER_FOR_TAKER: tuple[tuple[float, float], ...] = (
+    (HYPERLIQUID_PERP_TAKER_FEE, HYPERLIQUID_PERP_MAKER_FEE),
+    (0.0007, 0.0004),  # Hyperliquid spot
+    (0.0035, 0.0025),  # Nobitex retail
+)
+
+
+def maker_fee_for(taker_fee: float) -> float:
+    """Maker fee paired with ``taker_fee``; unknown tiers conservatively reuse the taker fee."""
+    for taker, maker in _MAKER_FOR_TAKER:
+        if abs(float(taker_fee) - taker) < 1e-12:
+            return maker
+    return float(taker_fee)

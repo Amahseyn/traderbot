@@ -4,8 +4,7 @@ import logging
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from traderbot.algorithms.base import Algorithm, OrderSize, SignalAction
-from traderbot.traders.order_sizing import MIN_ORDER_CASH, buy_quote_spend, sell_base_amount
+from traderbot.algorithms.base import Algorithm, SignalAction
 from traderbot.utils.bars import bars_from_ohlc_rows, load_bars_csv, normalize_bar
 from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION
 
@@ -39,6 +38,8 @@ class Trade:
     cash_after: float = 0.0
     position_after: float = 0.0
     equity_after: float = 0.0
+    reason: str = "market"
+    liquidity: str = "taker"
 
 
 @dataclass
@@ -51,6 +52,7 @@ class BacktestResult:
     slippage_rate: float = 0.0
     execution: str = DEFAULT_BACKTEST_EXECUTION
     total_fees: float = 0.0
+    maker_fee_rate: float = 0.0
 
     @property
     def return_pct(self) -> float:
@@ -60,53 +62,9 @@ class BacktestResult:
 
 
 def _fill_price(raw_price: float, action: SignalAction, slippage_rate: float) -> float:
-    if action == "buy":
-        return raw_price * (1.0 + slippage_rate)
-    if action == "sell":
-        return raw_price * (1.0 - slippage_rate)
-    return raw_price
+    from traderbot.backtesting.broker import fill_price_with_slippage
 
-
-def _sized_fill(
-    action: SignalAction,
-    size: OrderSize,
-    *,
-    cash: float,
-    position: float,
-    fill_price: float,
-    initial_cash: float,
-    fee_rate: float,
-) -> tuple[float, float, float, float] | None:
-    """Partial fill → ``(cash, position, fee, traded_size)``; ``None`` when nothing trades."""
-    if action == "buy":
-        spend = buy_quote_spend(
-            size,
-            cash=cash,
-            position=position,
-            fill_price=fill_price,
-            initial_cash=initial_cash,
-        )
-        if spend <= 0:
-            return None
-        fee = spend * fee_rate
-        bought = (spend - fee) / fill_price
-        return cash - spend, position + bought, fee, bought
-    if action == "sell" and position > 0:
-        sell_size = sell_base_amount(
-            size,
-            cash=cash,
-            position=position,
-            fill_price=fill_price,
-        )
-        if sell_size <= 0:
-            return None
-        proceeds = sell_size * fill_price
-        fee = proceeds * fee_rate
-        remaining = position - sell_size
-        if remaining * fill_price <= MIN_ORDER_CASH:
-            remaining = 0.0
-        return cash + proceeds - fee, remaining, fee, sell_size
-    return None
+    return fill_price_with_slippage(raw_price, action, slippage_rate)
 
 
 def run_backtest(
@@ -118,172 +76,70 @@ def run_backtest(
     slippage_rate = 0.0,
     execution: str = DEFAULT_BACKTEST_EXECUTION,
     reset_algorithm: bool = True,
+    maker_fee_rate: float | None = None,
+    allow_short: bool | None = None,
 ) -> BacktestResult:
     """
-    Long-only backtest: full cash on buy, full exit on sell, mark-to-market each bar.
-    Algorithms that return an :class:`OrderSize` from ``order_size()`` get partial fills.
+    Backtest with mark-to-market each bar. Default: long-only, full cash on buy, full exit
+    on sell; algorithms that return an :class:`OrderSize` from ``order_size()`` get partial fills.
 
-    ``execution="close"`` fills at the signal bar close (optimistic intrabar fill).
-    ``execution="next_open"`` fills at the next bar open, so the fill price is never
-    known when the signal fires; a signal on the last bar expires unfilled.
+    ``execution="close"`` fills market orders at the signal bar close (optimistic).
+    ``execution="next_open"`` fills them at the next bar open, so the fill price is never
+    known when the signal fires; a signal on the last bar expires unfilled. Market fills pay
+    ``fee_rate`` (taker) plus ``slippage_rate``.
+
+    Algorithms may also return an :class:`~traderbot.algorithms.base.OrderSpec` (limit
+    entries, take-profit/stop brackets) or resting quotes; those fill per
+    :mod:`traderbot.backtesting.fills`: limits only when a later bar trades through the price,
+    at the limit price, paying ``maker_fee_rate`` (default: the venue maker fee paired with
+    ``fee_rate``); stops pay the taker fee plus slippage. ``allow_short`` (default: the
+    algorithm's ``allow_short``) lets positions go negative; Nobitex (``*IRT``) markets stay
+    long-only. The same :class:`~traderbot.backtesting.broker.SimBroker` drives paper trading.
     """
-    if initial_cash <= 0:
-        raise ValueError("initial_cash must be positive")
-    if not 0 <= fee_rate < 1:
-        raise ValueError("fee_rate must be in [0, 1)")
-    if not 0 <= slippage_rate < 1:
-        raise ValueError("slippage_rate must be in [0, 1)")
-    if execution not in EXECUTION_MODES:
-        raise ValueError(f"execution must be one of {EXECUTION_MODES}")
+    from traderbot.backtesting.broker import SimBroker
+
     if not bars:
         raise ValueError("run_backtest requires at least one bar")
-
     if reset_algorithm:
         algorithm.reset()
-    cash = initial_cash
-    position = 0.0
-    total_fees = 0.0
-    trades: list[Trade] = []
-    equity_curve: list[tuple[int, float]] = []
     normalized = [normalize_bar(raw_bar) for raw_bar in bars]
-
-    pending: SignalAction | None = None
-    pending_size: OrderSize | None = None
-    for bar_index, bar in enumerate(normalized):
-        bar_open_unix_seconds = int(bar["timestamp"])
-        open_price = float(bar["open"])
-        close_price = float(bar["close"])
-        signal = algorithm.on_bar(bar)
-        signal_size = algorithm.order_size() if signal != "hold" else None
-
-        action: SignalAction = "hold"
-        action_size: OrderSize | None = None
-        fill_price = 0.0
-        if execution == "close":
-            action = signal
-            action_size = signal_size
-            fill_price = _fill_price(close_price, signal, slippage_rate)
-        else:
-            if pending is not None:
-                action = pending
-                action_size = pending_size
-                fill_price = _fill_price(open_price, pending, slippage_rate)
-            pending = signal
-            pending_size = signal_size
-
-        if action_size is not None and action != "hold" and fill_price > 0:
-            sized = _sized_fill(
-                action,
-                action_size,
-                cash=cash,
-                position=position,
-                fill_price=fill_price,
-                initial_cash=initial_cash,
-                fee_rate=fee_rate,
-            )
-            if sized is not None:
-                new_cash, new_position, fee, traded_size = sized
-                total_fees += fee
-                trades.append(
-                    Trade(
-                        timestamp=bar_open_unix_seconds,
-                        action=action,
-                        price=fill_price,
-                        size=traded_size,
-                        fee=fee,
-                        cash_before=cash,
-                        cash_after=new_cash,
-                        position_after=new_position,
-                        equity_after=new_cash + new_position * close_price,
-                    )
-                )
-                cash, position = new_cash, new_position
-        elif action == "buy" and position == 0 and cash > 0 and fill_price > 0:
-            cash_before = cash
-            fee = cash_before * fee_rate
-            total_fees += fee
-            position = (cash_before - fee) / fill_price
-            cash = 0.0
-            equity_after_trade = position * close_price
-            trades.append(
-                Trade(
-                    timestamp=bar_open_unix_seconds,
-                    action="buy",
-                    price=fill_price,
-                    size=position,
-                    fee=fee,
-                    cash_before=cash_before,
-                    cash_after=cash,
-                    position_after=position,
-                    equity_after=equity_after_trade,
-                )
-            )
-            logger.info(
-                "buy strategy=%s bar=%s price=%.6f size=%.6f cash_in=%.2f fee=%.2f cash_after=%.2f",
-                algorithm.name,
-                bar_open_unix_seconds,
-                fill_price,
-                position,
-                cash_before,
-                fee,
-                cash,
-            )
-        elif action == "sell" and position > 0 and fill_price > 0:
-            cash_before = cash
-            position_before = position
-            proceeds = position_before * fill_price
-            fee = proceeds * fee_rate
-            total_fees += fee
-            cash = proceeds - fee
-            trades.append(
-                Trade(
-                    timestamp=bar_open_unix_seconds,
-                    action="sell",
-                    price=fill_price,
-                    size=position_before,
-                    fee=fee,
-                    cash_before=cash_before,
-                    cash_after=cash,
-                    position_after=0.0,
-                    equity_after=cash,
-                )
-            )
-            logger.info(
-                "sell strategy=%s bar=%s price=%.6f size=%.6f cash_out=%.2f fee=%.2f cash_after=%.2f",
-                algorithm.name,
-                bar_open_unix_seconds,
-                fill_price,
-                position_before,
-                cash,
-                fee,
-                cash,
-            )
-            position = 0.0
-
-        equity = cash + position * close_price
-        equity_curve.append((bar_open_unix_seconds, equity))
+    broker = SimBroker(
+        algorithm,
+        initial_cash=initial_cash,
+        fee_rate=fee_rate,
+        slippage_rate=slippage_rate,
+        execution=execution,
+        maker_fee_rate=maker_fee_rate,
+        allow_short=allow_short,
+        symbol=next((str(bar.get("symbol")) for bar in normalized[:1] if bar.get("symbol")), None),
+    )
+    equity_curve: list[tuple[int, float]] = []
+    for bar in normalized:
+        broker.step(bar)
+        equity_curve.append((int(bar["timestamp"]), broker.equity(float(bar["close"]))))
 
     final_price = float(normalized[-1]["close"])
-    final_equity = cash + position * final_price
+    final_equity = broker.equity(final_price)
     logger.info(
         "run strategy=%s bars=%d trades=%d initial_cash=%.2f final_equity=%.2f fees=%.2f return_pct=%.2f",
         algorithm.name,
         len(normalized),
-        len(trades),
+        len(broker.trades),
         initial_cash,
         final_equity,
-        total_fees,
+        broker.total_fees,
         (final_equity / initial_cash - 1.0) * 100.0 if initial_cash else 0.0,
     )
     return BacktestResult(
         initial_cash=initial_cash,
         final_equity=final_equity,
-        trades=trades,
+        trades=broker.trades,
         equity_curve=equity_curve,
         fee_rate=fee_rate,
         slippage_rate=slippage_rate,
         execution=execution,
-        total_fees=total_fees,
+        total_fees=broker.total_fees,
+        maker_fee_rate=broker.maker_rate,
     )
 
 
