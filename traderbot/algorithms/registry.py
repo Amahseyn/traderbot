@@ -114,8 +114,8 @@ STRATEGY_CATALOG: tuple[StrategyCatalogEntry, ...] = (
     ),
     StrategyCatalogEntry(
         id="perp_market_making",
-        name="Perp market making (paper)",
-        summary="Maker-style bid/ask simulation using Hyperliquid maker fee tier.",
+        name="Perp market making",
+        summary="Post-only bid/ask quoted from the prior bar; fills only on trade-through at the maker fee; inventory skew, adverse-move/trend guard, protective stop.",
         style="market_making",
         implemented=True,
     ),
@@ -150,7 +150,7 @@ STRATEGY_CATALOG: tuple[StrategyCatalogEntry, ...] = (
     StrategyCatalogEntry(
         id="scalp_dip",
         name="Micro-dip scalper",
-        summary="Low-timeframe dip buys with bounce confirmation; ~0.75% TP, 0.5% SL, optional session-end flat, fixed size.",
+        summary="Low-timeframe dip buys with bounce confirmation; fixed or ATR-scaled TP/SL, optional maker entry + brackets, volume/spread filters, 1m/5m presets.",
         style="scalping",
         implemented=True,
     ),
@@ -233,6 +233,45 @@ def _pick(*names: str) -> Callable[[Any], dict[str, Any]]:
     return lambda namespace: {name: getattr(namespace, name) for name in names}
 
 
+_SCALP_DIP_FIELDS = (
+    "dip_lookback_bars",
+    "dip_pct",
+    "take_profit_pct",
+    "stop_loss_pct",
+    "session_end_hour_utc",
+    "cooldown_bars_after_loss",
+    "scalp_position_fraction",
+    "scalp_threshold_mode",
+    "dip_atr_mult",
+    "tp_atr_mult",
+    "sl_atr_mult",
+    "atr_period",
+    "scalp_order_mode",
+    "entry_offset_pct",
+    "entry_ttl_bars",
+    "min_volume_ratio",
+    "max_spread_pct",
+)
+
+
+def _scalp_dip_kwargs(namespace: Any) -> dict[str, Any]:
+    """scalp_dip kwargs; a ``scalp_preset`` fills fields still at their CLI default."""
+    from traderbot.algorithms.cli_args import default_strategy_namespace
+    from traderbot.algorithms.strategies.scalp_dip import SCALP_DIP_PRESETS
+
+    kwargs = {name: getattr(namespace, name) for name in _SCALP_DIP_FIELDS if hasattr(namespace, name)}
+    kwargs["allow_short"] = bool(getattr(namespace, "allow_short", 0))
+    preset_name = str(getattr(namespace, "scalp_preset", "") or "").strip()
+    if preset_name:
+        if preset_name not in SCALP_DIP_PRESETS:
+            raise ValueError(f"unknown scalp_preset {preset_name!r}; choose from {sorted(SCALP_DIP_PRESETS)}")
+        defaults = default_strategy_namespace()
+        for name, value in SCALP_DIP_PRESETS[preset_name].items():
+            if kwargs.get(name) == getattr(defaults, name, None):
+                kwargs[name] = value
+    return kwargs
+
+
 _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
     "sma_cross": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
     "ema_cross": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
@@ -280,6 +319,15 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
     "perp_market_making": lambda a: {
         "half_spread_pct": a.mm_half_spread_pct,
         "inventory_skew": a.mm_inventory_skew,
+        "vol_spread_mult": a.mm_vol_spread_mult,
+        "atr_period": a.atr_period,
+        "adverse_move_atr": a.mm_adverse_move_atr,
+        "trend_ema_period": a.mm_trend_ema_period,
+        "trend_guard": bool(a.mm_trend_guard),
+        "stop_loss_pct": a.mm_stop_loss_pct,
+        "min_profit_pct": a.mm_min_profit_pct,
+        "order_fraction": a.mm_order_fraction,
+        "allow_short": bool(a.allow_short),
     },
     "ma_trend": _pick(
         "trend_fast_period", "trend_slow_period", "ma_kind", "ma_entry_mode", "trailing_stop_pct", "trend_max_adds"
@@ -300,15 +348,7 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "breakout_stop_fraction",
         "measured_move_multiplier",
     ),
-    "scalp_dip": _pick(
-        "dip_lookback_bars",
-        "dip_pct",
-        "take_profit_pct",
-        "stop_loss_pct",
-        "session_end_hour_utc",
-        "cooldown_bars_after_loss",
-        "scalp_position_fraction",
-    ),
+    "scalp_dip": lambda a: _scalp_dip_kwargs(a),
     "dca": _pick("dca_interval_bars", "dca_order_count"),
     "grid": _pick("lookback_bars", "grid_range_pct", "grid_levels", "grid_breakout_pct", "grid_reanchor_bars"),
     "momentum_shock": _pick(
@@ -422,6 +462,13 @@ _STRATEGY_KWARG_NAMESPACE: dict[str, dict[str, str]] = {
     "perp_market_making": {
         "half_spread_pct": "mm_half_spread_pct",
         "inventory_skew": "mm_inventory_skew",
+        "vol_spread_mult": "mm_vol_spread_mult",
+        "adverse_move_atr": "mm_adverse_move_atr",
+        "trend_ema_period": "mm_trend_ema_period",
+        "trend_guard": "mm_trend_guard",
+        "stop_loss_pct": "mm_stop_loss_pct",
+        "min_profit_pct": "mm_min_profit_pct",
+        "order_fraction": "mm_order_fraction",
     },
 }
 
