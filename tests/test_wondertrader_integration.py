@@ -24,7 +24,7 @@ def test_wondertrader_root_sibling():
 
 
 def test_wondertrader_smoke():
-    root = _wondertrader_root_or_skip()
+    _wondertrader_root_or_skip()
     from traderbot.integrations.wondertrader.experiment import run_smoke_test
 
     result = run_smoke_test()

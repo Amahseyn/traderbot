@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from traderbot.algorithms.registry import algorithm_for_id
@@ -9,12 +7,17 @@ from traderbot.algorithms.strategies.finrl_ema_intraday import FinrlEmaIntradayA
 from traderbot.integrations.finrl_trading.paths import finrl_trading_root, traderbot_root
 
 
+def _finrl_trading_root_or_skip():
+    try:
+        return finrl_trading_root()
+    except FileNotFoundError:
+        pytest.skip("FinRL-Trading not cloned (set FINRL_TRADING_ROOT or clone sibling repo)")
+
+
 def test_finrl_trading_root_sibling_optional():
     """The sibling FinRL-Trading checkout is optional; traderbot vendors the needed core."""
-    try:
-        root = finrl_trading_root()
-    except FileNotFoundError:
-        pytest.skip("sibling FinRL-Trading not present; traderbot uses traderbot.finrl")
+    root = _finrl_trading_root_or_skip()
+    assert root.is_dir()
     assert (root / "src").is_dir()
 
 
