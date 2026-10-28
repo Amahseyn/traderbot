@@ -45,7 +45,7 @@ export function RunDetailOverview({ run }: RunDetailOverviewProps) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-      <section className="rounded-xl border border-border bg-gradient-to-br from-panel to-surface p-6 shadow-sm">
+      <section className="rounded-lg border border-border bg-panel p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-muted text-xs uppercase tracking-wide">Primary metric</p>

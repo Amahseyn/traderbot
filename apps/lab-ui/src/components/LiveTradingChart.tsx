@@ -331,7 +331,7 @@ export function LiveTradingChart({
 
   return (
     <article
-      className={`overflow-hidden rounded-2xl border bg-gradient-to-b from-slate-900/80 to-panel shadow-lg transition ring-1 ${
+      className={`overflow-hidden rounded-lg border bg-panel transition-colors ring-1 ${
         focused ? "border-accent/50 ring-accent/30" : "border-border ring-border/80"
       }`}
       onClick={() => onFocus?.()}
@@ -732,7 +732,7 @@ export function LiveTradingChart({
             </svg>
 
             {hoverCandle && (
-              <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-border bg-slate-950/90 px-3 py-2 text-xs shadow-xl backdrop-blur-sm">
+              <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-border bg-surface px-3 py-2 text-xs shadow-overlay">
                 <p className="font-medium text-white">{formatBarTime(hoverCandle.timestamp)}</p>
                 <p className="text-muted">
                   O {formatMoney(hoverCandle.open)} · H {formatMoney(hoverCandle.high)}

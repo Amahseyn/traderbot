@@ -70,6 +70,25 @@ EXTRA_STRATEGY_PARAMS: tuple[tuple[str, type, object, str], ...] = (
     ("mm_stop_loss_pct", float, 0.004, "perp_market_making protective stop from the fill (0=off)"),
     ("mm_min_profit_pct", float, 0.0004, "perp_market_making: exit quote at least this far beyond entry"),
     ("mm_order_fraction", float, 1.0, "perp_market_making: position size as a fraction of equity"),
+    (
+        "min_edge_over_cost",
+        float,
+        None,
+        "Threshold strategies: required expected move as a multiple of the roundtrip cost. "
+        "Blank resolves to 1.0 (break-even) on 1m-5m bars and 0 (off) above; 0 disables it.",
+    ),
+    (
+        "roundtrip_cost_pct",
+        float,
+        None,
+        "Roundtrip friction as a fraction of notional; default resolves the venue from the CSV",
+    ),
+    (
+        "entry_order_mode",
+        str,
+        "market",
+        "sma/ema/rsi/macd/bollinger entry: market (taker + slippage) or maker (post-only limit)",
+    ),
 )
 
 

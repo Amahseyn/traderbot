@@ -20,7 +20,7 @@ export function LabAuthBanner() {
 
   return (
     <div
-      className="border-b border-amber-500/25 bg-gradient-to-r from-amber-950/70 via-amber-900/35 to-amber-950/70 px-4 py-2.5 text-center text-sm text-amber-50 sm:px-6"
+      className="border-b border-amber-500/25 bg-amber-500/10 px-4 py-2.5 text-center text-sm text-amber-100 sm:px-6"
       role="status"
     >
       Lab API auth is enabled. Set <code className="text-amber-50">NEXT_PUBLIC_LAB_API_TOKEN</code> in the UI

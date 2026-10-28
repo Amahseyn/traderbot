@@ -1,6 +1,12 @@
 ---
 description: Python naming, types, and magic numbers (traderbot)
-globs: traderbot/**/*.py,lab/**/*.py,cli/**/*.py,auth/**/*.py,tests/**/*.py
+trigger: glob
+globs:
+  - traderbot/**/*.py
+  - lab/**/*.py
+  - cli/**/*.py
+  - auth/**/*.py
+  - tests/**/*.py
 alwaysApply: false
 ---
 

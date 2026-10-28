@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { api, API_BASE } from "@/lib/api";
-import { WORKFLOW_STEPS, type WorkflowStepId } from "@/lib/workflow";
 
 type NavLink = {
   href: string;
@@ -88,17 +87,18 @@ function IconSettings() {
   );
 }
 
-function IconNew() {
+function IconMarketCap() {
   return (
     <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+      <path d="M3 3v18h18" strokeLinecap="round" />
+      <path d="M7 16v-4M12 16V8M17 16v-6" strokeLinecap="round" />
     </svg>
   );
 }
 
 const PRIMARY_LINKS: NavLink[] = [
   { href: "/", label: "Overview", description: "Stats and shortcuts", icon: <IconOverview /> },
-  { href: "/new", label: "New", description: "Discovery & jobs", icon: <IconNew /> },
+  { href: "/marketcap", label: "Market Cap", description: "Global assets & screener", icon: <IconMarketCap /> },
   { href: "/data", label: "Data", description: "Export OHLC & catalog", icon: <IconData /> },
   { href: "/custom", label: "Research", description: "Multi-file pipeline", icon: <IconResearch /> },
   { href: "/optimizer", label: "Optimizer", description: "Optuna & sweeps", icon: <IconOptimizer /> },
@@ -118,33 +118,20 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function activeWorkflowStep(pathname: string): WorkflowStepId | null {
-  if (pathname === "/") {
-    return "overview";
-  }
-  for (const step of WORKFLOW_STEPS) {
-    if (step.matchPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
-      return step.id;
-    }
-  }
-  return null;
-}
-
 function LabMark({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent/30 via-accent/15 to-indigo-500/20 shadow-glow-sm ring-1 ring-accent/30 ${className}`}
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border-bright bg-panel-elevated text-zinc-100 shadow-sm ${className}`}
     >
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden>
         <path
-          d="M6 18V8l3 4.5L12 8l3 4.5L18 8v10"
-          className="stroke-white"
+          d="M3 18h18M6 14l4-8 4 6 4-3"
+          className="stroke-accent"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
       </svg>
-      <span className="absolute -inset-px rounded-xl bg-gradient-to-br from-white/20 to-transparent opacity-40" aria-hidden />
     </div>
   );
 }
@@ -166,20 +153,20 @@ function ApiStatusBadge() {
       : `Lab API offline (${API_BASE})`;
 
   const tone = online
-    ? "from-emerald-500/20 to-emerald-500/5 text-emerald-100 ring-emerald-400/25"
+    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/25"
     : loading
-      ? "from-amber-500/20 to-amber-500/5 text-amber-50 ring-amber-400/25"
-      : "from-red-500/20 to-red-500/5 text-red-100 ring-red-400/30";
+      ? "bg-amber-500/10 text-amber-400 border border-amber-500/25"
+      : "bg-rose-500/10 text-rose-400 border border-rose-500/30";
 
-  const dotTone = online ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" : loading ? "bg-amber-400 animate-pulse" : "bg-red-400";
+  const dotTone = online ? "bg-emerald-400" : loading ? "bg-amber-400 animate-pulse" : "bg-rose-400";
 
   return (
     <span
-      className={`hidden items-center gap-2 rounded-full bg-gradient-to-r px-3 py-1.5 text-[11px] font-medium ring-1 lg:inline-flex ${tone}`}
+      className={`hidden items-center gap-1.5 rounded px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider lg:inline-flex ${tone}`}
       title={label}
     >
       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotTone}`} aria-hidden />
-      {online ? "API online" : loading ? "Checking…" : "API offline"}
+      {online ? "API Online" : loading ? "Connecting…" : "API Offline"}
     </span>
   );
 }
@@ -200,77 +187,22 @@ function NavItem({
       href={link.href}
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
-      className={`group flex items-center gap-2 rounded-full transition duration-200 no-underline hover:no-underline ${
-        compact ? "px-3 py-2.5" : "px-3 py-1.5"
+      className={`group flex items-center gap-1.5 rounded transition-colors duration-150 no-underline hover:no-underline ${
+        compact ? "px-3 py-2 text-sm" : "px-2.5 py-1 text-xs"
       } ${
         active
-          ? "bg-gradient-to-b from-accent/35 to-accent/15 text-white shadow-sm ring-1 ring-accent/40"
-          : "text-slate-300 hover:bg-white/[0.06] hover:text-white"
+          ? "bg-panel-elevated text-white font-medium border border-border-bright shadow-sm"
+          : "text-zinc-400 hover:bg-panel-elevated/70 hover:text-zinc-200 border border-transparent"
       }`}
     >
-      <span className={active ? "text-white" : "text-slate-400 group-hover:text-accent"}>{link.icon}</span>
-      <span className={`${compact ? "text-sm font-medium" : "text-[13px] font-medium"}`}>{link.label}</span>
+      <span className={active ? "text-accent" : "text-zinc-500 group-hover:text-zinc-300 transition-colors duration-150"}>
+        {link.icon}
+      </span>
+      <span className="font-medium tracking-tight">{link.label}</span>
       {compact && link.description && (
-        <span className="ml-auto text-xs text-muted group-hover:text-slate-400">{link.description}</span>
+        <span className="ml-auto text-xs text-muted group-hover:text-zinc-400">{link.description}</span>
       )}
     </Link>
-  );
-}
-
-function WorkflowStrip({ pathname }: { pathname: string }) {
-  const current = activeWorkflowStep(pathname);
-  if (!current) {
-    return null;
-  }
-
-  const steps = WORKFLOW_STEPS.filter((step) => step.id !== "overview");
-  const currentIndex = steps.findIndex((step) => step.id === current);
-
-  return (
-    <div className="border-t border-white/[0.04] bg-gradient-to-r from-surface/80 via-panel/40 to-surface/80" aria-label="Research workflow">
-      <ol className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 [scrollbar-width:none]">
-        {steps.map((step, index) => {
-          const active = current === step.id;
-          const complete = current !== "overview" && currentIndex > index;
-          return (
-            <li key={step.id} className="flex shrink-0 items-center gap-2">
-              {index > 0 && (
-                <span
-                  className={`h-px w-6 sm:w-10 ${complete ? "bg-gradient-to-r from-accent/60 to-accent/20" : "bg-border/80"}`}
-                  aria-hidden
-                />
-              )}
-              <Link
-                href={step.href}
-                className={`flex items-center gap-2 rounded-full px-2.5 py-1 transition duration-200 no-underline hover:no-underline sm:px-3 sm:py-1.5 ${
-                  active
-                    ? "bg-accent/15 text-white ring-1 ring-accent/35 shadow-glow-sm"
-                    : complete
-                      ? "text-accent hover:bg-accent/10"
-                      : "text-muted hover:bg-white/[0.04] hover:text-slate-200"
-                }`}
-              >
-                <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold ${
-                    active
-                      ? "bg-gradient-to-br from-accent to-accent-dim text-white shadow-glow-sm"
-                      : complete
-                        ? "bg-accent/20 text-accent ring-1 ring-accent/30"
-                        : "bg-surface text-muted ring-1 ring-border"
-                  }`}
-                >
-                  {index + 1}
-                </span>
-                <span className="text-xs font-medium sm:text-[13px]">
-                  <span className="text-muted/90 sm:hidden">{step.short}</span>
-                  <span className="hidden sm:inline">{step.label}</span>
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
   );
 }
 
@@ -296,17 +228,16 @@ export function Nav() {
   }, [mobileOpen]);
 
   return (
-    <header className="sticky top-0 z-30 glass-panel">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" aria-hidden />
+    <header className="sticky top-0 z-30 app-bar">
       <nav aria-label="Main" className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="flex h-[3.75rem] items-center gap-4">
+        <div className="flex h-14 items-center gap-4">
           <Link
             href="/"
             className="flex min-w-0 items-center gap-3 no-underline hover:no-underline"
           >
             <LabMark />
             <div className="min-w-0 leading-tight">
-              <span className="block truncate text-sm font-semibold tracking-tight text-gradient sm:text-[15px]">
+              <span className="block truncate text-sm font-semibold tracking-tight text-white sm:text-[15px]">
                 <span className="hidden sm:inline">Traderbot Lab</span>
                 <span className="sm:hidden">Lab</span>
               </span>
@@ -315,7 +246,7 @@ export function Nav() {
           </Link>
 
           <div className="hidden flex-1 justify-center lg:flex">
-            <div className="nav-pill flex max-w-full items-center gap-0.5 overflow-x-auto [scrollbar-width:none]">
+            <div className="nav-pill flex max-w-full items-center gap-1 overflow-x-auto [scrollbar-width:none]">
               {PRIMARY_LINKS.map((link) => (
                 <NavItem key={link.href} link={link} active={isActive(pathname, link.href)} />
               ))}
@@ -331,7 +262,7 @@ export function Nav() {
             </div>
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-xl border border-border/80 bg-surface/80 p-2.5 text-slate-200 shadow-card transition hover:border-accent/40 hover:text-white lg:hidden"
+              className="inline-flex items-center justify-center rounded-lg border border-border bg-surface p-2.5 text-slate-200 transition-colors duration-150 hover:border-border-bright hover:text-white lg:hidden"
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav-panel"
               onClick={() => setMobileOpen((open) => !open)}
@@ -354,7 +285,7 @@ export function Nav() {
       {mobileOpen && (
         <div
           id="mobile-nav-panel"
-          className="border-t border-white/[0.05] bg-panel/95 backdrop-blur-xl lg:hidden"
+          className="border-t border-border bg-surface lg:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Navigation menu"
@@ -386,8 +317,6 @@ export function Nav() {
           </div>
         </div>
       )}
-
-      <WorkflowStrip pathname={pathname} />
     </header>
   );
 }

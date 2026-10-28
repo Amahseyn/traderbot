@@ -138,4 +138,10 @@ CREATE TABLE IF NOT EXISTS discovery_runs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_discovery_runs_finished ON discovery_runs(finished_at_utc DESC);
+
+CREATE TABLE IF NOT EXISTS marketcap_cache (
+    cache_key TEXT PRIMARY KEY,
+    payload_json TEXT NOT NULL,
+    updated_at_utc TEXT NOT NULL
+);
 """

@@ -215,7 +215,7 @@ export function OpportunityRankTable({
                       </td>
                     )}
                   </tr>
-                  {coinbeaconMode && expanded && detail && (
+                  {coinbeaconMode && expanded && Boolean(detail) && (
                     <tr key={`${rowKey}-detail`}>
                       <td colSpan={9} className="bg-surface/40 p-3">
                         <pre className="max-h-48 overflow-auto text-xs whitespace-pre-wrap font-mono text-muted">

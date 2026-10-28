@@ -222,11 +222,8 @@ function EmptyDatasets({ failed = false }: { failed?: boolean }) {
           : "No price files in the catalog yet. Export OHLC on Data, then pick that file here."}
       </p>
       {!failed && (
-        <Link
-          href="/data"
-          className="inline-flex items-center justify-center rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-500"
-        >
-          Go to Data
+        <Link href="/data">
+          <Button variant="secondary">Go to Data</Button>
         </Link>
       )}
     </div>

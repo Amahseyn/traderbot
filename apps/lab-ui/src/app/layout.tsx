@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="flex min-h-screen flex-col bg-surface font-sans">
+      <body className="flex min-h-dvh flex-col bg-surface font-sans">
         <PageBackdrop />
         <a href="#main-content" className="skip-link">
           Skip to content
@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Nav />
           <main
             id="main-content"
-            className="mx-auto w-full max-w-7xl flex-1 px-4 py-7 sm:px-6 sm:py-10 animate-page-in"
+            className="mx-auto w-full max-w-7xl flex-1 px-4 py-7 sm:px-6 sm:py-10"
           >
             {children}
           </main>

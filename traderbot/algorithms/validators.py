@@ -34,3 +34,22 @@ def validate_price_context(
         raise ValueError("context_bars must be >= 0")
     if buy_min_recent_return > sell_max_recent_return:
         raise ValueError("buy_min_recent_return must be <= sell_max_recent_return")
+
+
+def validate_cost_edge(min_edge_over_cost: float | None, roundtrip_cost_pct: float | None) -> None:
+    if min_edge_over_cost is not None and min_edge_over_cost < 0:
+        raise ValueError("min_edge_over_cost must be None or >= 0 (0 disables the gate)")
+    if roundtrip_cost_pct is not None and not 0 <= roundtrip_cost_pct < 1:
+        raise ValueError("roundtrip_cost_pct must be None or in [0, 1)")
+
+
+ENTRY_ORDER_MODES = ("market", "maker")
+
+
+def validate_entry_execution(entry_order_mode: str, entry_offset_pct: float, entry_ttl_bars: int) -> None:
+    if entry_order_mode not in ENTRY_ORDER_MODES:
+        raise ValueError(f"entry_order_mode must be one of {ENTRY_ORDER_MODES}")
+    if not 0 <= entry_offset_pct < 0.05:
+        raise ValueError("entry_offset_pct must be in [0, 0.05)")
+    if entry_ttl_bars < 1:
+        raise ValueError("entry_ttl_bars must be >= 1")

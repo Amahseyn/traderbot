@@ -1,6 +1,8 @@
 ---
 description: Strategy signals must respect recent price path, not blind thresholds
-globs: traderbot/algorithms/**/*.py
+trigger: glob
+globs:
+  - traderbot/algorithms/**/*.py
 alwaysApply: false
 ---
 
@@ -9,6 +11,26 @@ alwaysApply: false
 - Variable names: see **`traderbot-naming.mdc`** (`closes`, `context_bars`, `buy_min_recent_return` — not `ret`, `k`, `ctx`).
 
 Do not add entries that fire on a single indicator level alone.
+
+## Cost-aware edge gate (all five threshold strategies)
+
+Roundtrip friction is `0.190%` on Hyperliquid perp taker and `0.900%` on Nobitex spot retail,
+while the median 1-minute candle moves `0.04–0.08%`. Any signal whose expected move is smaller
+than that is a guaranteed loss, so every threshold strategy gates on it:
+
+- `min_edge_over_cost` — required expected move as a multiple of the roundtrip cost. `1.0` is
+  break-even; `0` disables the gate. `None` (the default) resolves from the bar size in
+  `strategy_defaults.apply_high_frequency_edge_default`: **1.0 on 1m–5m bars, 0 above**. Coarse
+  bars already clear the friction and the gate there only removes trades (measured: 60m
+  `macd_cross` on ARBUSDT went from -1.8% to -22.3% when forced on).
+- `roundtrip_cost_pct` — friction as a fraction of notional. `None` resolves from the CSV venue
+  via `trading_costs.roundtrip_cost_pct`; `0` disables the gate.
+- Expected move per strategy: mean reversion uses the **distance to the reversion target**
+  (band mean for `bollinger_mean_reversion`, `period`-bar mean for `rsi_threshold`) via
+  `signal_clears_cost`; trend uses the **signed recent move** over `context_bars` (or `slow`
+  bars when that filter is off) via `trend_signal_clears_cost`.
+- `MACD` reuses `apply_mean_reversion_context` for the direction gate, but the MACD line sits
+  at zero on the crossing bar, so the edge comes from `recent_cumulative_return`, not the line.
 
 ## Mean reversion (`rsi_threshold`, `bollinger_mean_reversion`)
 
@@ -19,11 +41,28 @@ Do not add entries that fire on a single indicator level alone.
 ## Trend (`sma_cross`, `ema_cross`)
 
 - Optional `price_confirm`: require close on the trend side of the **fast** average before `buy`/`sell`.
+- Optional `context_bars` + `buy_min_recent_return` / `sell_max_recent_return`. These take
+  **`0.0` / `0.0` for trend** (`strategy_defaults.apply_strategy_baseline_defaults` rewrites the
+  shared mean-reversion `-0.03` / `0.03`): a cross is only traded when the recent path already
+  points that way.
 
 ## MACD
 
 - Reuse `apply_mean_reversion_context` on cross signals when `context_bars > 0` so buys do not fire into a sharp dump.
 
+## Entry execution (maker vs taker)
+
+- `entry_order_mode` (`market` | `maker`), `entry_offset_pct`, `entry_ttl_bars` via
+  `traderbot/algorithms/entry_orders.py::MakerEntry`. Maker entries rest post-only and pay
+  `0.015%` with no slippage instead of `0.045% + 0.05%`.
+- **Entries only.** A `sell` closes risk and stays a market order: an exit that never fills is
+  worse than the fee it saves. `MakerEntry.entry_side` names the opening side (default `buy`).
+- `market` stays the default because the Nobitex live path (`AlgorithmTrader`) ignores
+  `order_spec`; defaulting to maker would make backtests optimistic against live fills.
+
 ## Validation
 
-- Tests: `tests/test_strategies.py`, `tests/test_price_context.py`.
+- Tests: `tests/test_strategies.py`, `tests/test_price_context.py`, `tests/test_trading_costs.py`.
+- `min_edge_over_cost`, `roundtrip_cost_pct` and `entry_order_mode` are excluded from
+  `registry.strategy_param_names` (sweeping them proposes nonsense); `entry_offset_pct` /
+  `entry_ttl_bars` are excluded for the five threshold strategies (inert while entry is market).

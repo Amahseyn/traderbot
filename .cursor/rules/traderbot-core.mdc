@@ -1,5 +1,6 @@
 ---
 description: Traderbot domain layout and invariants (minimal)
+trigger: always_on
 alwaysApply: true
 ---
 

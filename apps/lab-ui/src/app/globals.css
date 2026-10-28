@@ -2,28 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Semantic design tokens — single source of truth.
+ * Values are space-separated RGB channels so Tailwind can apply opacity.
+ *
+ * Contrast (WCAG 2.1 AA, normal text):
+ *   muted #A1A1AA on surface #09090B ....... 8.7:1
+ *   muted #A1A1AA on panel   #121215 ....... 8.0:1
+ *   on-accent #FFFFFF on accent #3B82F6 .... 4.6:1
+ * Accent is reserved for interactive affordances only. Red/green are reserved
+ * for state and PnL semantics and are never used as decoration.
+ */
+:root {
+  --surface: 9 9 11;
+  --panel: 18 18 21;
+  --panel-elevated: 24 24 28;
+  --border: 34 34 39;
+  --border-bright: 52 52 60;
+  --accent: 59 130 246;
+  --accent-dim: 37 99 235;
+  --on-accent: 255 255 255;
+  --muted: 161 161 170;
+  --header-height: 3.5rem;
+}
+
 html {
   color-scheme: dark;
   scroll-behavior: smooth;
+  /* Keep keyboard focus clear of the sticky header (WCAG 2.2 focus-not-obscured). */
+  scroll-padding-top: calc(var(--header-height) + 1rem);
 }
 
 body {
-  @apply bg-surface text-slate-100 antialiased;
-  background-image:
-    radial-gradient(ellipse 100% 60% at 50% -20%, rgba(91, 154, 255, 0.12), transparent 50%),
-    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(129, 140, 248, 0.08), transparent),
-    radial-gradient(ellipse 40% 30% at 0% 100%, rgba(34, 211, 238, 0.04), transparent);
+  @apply bg-surface text-zinc-100 antialiased;
 }
 
-.bg-grid-fade {
-  background-image: linear-gradient(
-      to right,
-      rgba(148, 163, 184, 0.035) 1px,
-      transparent 1px
-    ),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black, transparent);
+/* Pure solid foundation: clean surface without decorative AI graph grids */
+.bg-grid {
+  display: none;
 }
 
 a {
@@ -31,50 +47,64 @@ a {
 }
 
 :focus-visible {
-  @apply outline-none ring-2 ring-accent/70 ring-offset-2 ring-offset-surface;
+  @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-surface;
 }
 
 .skip-link {
-  @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-panel focus:px-4 focus:py-2.5 focus:text-sm focus:font-medium focus:text-white focus:shadow-glow focus:no-underline;
+  @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-panel focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-overlay focus:no-underline;
 }
 
 ::selection {
-  @apply bg-accent/40 text-white;
+  @apply bg-accent/25 text-white;
 }
 
 .page-stack {
-  @apply space-y-8 sm:space-y-10;
+  @apply space-y-6 sm:space-y-8;
 }
 
 @layer components {
-  .glass-panel {
-    @apply border border-white/[0.06] bg-panel/75 shadow-nav backdrop-blur-xl;
+  /* Opaque app bar with subtle boundary */
+  .app-bar {
+    @apply border-b border-border bg-surface;
   }
 
   .nav-pill {
-    @apply rounded-full border border-white/[0.06] bg-surface/60 p-1 shadow-card backdrop-blur-sm;
+    @apply flex items-center gap-1 rounded-md border border-border bg-panel p-1;
   }
 
-  .text-gradient {
-    @apply bg-gradient-to-br from-white via-slate-100 to-slate-400 bg-clip-text text-transparent;
+  .eyebrow {
+    @apply font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-accent;
   }
 
-  .eyebrow-pill {
-    @apply inline-flex items-center rounded-full border border-accent/25 bg-accent/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-accent;
+  .section-title {
+    @apply text-base font-semibold tracking-tight text-white sm:text-lg;
+  }
+
+  .section-lead {
+    @apply max-w-2xl text-xs leading-relaxed text-muted sm:text-sm;
+  }
+
+  .panel-inset {
+    @apply rounded-md border border-border bg-panel p-4;
   }
 }
 
 table.data {
-  @apply w-full text-sm border-collapse overflow-hidden rounded-lg;
+  @apply w-full border-collapse overflow-hidden rounded-md text-sm;
 }
 
 table.data th,
 table.data td {
-  @apply border border-border/80 px-3 py-2.5 text-left align-top;
+  @apply border border-border px-3 py-2 text-left align-top;
 }
 
 table.data th {
-  @apply bg-panel-elevated/90 text-muted text-xs font-semibold uppercase tracking-wide;
+  @apply bg-panel-elevated/80 text-[11px] font-semibold uppercase tracking-wider text-muted;
+}
+
+/* Tabular figures keep numeric columns aligned as values change. */
+table.data td {
+  @apply tabular-nums;
 }
 
 table.data.runs-table tbody tr {
@@ -82,67 +112,52 @@ table.data.runs-table tbody tr {
 }
 
 table.data.runs-table tbody tr:hover {
-  @apply bg-accent/[0.04];
+  @apply bg-panel-elevated/70;
 }
 
 .badge {
-  @apply inline-block rounded-md px-2 py-0.5 text-xs font-medium;
+  @apply inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px] font-medium tracking-wide;
 }
 
 .badge-strategy {
-  @apply bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/20;
+  @apply bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/25;
 }
 
 .badge-model {
-  @apply bg-violet-500/15 text-violet-200 ring-1 ring-violet-500/20;
+  @apply bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/25;
 }
 
 .stat-card {
-  @apply relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-b from-panel-elevated/90 to-panel/70 p-5 shadow-card transition duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-glow-sm no-underline hover:no-underline;
-}
-
-.stat-card::before {
-  content: "";
-  @apply pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent opacity-0 transition-opacity duration-300;
-}
-
-.stat-card:hover::before {
-  @apply opacity-100;
+  @apply relative rounded-lg border border-border bg-panel p-4 sm:p-5 transition-colors duration-150 hover:border-border-bright hover:bg-panel-elevated no-underline hover:no-underline;
 }
 
 .tab-list {
-  @apply flex flex-wrap gap-1 rounded-xl border border-border/80 bg-surface/80 p-1 shadow-card;
+  @apply flex flex-wrap gap-1 rounded-md border border-border bg-panel p-1;
 }
 
 .tab {
-  @apply rounded-lg px-3.5 py-2 text-sm text-slate-300 transition duration-150;
+  @apply rounded px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors duration-150 hover:text-white sm:text-sm;
 }
 
 .tab-active {
-  @apply bg-gradient-to-b from-accent/30 to-accent/15 text-white shadow-sm ring-1 ring-accent/25;
+  @apply bg-panel-elevated text-white ring-1 ring-border-bright font-semibold;
 }
 
 .workflow-card {
-  @apply relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-panel-elevated/80 via-panel/90 to-panel/70 p-5 shadow-card transition duration-300 hover:-translate-y-0.5 hover:border-accent/45 hover:shadow-glow-sm no-underline hover:no-underline;
+  @apply relative rounded-lg border border-border bg-panel p-4 sm:p-5 transition-colors duration-150 hover:border-border-bright hover:bg-panel-elevated no-underline hover:no-underline;
 }
 
-.workflow-card::after {
-  content: "";
-  @apply pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-accent/10 blur-2xl transition-opacity duration-300 opacity-0;
-}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 
-.workflow-card:hover::after {
-  @apply opacity-100;
-}
-
-.section-title {
-  @apply text-lg font-semibold tracking-tight text-white;
-}
-
-.section-lead {
-  @apply max-w-2xl text-sm leading-relaxed text-muted;
-}
-
-.panel-inset {
-  @apply rounded-2xl border border-border/70 bg-panel/50 p-4 shadow-card backdrop-blur-sm;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

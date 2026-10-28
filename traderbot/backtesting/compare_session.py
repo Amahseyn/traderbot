@@ -118,6 +118,7 @@ def _algorithm_kwargs(strategy_id: str, options: StrategyCompareOptions) -> dict
             options.strategy_namespace,
             csv_path=options.csv_path,
             apply_sweep_winner=options.apply_sweep_winner,
+            run_start_unix_seconds=options.run_start_unix_seconds,
         )
     else:
         namespace = namespace_for_strategy_backtest(
@@ -141,6 +142,7 @@ def _algorithm_kwargs(strategy_id: str, options: StrategyCompareOptions) -> dict
                 symbol=market_symbol,
                 resolution=bar_resolution,
                 horizon_label=horizon_label_from_csv_path(options.csv_path),
+                run_start_unix_seconds=options.run_start_unix_seconds,
             )
             if sweep_params:
                 for name, value in sweep_params.items():

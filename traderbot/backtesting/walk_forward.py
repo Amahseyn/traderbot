@@ -63,16 +63,29 @@ def _run(options: WalkForwardOptions, base: Any, params: dict[str, Any], bars: l
 
 
 def _oos_segment(result: Any, warmup: int) -> tuple[float, list[float]]:
-    """Return % and round-trip returns after the warmup prefix (trades opened in warmup excluded)."""
+    """Return OOS % and round-trip returns after the warmup prefix.
+
+    Trades opened during warmup are excluded from the round-trip list.  The
+    segment return is the compounded product of the OOS round-trip returns so
+    that unrealised PnL from positions entered on in-sample (warmup) data does
+    not leak into the out-of-sample equity performance.  When no round trips
+    close inside the OOS window, the segment return is 0% (no OOS-initiated
+    edge), which is the conservative, leakage-free report.
+    """
     curve = result.equity_curve
     if len(curve) <= warmup:
         return 0.0, []
-    start_ts, start_equity = curve[warmup - 1] if warmup > 0 else (curve[0][0] - 1, result.initial_cash)
-    end_equity = curve[-1][1]
+    start_ts = curve[warmup - 1][0] if warmup > 0 else curve[0][0] - 1
     trades = [t for t in result.trades if t.timestamp > start_ts]
-    subset = type("R", (), {"trades": trades, "initial_cash": start_equity})()
-    # A position carried in from warmup has no matching open inside the segment and is skipped.
-    return (end_equity / start_equity - 1.0) * 100.0 if start_equity else 0.0, round_trip_returns(subset)
+    subset = type("R", (), {"trades": trades, "initial_cash": curve[warmup - 1][1] if warmup > 0 else result.initial_cash})()
+    oos_returns = round_trip_returns(subset)
+    # Segment return = compounded product of OOS round-trip returns.  This
+    # excludes carried-in positions whose entry was decided on warmup data.
+    compounded = 1.0
+    for r in oos_returns:
+        compounded *= 1.0 + r
+    segment_return = (compounded - 1.0) * 100.0
+    return segment_return, oos_returns
 
 
 def run_walk_forward(options: WalkForwardOptions, base_namespace: Any | None = None) -> dict[str, Any]:

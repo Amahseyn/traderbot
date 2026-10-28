@@ -30,6 +30,65 @@ entry/exit. Sized strategies (`ma_trend`, `scalp_dip`, `dca`, `grid`) skip vecto
 | `momentum_shock` | new | **proxy** for news/event momentum (price + volume shock). Plug a real feed via `EventSignalSource` |
 | `ensemble` | new | Meta-strategy: preset stacks (e.g. `1m_scalp_trend` = scalp_dip + rsi_trend). See `docs/ensemble-and-1m.md` |
 
+## Cost-aware edge gate (1-minute profitability)
+
+Roundtrip friction is `2 × (fee + slippage)`: **0.190%** on Hyperliquid perp taker
+(`0.045% + 0.05%`) and **0.900%** on Nobitex spot retail (`0.35% + 0.10%`). The median 1-minute
+candle on these files moves `0.04–0.08%`, so a strategy that roundtrips every ~10 minutes pays
+several times the move it is trying to capture.
+
+`sma_cross`, `ema_cross`, `rsi_threshold`, `macd_cross` and `bollinger_mean_reversion` therefore
+gate every signal on the expected move:
+
+| knob | meaning |
+|------|---------|
+| `min_edge_over_cost` | required expected move as a multiple of the roundtrip cost (`1.0` = break-even, `0` = off). `None` resolves to `1.0` on 1m–5m bars and `0` above (`strategy_defaults.apply_high_frequency_edge_default`). |
+| `roundtrip_cost_pct` | friction as a fraction of notional; `None` resolves from the CSV venue (`trading_costs.roundtrip_cost_pct`). |
+| `entry_order_mode` | `market` (taker + slippage) or `maker` (post-only limit: `0.015%`, no slippage). Exits stay market. |
+
+The expected move is the strategy's own target: the band/mean distance for mean reversion
+(`signal_clears_cost`) and the signed recent move for trend (`trend_signal_clears_cost`).
+
+Measured on the diagnostic files (`data/ARBUSDT_1.csv`, `data/FILUSDT_1.csv`, Hyperliquid taker
+costs, market entries):
+
+| file | strategy | before | after | fills |
+|------|----------|-------:|------:|------:|
+| ARBUSDT_1 | `macd_cross` | -33.79% | **-3.25%** | 432 → 53 |
+| ARBUSDT_1 | `sma_cross` | -29.16% | **-12.35%** | 342 → 52 |
+| ARBUSDT_1 | `ema_cross` | -22.05% | **-3.53%** | 215 → 40 |
+| ARBUSDT_1 | `bollinger_mean_reversion` | -6.16% | -6.02% | 117 → 115 |
+| FILUSDT_1 | `macd_cross` | -19.94% | **-2.79%** | 183 → 17 |
+| FILUSDT_1 | `sma_cross` | -14.48% | **-1.96%** | 128 → 9 |
+
+Zero-cost backtests of the same runs show why: `macd_cross` on ARBUSDT was **-0.19% gross** and
+-33.79% net — 99% of the loss was friction, not signal quality. The gate removes trades whose
+expected move cannot pay the fee; it does **not** create an edge. `sma_cross` on ARBUSDT is still
+-12.35% net of a -7.91% gross loss, i.e. the signals themselves lose money there.
+
+`entry_order_mode=maker` is a further, independent saving: the entry leg drops from
+`0.045% + 0.05%` to `0.015% + 0`, so the gate's own threshold falls from `0.19%` to `0.11%`
+(`roundtrip_cost_pct` is resolved with `maker_entry=True`) and a few more signals qualify.
+Measured at the default multiple:
+
+| file | strategy | market entry | maker entry |
+|------|----------|-------------:|------------:|
+| ARBUSDT_1 | `macd_cross` | -3.25% | **-1.91%** |
+| ARBUSDT_1 | `sma_cross` | -12.35% | **-3.30%** |
+| ARBUSDT_1 | `bollinger_mean_reversion` | -6.02% | **+0.84%** |
+| FILUSDT_1 | `macd_cross` | **-2.79%** | -4.98% |
+| FILUSDT_1 | `sma_cross` | **-1.96%** | -2.50% |
+| FILUSDT_1 | `bollinger_mean_reversion` | **-4.71%** | -3.38% |
+
+It helps where the strategy has an edge and hurts where it does not, because the looser
+threshold admits more trades into a negative-expectancy signal. It stays opt-in for a second
+reason: the Nobitex live path (`AlgorithmTrader`) ignores `order_spec`, so a maker backtest
+would be optimistic there.
+
+Coarse bars are untouched: the gate is off above 5-minute bars by default because the friction is
+small relative to the bar move, and forcing it on hurt (60m `macd_cross` on ARBUSDT -1.84% →
+-22.30%).
+
 ## Multi-symbol and data-dependent strategies
 
 - **Altcoin rotation** — `traderbot.backtesting.rotation.run_rotation_backtest(bars_by_symbol, …)`:

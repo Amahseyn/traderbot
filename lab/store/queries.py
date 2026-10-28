@@ -178,16 +178,14 @@ def _horizon_match_clause(label: str) -> tuple[str, list[Any]]:
     return "(" + " OR ".join(parts) + ")", params
 
 
-def list_evaluation_runs(
-    connection: sqlite3.Connection,
+def _build_run_filters(
     *,
-    run_kind: str | None = None,
-    strategy_id: str | None = None,
-    model_id: str | None = None,
-    symbol: str | None = None,
-    horizon_label: str | None = None,
-    limit: int = 200,
-) -> list[RunRow]:
+    run_kind: str | None,
+    strategy_id: str | None,
+    model_id: str | None,
+    symbol: str | None,
+    horizon_label: str | None,
+) -> tuple[list[str], list[Any]]:
     clauses = ["1=1"]
     params: list[Any] = []
     if run_kind:
@@ -206,7 +204,55 @@ def list_evaluation_runs(
         clause, horizon_params = _horizon_match_clause(horizon_label)
         clauses.append(clause)
         params.extend(horizon_params)
+    return clauses, params
+
+
+def count_evaluation_runs(
+    connection: sqlite3.Connection,
+    *,
+    run_kind: str | None = None,
+    strategy_id: str | None = None,
+    model_id: str | None = None,
+    symbol: str | None = None,
+    horizon_label: str | None = None,
+) -> int:
+    clauses, params = _build_run_filters(
+        run_kind=run_kind,
+        strategy_id=strategy_id,
+        model_id=model_id,
+        symbol=symbol,
+        horizon_label=horizon_label,
+    )
+    query = f"""
+        SELECT COUNT(*) AS cnt
+        FROM evaluation_runs r
+        JOIN configurations c ON c.id = r.config_id
+        WHERE {' AND '.join(clauses)}
+    """
+    row = connection.execute(query, params).fetchone()
+    return int(row["cnt"]) if row else 0
+
+
+def list_evaluation_runs(
+    connection: sqlite3.Connection,
+    *,
+    run_kind: str | None = None,
+    strategy_id: str | None = None,
+    model_id: str | None = None,
+    symbol: str | None = None,
+    horizon_label: str | None = None,
+    limit: int = 200,
+    offset: int = 0,
+) -> list[RunRow]:
+    clauses, params = _build_run_filters(
+        run_kind=run_kind,
+        strategy_id=strategy_id,
+        model_id=model_id,
+        symbol=symbol,
+        horizon_label=horizon_label,
+    )
     params.append(limit)
+    params.append(max(offset, 0))
     query = f"""
         SELECT r.*, c.strategy_id, c.model_id, c.symbol, c.resolution, c.horizon_label,
                c.parameters_json, c.data_context_json
@@ -214,7 +260,7 @@ def list_evaluation_runs(
         JOIN configurations c ON c.id = r.config_id
         WHERE {' AND '.join(clauses)}
         ORDER BY r.created_at_utc DESC
-        LIMIT ?
+        LIMIT ? OFFSET ?
     """
     rows = connection.execute(query, params).fetchall()
     return [_row_to_run(row) for row in rows]

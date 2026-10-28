@@ -131,7 +131,16 @@ def test_sweep_rank_key_ignores_holdout():
 def test_strategy_param_names_follow_registry():
     from traderbot.algorithms.registry import strategy_param_names
 
-    assert strategy_param_names("sma_cross") == ["fast", "slow", "price_confirm"]
+    assert strategy_param_names("sma_cross") == [
+        "fast",
+        "slow",
+        "price_confirm",
+        "context_bars",
+        "buy_min_recent_return",
+        "sell_max_recent_return",
+        "buy_min_fine_last_5m",
+        "sell_max_fine_last_5m",
+    ]
     assert strategy_param_names("rsi_threshold") == [
         "period",
         "oversold",

@@ -109,6 +109,14 @@ def suggest_strategy_params(
     *,
     full_grid_hints: bool = True,
 ) -> dict[str, Any]:
+    """Suggest parameters for one Optuna trial.
+
+    All parameters are sampled from their full, invariant distribution.  Optuna
+    requires the choice set of ``suggest_categorical`` to be the same across every
+    trial in a study, so we never filter the grid based on another parameter's
+    sampled value (the ``fast < slow`` constraint is enforced post-hoc and
+    violations raise ``TrialPruned`` upstream).
+    """
     from traderbot.algorithms.registry import strategy_param_defaults
 
     defaults = strategy_param_defaults(strategy_id)
@@ -116,20 +124,6 @@ def suggest_strategy_params(
     params: dict[str, Any] = {}
     for name in param_names:
         grid_values = hints.get(name)
-        if name == "slow" and "fast" in params and grid_values:
-            slow_choices = [value for value in grid_values if int(value) > int(params["fast"])]
-            if not slow_choices:
-                raise ValueError("no slow choices greater than fast")
-            params[name] = trial.suggest_categorical(name, slow_choices)
-            continue
-        if name == "trend_slow_period" and "trend_fast_period" in params and grid_values:
-            slow_choices = [
-                value for value in grid_values if int(value) > int(params["trend_fast_period"])
-            ]
-            if not slow_choices:
-                raise ValueError("no trend_slow_period choices greater than trend_fast_period")
-            params[name] = trial.suggest_categorical(name, slow_choices)
-            continue
         params[name] = suggest_strategy_param(
             trial,
             name,

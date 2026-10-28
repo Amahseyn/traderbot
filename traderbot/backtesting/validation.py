@@ -36,6 +36,7 @@ class ValidationOptions(ResolvesCostRates):
     min_trades: int = DEFAULT_MIN_TRADES
     max_combos: int = 64
     rank_by: str = "edge"
+    warmup_bars: int = 0
 
 
 def run_strategy_validation(
@@ -70,6 +71,7 @@ def run_strategy_validation(
         bars,
         train_fraction=options.train_fraction,
         validation_fraction=options.validation_fraction,
+        warmup_bars=options.warmup_bars,
     )
     names = list(options.param_grid.keys())
     candidates: list[dict[str, Any]] = []
@@ -173,13 +175,30 @@ def run_strategy_validation(
         slippage_rate=options.slippage,
         execution=options.execution,
     )
+    warmup = max(0, options.warmup_bars)
+    # When a warmup prefix was prepended to the test slice, measure the
+    # out-of-sample return and benchmark only over the post-warmup bars so
+    # the reported edge reflects the unseen window, not the warmup fillers.
+    test_core = test_bars[warmup:] if warmup and warmup < len(test_bars) else test_bars
     benchmark_return = buy_and_hold_return_pct(
-        test_bars,
+        test_core,
         initial_cash=options.cash,
         fee_rate=options.fee,
         slippage_rate=options.slippage,
         execution=options.execution,
     )
+    test_summary = backtest_summary_dict(
+        test_algo,
+        test_result,
+        bars=len(test_bars),
+        extra={"strategy_id": options.strategy_id},
+    )
+    if warmup and warmup < len(test_bars):
+        from traderbot.backtesting.metrics import return_pct_excluding_warmup
+
+        test_summary["return_pct"] = round(
+            return_pct_excluding_warmup(list(test_result.equity_curve), warmup), 6
+        )
     return {
         "csv": csv_label,
         "strategy_id": options.strategy_id,
@@ -188,6 +207,7 @@ def run_strategy_validation(
             "train": len(train_bars),
             "validation": len(validation_bars),
             "test": len(test_bars),
+            "test_warmup": warmup,
         },
         "fee": options.fee,
         "slippage": options.slippage,
@@ -198,16 +218,11 @@ def run_strategy_validation(
         "selected_params": winner_params,
         "candidates": candidates,
         "test": {
-            **backtest_summary_dict(
-                test_algo,
-                test_result,
-                bars=len(test_bars),
-                extra={"strategy_id": options.strategy_id},
-            ),
+            **test_summary,
             "max_drawdown_pct": round(max_drawdown_pct(list(test_result.equity_curve)), 6),
             "buy_and_hold_return_pct": round(benchmark_return, 6),
             "excess_return_vs_buy_hold_pct": round(
-                test_result.return_pct - benchmark_return,
+                test_summary["return_pct"] - benchmark_return,
                 6,
             ),
         },

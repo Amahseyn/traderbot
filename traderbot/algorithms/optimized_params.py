@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +16,8 @@ from traderbot.algorithms.strategy_defaults import (
 )
 from traderbot.data.crypto_store import horizon_label_from_csv_dir
 from traderbot.utils.resolution import resolution_from_csv_path
+
+logger = logging.getLogger(__name__)
 
 FALLBACK_SWEEP_SYMBOLS_RLS = ("BTCIRT", "ETHIRT")
 FALLBACK_SWEEP_SYMBOLS_USDT = ("BTCUSDT", "ETHUSDT")
@@ -74,6 +78,44 @@ def _sweep_sessions_window_columns(connection: sqlite3.Connection) -> set[str]:
     return {str(row[1]) for row in rows}
 
 
+def _iso_utc_to_unix(value: Any) -> int | None:
+    """Parse an ISO 8601 UTC timestamp (``...Z`` or ``+00:00``) to unix seconds."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        normalised = text.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(normalised)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.astimezone(timezone.utc).timestamp())
+    except (ValueError, TypeError):
+        return None
+
+
+def _record_is_temporally_eligible(
+    record: dict[str, Any],
+    *,
+    run_start_unix_seconds: int | None,
+) -> bool:
+    """True when the sweep's fit window ends before the evaluation run starts.
+
+    A sweep trained on data that overlaps the compare/evaluation window would
+    apply overfitted parameters to the very bars it was fitted on.  When the
+    caller supplies ``run_start_unix_seconds``, records whose
+    ``optimize_end_utc`` is at or after that start are rejected.
+    """
+    if run_start_unix_seconds is None:
+        return True
+    fit_end = _iso_utc_to_unix(record.get("optimize_end_utc"))
+    if fit_end is None:
+        # No timestamp recorded — conservatively allow it to preserve legacy behaviour.
+        return True
+    return fit_end < int(run_start_unix_seconds)
+
+
 def _sweep_horizon_tiers(
     horizon_label: str | None,
     columns: set[str],
@@ -97,6 +139,7 @@ def _fetch_sweep_record_row(
     symbol: str,
     resolution: str | None,
     horizon_label: str | None = None,
+    run_start_unix_seconds: int | None = None,
 ) -> dict[str, Any] | None:
     columns = _sweep_sessions_window_columns(connection)
     base_clauses = ["strategy_id = ?", "symbol = ?"]
@@ -112,6 +155,16 @@ def _fetch_sweep_record_row(
             ("optimize_start_utc", "optimize_end_utc", "compare_start_utc", "compare_end_utc")
         )
     extra_select = "".join(f", {name}" for name in extra_names)
+    # Temporal guard: reject sweep records whose fit window overlaps the
+    # evaluation window.  ``optimize_end_utc`` is stored as an ISO 8601 string;
+    # ISO 8601 UTC timestamps sort lexicographically, so a ``<`` comparison in
+    # SQL is correct when both operands are normalised to ``Z``-suffixed form.
+    fit_end_clause = ""
+    if run_start_unix_seconds is not None and "optimize_end_utc" in columns:
+        from traderbot.backtesting.bar_windows import unix_to_utc_iso
+
+        fit_end_clause = " AND (optimize_end_utc IS NULL OR optimize_end_utc < ?)"
+        base_params.append(unix_to_utc_iso(int(run_start_unix_seconds)))
     row = None
     for horizon_clause, horizon_params in _sweep_horizon_tiers(horizon_label, columns):
         clauses = list(base_clauses)
@@ -120,7 +173,8 @@ def _fetch_sweep_record_row(
             clauses.append(horizon_clause)
             params.extend(horizon_params)
         row = connection.execute(
-            f"SELECT best_params_json{extra_select} FROM sweep_sessions WHERE {' AND '.join(clauses)}"
+            f"SELECT best_params_json{extra_select} FROM sweep_sessions "
+            f"WHERE {' AND '.join(clauses)}{fit_end_clause}"
             " ORDER BY created_at_utc DESC LIMIT 1",
             params,
         ).fetchone()
@@ -147,8 +201,15 @@ def resolve_best_sweep_record(
     resolution: str | None,
     horizon_label: str | None = None,
     database_path: Path | str | None = None,
+    run_start_unix_seconds: int | None = None,
 ) -> dict[str, Any] | None:
-    """Latest sweep row for this market (or liquid fallback), including fit/compare windows."""
+    """Latest sweep row for this market (or liquid fallback), including fit/compare windows.
+
+    When ``run_start_unix_seconds`` is set, sweep records whose fit window
+    (``optimize_end_utc``) overlaps the evaluation run are rejected to prevent
+    temporal leakage — a sweep trained on bars that include the evaluation
+    window would apply overfitted parameters to that very window.
+    """
     if not symbol:
         return None
     db_path = Path(database_path) if database_path is not None else default_database_path()
@@ -162,6 +223,7 @@ def resolve_best_sweep_record(
                 symbol=candidate,
                 resolution=resolution,
                 horizon_label=horizon_label,
+                run_start_unix_seconds=run_start_unix_seconds,
             )
             if record is not None:
                 record["symbol"] = candidate.upper()
@@ -176,6 +238,7 @@ def resolve_best_sweep_params(
     resolution: str | None,
     horizon_label: str | None = None,
     database_path: Path | str | None = None,
+    run_start_unix_seconds: int | None = None,
 ) -> tuple[dict[str, Any] | None, str | None]:
     """Latest sweep winner for this market, else the same strategy on a default liquid pair."""
     record = resolve_best_sweep_record(
@@ -184,6 +247,7 @@ def resolve_best_sweep_params(
         resolution=resolution,
         horizon_label=horizon_label,
         database_path=database_path,
+        run_start_unix_seconds=run_start_unix_seconds,
     )
     if record is None:
         return None, None
@@ -197,6 +261,7 @@ def best_sweep_params_from_db(
     resolution: str | None,
     horizon_label: str | None = None,
     database_path: Path | str | None = None,
+    run_start_unix_seconds: int | None = None,
 ) -> dict[str, Any] | None:
     params, _symbol = resolve_best_sweep_params(
         strategy_id,
@@ -204,6 +269,7 @@ def best_sweep_params_from_db(
         resolution=resolution,
         horizon_label=horizon_label,
         database_path=database_path,
+        run_start_unix_seconds=run_start_unix_seconds,
     )
     return params
 
@@ -218,8 +284,14 @@ def resolve_optimized_namespace(
     defaults_file: Path | str | None = None,
     database_path: Path | str | None = None,
     apply_sweep_winner: bool = False,
+    run_start_unix_seconds: int | None = None,
 ) -> Any:
-    """Robust tuned defaults; sweep winner only when ``apply_sweep_winner`` is explicitly set."""
+    """Robust tuned defaults; sweep winner only when ``apply_sweep_winner`` is explicitly set.
+
+    When ``run_start_unix_seconds`` is provided alongside ``apply_sweep_winner``,
+    only sweep records whose fit window ends before the evaluation start are
+    applied, preventing temporal leakage from overfitted, overlapping-window params.
+    """
     namespace = namespace_for_strategy_backtest(
         strategy_id,
         base,
@@ -243,11 +315,20 @@ def resolve_optimized_namespace(
             resolution=bar_resolution,
             horizon_label=horizon_label_from_csv_path(csv_path),
             database_path=database_path,
+            run_start_unix_seconds=run_start_unix_seconds,
         )
         if sweep_params:
             for name, value in sweep_params.items():
                 if hasattr(namespace, name):
                     setattr(namespace, name, value)
+        elif run_start_unix_seconds is not None:
+            logger.info(
+                "resolve_optimized_namespace: no temporally-eligible sweep record for "
+                "strategy=%s symbol=%s run_start=%s; falling back to robust defaults",
+                strategy_id,
+                market_symbol,
+                run_start_unix_seconds,
+            )
     return namespace
 
 

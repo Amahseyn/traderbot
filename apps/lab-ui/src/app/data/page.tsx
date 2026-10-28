@@ -24,7 +24,7 @@ export default function DataPage() {
   return (
     <Page>
       <PageHeader
-        eyebrow="Step 1 · Data"
+        eyebrow="Market Data"
         title="Market data"
         description="Sync exchange catalogs, export OHLC batches, and browse registered datasets. Use selected files in Custom research or download CSVs directly."
         actions={

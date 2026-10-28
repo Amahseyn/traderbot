@@ -121,11 +121,25 @@ def _migrate_schema(connection: sqlite3.Connection) -> None:
         backfill_sweep_horizon_labels(connection)
 
 
+def ensure_marketcap_tables(connection: sqlite3.Connection) -> None:
+    """Ensure marketcap_cache table exists on databases created with earlier schemas."""
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS marketcap_cache (
+            cache_key TEXT PRIMARY KEY,
+            payload_json TEXT NOT NULL,
+            updated_at_utc TEXT NOT NULL
+        )
+        """
+    )
+
+
 def init_database(connection: sqlite3.Connection) -> None:
     connection.executescript(CREATE_TABLES_SQL)
     ensure_dataset_columns(connection)
     ensure_sweep_columns(connection)
     ensure_discovery_columns(connection)
+    ensure_marketcap_tables(connection)
     _migrate_schema(connection)
     row = connection.execute(
         "SELECT value FROM schema_meta WHERE key = 'schema_version'",

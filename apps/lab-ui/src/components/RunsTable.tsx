@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { EvaluationRun } from "@/lib/api";
 import {
   formatMoney,
+  formatRelativeTime,
   formatReturnPct,
   formatUtcTimestamp,
   returnPctClassName,
@@ -101,8 +102,9 @@ export function RunsTable({ runs, variant = "full" }: RunsTableProps) {
                   <Link
                     href={href}
                     className="font-medium text-accent no-underline group-hover:underline"
+                    title={formatUtcTimestamp(run.created_at_utc)}
                   >
-                    {formatUtcTimestamp(run.created_at_utc)}
+                    {formatRelativeTime(run.created_at_utc)}
                   </Link>
                 </td>
               </tr>

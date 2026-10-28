@@ -49,6 +49,37 @@ export function formatUtcTimestamp(iso: string): string {
   });
 }
 
+/**
+ * Relative time label for an ISO timestamp: "just now", "5 minutes ago",
+ * "3 hours ago", "2 days ago", etc. Falls back to the absolute timestamp
+ * for anything older than 30 days.
+ */
+export function formatRelativeTime(iso: string): string {
+  const parsed = new Date(iso.endsWith("Z") ? iso : `${iso}Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    return iso;
+  }
+  const now = Date.now();
+  const diffMs = now - parsed.getTime();
+  if (diffMs < 0) {
+    // Future timestamp — just show the absolute time.
+    return formatUtcTimestamp(iso);
+  }
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 45) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return days === 1 ? "1 day ago" : `${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return months === 1 ? "1 month ago" : `${months} months ago`;
+  const years = Math.floor(days / 365);
+  return years === 1 ? "1 year ago" : `${years} years ago`;
+}
+
 export function parseReturnPct(metrics: Record<string, unknown> | undefined): number | null {
   if (!metrics) return null;
   const raw = metrics.return_pct;

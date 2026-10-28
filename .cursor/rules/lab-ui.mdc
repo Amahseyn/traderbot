@@ -1,5 +1,6 @@
 ---
 description: Traderbot Lab Next.js UI conventions
+trigger: glob
 globs:
   - apps/lab-ui/**
 ---
@@ -41,6 +42,17 @@ globs:
 - Prefer shared `Card`, `Button`, `Field`, `PageHeader`, `JobMonitor` over one-off styling.
 - Charts and downloads use `artifactUrl` / `artifactDownloadUrl`; normalize absolute paths with `normalizeArtifactPath` when reading stored paths.
 - Poll job status with React Query (`refetchInterval` while `queued` or `running`); invalidate `runs`, `stats`, `experiments`, `data-csv` on job completion.
+
+## Design system (enforced)
+
+Source of truth: `apps/lab-ui/design-system/traderbot-lab/MASTER.md` — read it before changing layout, colour, or component styling. The `ui-ux-pro-max` skill is installed at `.agents/skills/ui-ux-pro-max/` and `.cursor/skills/ui-ux-pro-max/` (`python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain ux` for targeted guidance).
+
+- **Tokens only.** Style with `surface` / `panel` / `panel-elevated` / `border` / `border-bright` / `accent` / `on-accent` / `muted` declared in `globals.css`. No raw hex in components.
+- **Accent is for interaction only.** Red and green are reserved for PnL and status; never use them as decoration.
+- **No AI-slop decoration:** no gradient backgrounds, gradient text, glow shadows, decorative `backdrop-blur`, ambient `blur-3xl` blobs, or hover lift/scale on cards and buttons.
+- **Contrast:** normal text ≥ 4.5:1. Primary buttons use `text-on-accent` on `bg-accent` — white on `#5B9AFF` is only 2.8:1.
+- **Motion:** 150 ms colour/border transitions, no infinite animations, `prefers-reduced-motion` respected globally.
+- **Data:** numeric columns use `tabular-nums`; status must never rely on colour alone.
 
 ## Backend pairing
 

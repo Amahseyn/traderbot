@@ -37,6 +37,7 @@ class OptunaTuneConfig:
     full_grid_hints: bool = True
     sampler: Literal["tpe", "random"] = "tpe"
     top_rows: int = DEFAULT_OPTUNA_TOP_ROWS
+    warmup_bars: int = 0
 
 
 def _load_bars(options: SweepOptions, base: Any) -> tuple[list[dict[str, Any]], str, Any]:
@@ -142,6 +143,7 @@ def run_strategy_optuna_tune(
     train_fraction: float = 0.6,
     validation_fraction: float = 0.2,
     use_validation_split: bool = True,
+    warmup_bars: int = 0,
 ) -> dict[str, Any]:
     """Bayesian search over many strategy params; objective = validation return (default)."""
     optuna = _require_optuna()
@@ -157,6 +159,7 @@ def run_strategy_optuna_tune(
             bars,
             train_fraction=train_fraction,
             validation_fraction=validation_fraction,
+            warmup_bars=warmup_bars or tune_config.warmup_bars,
         )
     else:
         holdout = options.holdout_tail_bars
@@ -200,6 +203,10 @@ def run_strategy_optuna_tune(
         trial.set_user_attr("params", params)
         trial.set_user_attr("eligible", row["eligible"])
         trial_rows.append(row)
+        # Penalise ineligible candidates so the TPE sampler does not concentrate
+        # exploration around inactive / zero-trade parameter regions.
+        if not row["eligible"]:
+            return float("-inf")
         return float(row["validation_return_pct"])
 
     sampler: Any
@@ -232,19 +239,33 @@ def run_strategy_optuna_tune(
     )
     test_result = run_backtest(
         test_algo,
-        test_bars if use_validation_split else bars,
+        test_bars,
         initial_cash=options.cash,
         fee_rate=options.fee,
         slippage_rate=options.slippage,
         execution=options.execution,
     )
+    warmup = max(0, warmup_bars or tune_config.warmup_bars)
+    test_core = test_bars[warmup:] if warmup and warmup < len(test_bars) else test_bars
     benchmark_return = buy_and_hold_return_pct(
-        test_bars if use_validation_split else bars,
+        test_core,
         initial_cash=options.cash,
         fee_rate=options.fee,
         slippage_rate=options.slippage,
         execution=options.execution,
     )
+    test_summary = backtest_summary_dict(
+        test_algo,
+        test_result,
+        bars=len(test_bars),
+        extra={"strategy_id": options.strategy_id},
+    )
+    if warmup and warmup < len(test_bars):
+        from traderbot.backtesting.metrics import return_pct_excluding_warmup
+
+        test_summary["return_pct"] = round(
+            return_pct_excluding_warmup(list(test_result.equity_curve), warmup), 6
+        )
     rank_by = "validation_return_pct" if use_validation_split else "return_pct"
 
     return {
@@ -254,7 +275,8 @@ def run_strategy_optuna_tune(
         "splits": {
             "train": len(train_bars),
             "validation": len(validation_bars) if validation_bars is not None else 0,
-            "test": len(test_bars) if use_validation_split else len(bars),
+            "test": len(test_bars),
+            "test_warmup": warmup,
         },
         "fee": options.fee,
         "slippage": options.slippage,
@@ -265,16 +287,11 @@ def run_strategy_optuna_tune(
         "selected_params": winner_params,
         "candidates": trial_rows[: tune_config.top_rows],
         "test": {
-            **backtest_summary_dict(
-                test_algo,
-                test_result,
-                bars=len(test_bars if use_validation_split else bars),
-                extra={"strategy_id": options.strategy_id},
-            ),
+            **test_summary,
             "max_drawdown_pct": round(max_drawdown_pct(list(test_result.equity_curve)), 6),
             "buy_and_hold_return_pct": round(benchmark_return, 6),
             "excess_return_vs_buy_hold_pct": round(
-                test_result.return_pct - benchmark_return,
+                test_summary["return_pct"] - benchmark_return,
                 6,
             ),
         },

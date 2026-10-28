@@ -454,7 +454,7 @@ export default function CustomPipelinePage() {
     <Page className="space-y-6 sm:space-y-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:items-start lg:gap-8 lg:space-y-0">
       <div className="space-y-8 min-w-0">
       <PageHeader
-        eyebrow="Step 2 · Research"
+        eyebrow="Pipeline Studio"
         title="Research pipeline"
         description="Configure an end-to-end run: download one or a batch of markets × horizons from Nobitex, or pick OHLC files, then compare rule-based strategies (with a cap or subset)."
       />
@@ -796,7 +796,7 @@ export default function CustomPipelinePage() {
         <JobErrorAlert error={runMutation.error} />
         {runBlockers.length > 0 && !runMutation.isPending && (
           <div
-            className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm"
+            className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm"
             role="status"
             aria-live="polite"
           >

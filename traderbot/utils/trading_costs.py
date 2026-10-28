@@ -107,6 +107,56 @@ def resolve_cost_rates(
     )
 
 
+def roundtrip_cost_rate(
+    *,
+    exchange: str | None = None,
+    source: str | Path | None = None,
+    fee: float | None = None,
+    slippage: float | None = None,
+    maker_entry: bool = False,
+) -> float:
+    """Total friction for one entry + one exit, as a fraction of notional.
+
+    A market roundtrip pays ``(fee + slippage)`` on both legs — 0.190% on Hyperliquid perp
+    taker and 0.900% on Nobitex spot retail, versus a 0.04–0.08% median 1-minute candle.
+    ``maker_entry`` swaps the entry leg for a resting post-only fill: maker fee, no slippage.
+    """
+    fee_rate, slippage_rate = resolve_cost_rates(
+        exchange=exchange,
+        source=source,
+        fee=fee,
+        slippage=slippage,
+    )
+    if not maker_entry:
+        return 2.0 * (fee_rate + slippage_rate)
+    venue = exchange or infer_exchange(source)
+    market_kind = "spot" if venue == "nobitex" else "perp"
+    return maker_fee_rate(venue, market_kind=market_kind) + fee_rate + slippage_rate
+
+
+def roundtrip_cost_pct(
+    *,
+    exchange: str | None = None,
+    source: str | Path | None = None,
+    fee: float | None = None,
+    slippage: float | None = None,
+    maker_entry: bool = False,
+) -> float:
+    """Same as :func:`roundtrip_cost_rate`; the strategy knob it feeds is named ``_pct``."""
+    return roundtrip_cost_rate(
+        exchange=exchange,
+        source=source,
+        fee=fee,
+        slippage=slippage,
+        maker_entry=maker_entry,
+    )
+
+
+def default_roundtrip_cost_pct(*, maker_entry: bool = False) -> float:
+    """Roundtrip friction on the repo default venue (Hyperliquid perp)."""
+    return roundtrip_cost_pct(exchange="hyperliquid", maker_entry=maker_entry)
+
+
 def _source_for_options(options: object) -> str | Path | None:
     for attr in ("csv_path", "csv_dir"):
         value = getattr(options, attr, None)

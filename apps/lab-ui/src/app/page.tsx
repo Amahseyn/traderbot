@@ -44,30 +44,77 @@ export default function DashboardPage() {
   return (
     <Page>
       <PageHeader
-        eyebrow="Overview"
+        eyebrow="Console"
         title="Research overview"
-        description="Export market data, run backtests from Custom research, then review runs and trade logs."
+        description="Quantitative strategy research, market data ingestion, and execution archive."
         actions={
-          <Link href="/new">
-            <Button>New job</Button>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/custom">
+              <Button variant="secondary">Custom pipeline</Button>
+            </Link>
+            <Link href="/marketcap">
+              <Button>Market Cap</Button>
+            </Link>
+          </div>
         }
       />
 
       <WorkflowCards />
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-        <Link href="/runs" className="stat-card block">
-          <div className="text-muted text-xs uppercase tracking-wide">Runs</div>
-          <div className="text-2xl font-semibold mt-1 text-white">{stats.run_count}</div>
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3" aria-label="Core metrics">
+        <Link href="/runs" className="stat-card group block">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">Catalog Runs</span>
+            <div className="flex h-7 w-7 items-center justify-center rounded border border-border bg-panel-elevated text-zinc-400 transition-colors duration-150 group-hover:border-border-bright group-hover:text-accent">
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+                <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" strokeLinecap="round" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-2 text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">
+            {stats.run_count}
+          </div>
+          <div className="mt-2 flex items-center justify-between text-xs text-muted">
+            <span>Historical backtests</span>
+            <span className="font-mono text-[10px] text-zinc-500 group-hover:text-accent">VIEW</span>
+          </div>
         </Link>
-        <Link href="/data" className="stat-card block">
-          <div className="text-muted text-xs uppercase tracking-wide">Compare sessions</div>
-          <div className="text-2xl font-semibold mt-1 text-white">{stats.compare_count}</div>
+
+        <Link href="/custom#quick-jobs" className="stat-card group block">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">Compare Sessions</span>
+            <div className="flex h-7 w-7 items-center justify-center rounded border border-border bg-panel-elevated text-zinc-400 transition-colors duration-150 group-hover:border-border-bright group-hover:text-accent">
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+                <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-2 text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">
+            {stats.compare_count}
+          </div>
+          <div className="mt-2 flex items-center justify-between text-xs text-muted">
+            <span>Multi-strategy matrices</span>
+            <span className="font-mono text-[10px] text-zinc-500 group-hover:text-accent">VIEW</span>
+          </div>
         </Link>
-        <Link href="/custom" className="stat-card block">
-          <div className="text-muted text-xs uppercase tracking-wide">Parameter sweeps</div>
-          <div className="text-2xl font-semibold mt-1 text-white">{stats.sweep_count}</div>
+
+        <Link href="/optimizer" className="stat-card group block">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">Parameter Sweeps</span>
+            <div className="flex h-7 w-7 items-center justify-center rounded border border-border bg-panel-elevated text-zinc-400 transition-colors duration-150 group-hover:border-border-bright group-hover:text-accent">
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+                <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" strokeLinecap="round" />
+                <circle cx="12" cy="12" r="4" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-2 text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">
+            {stats.sweep_count}
+          </div>
+          <div className="mt-2 flex items-center justify-between text-xs text-muted">
+            <span>Optuna tuning & sweeps</span>
+            <span className="font-mono text-[10px] text-zinc-500 group-hover:text-accent">VIEW</span>
+          </div>
         </Link>
       </section>
 
@@ -92,7 +139,7 @@ export default function DashboardPage() {
             action={
               <div className="flex flex-wrap justify-center gap-2">
                 <Link href="/data"><Button variant="secondary">Export data</Button></Link>
-                <Link href="/new"><Button>Start discovery</Button></Link>
+                <Link href="/marketcap"><Button>Explore markets</Button></Link>
               </div>
             }
           />

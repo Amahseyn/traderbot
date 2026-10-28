@@ -1,5 +1,6 @@
 from lab.store.database import default_database_path, open_database
 from lab.store.queries import (
+    count_evaluation_runs,
     fetch_best_sweep,
     fetch_dashboard_stats,
     fetch_evaluation_run,
@@ -12,6 +13,7 @@ from lab.store.queries import (
 from traderbot.recording import set_recorder
 
 __all__ = [
+    "count_evaluation_runs",
     "default_database_path",
     "fetch_best_sweep",
     "fetch_dashboard_stats",

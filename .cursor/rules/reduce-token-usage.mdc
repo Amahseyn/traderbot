@@ -1,11 +1,12 @@
 ---
-description: Keep Cursor agent context and tool I/O small
+description: Keep agent context and tool I/O small
+trigger: always_on
 alwaysApply: true
 ---
 
-# Reduce token usage (Cursor)
+# Reduce token usage
 
-Rules in this file are injected every turn. Keep them short. Do not add `CLAUDE.md`, `.claude/`, or Claude Code rule files — Cursor project rules live only in `.cursor/rules/` and `AGENTS.md`.
+Rules in this file are injected every turn. Keep them short. Project rules live in `AGENTS.md`, `GEMINI.md`, and `.cursor/rules/`.
 
 ## Discovery
 

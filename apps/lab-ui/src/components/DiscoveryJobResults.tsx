@@ -114,6 +114,12 @@ export function DiscoveryJobResults({
           Could not load discovery report from the database or artifact. Check the job log.
         </p>
       )}
+      {!reportLoading && jobCompleted && !report && !dbRunQuery.error && !artifactReportQuery.error && (
+        <p className="text-sm text-muted">
+          Job completed but no discovery report was found. The artifact may not have been written —
+          check the job log for details.
+        </p>
+      )}
       {artifactPath && jobCompleted && (
         <p className="mb-3 text-xs text-muted">
           {dbRunQuery.data?.report ? "Stored in Lab database" : "Loaded from artifact"} ·{" "}

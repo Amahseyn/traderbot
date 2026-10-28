@@ -361,6 +361,26 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+/** Fetch JSON and also surface the `X-Total-Count` response header. */
+async function fetchJsonWithTotal<T>(path: string, init?: RequestInit): Promise<{ data: T; total: number }> {
+  const response = await fetch(`${API_BASE}${path}`, withLabAuth(init));
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error(
+        "Lab API endpoint not found (404). Restart ./run-lab-api.sh or ./run-lab.sh to load the current API.",
+      );
+    }
+    const detail = await response.text();
+    throw new Error(parseApiErrorBody(detail, response.status) || `${response.status} ${response.statusText}`);
+  }
+  const data = (await response.json()) as T;
+  const totalHeader = response.headers.get("X-Total-Count");
+  const total = totalHeader ? Math.max(0, parseInt(totalHeader, 10) || 0) : 0;
+  return { data, total };
+}
+
+export type PaginatedRuns = { data: EvaluationRun[]; total: number };
+
 export function apiUrl(relativePath: string): string {
   return `${API_BASE}${relativePath.startsWith("/") ? relativePath : `/${relativePath}`}`;
 }
@@ -430,7 +450,28 @@ export type StrategyExchangeCatalog = {
 export const api = {
   health: () => fetchJson<HealthResponse>("/health"),
   stats: () => fetchJson<DashboardStats>("/api/stats"),
+  /** Fetch runs with a raw query string (no total count). Kept for the dashboard widget. */
   runs: (query = "") => fetchJson<EvaluationRun[]>(`/api/runs${query}`),
+  /** Fetch runs with structured pagination params and the server-side total count. */
+  runsPaginated: (params: {
+    limit: number;
+    offset: number;
+    run_kind?: string;
+    symbol?: string;
+    strategy_id?: string;
+    model_id?: string;
+    horizon_label?: string;
+  }) => {
+    const q = new URLSearchParams();
+    q.set("limit", String(params.limit));
+    q.set("offset", String(params.offset));
+    if (params.run_kind) q.set("run_kind", params.run_kind);
+    if (params.symbol) q.set("symbol", params.symbol);
+    if (params.strategy_id) q.set("strategy_id", params.strategy_id);
+    if (params.model_id) q.set("model_id", params.model_id);
+    if (params.horizon_label) q.set("horizon_label", params.horizon_label);
+    return fetchJsonWithTotal<EvaluationRun[]>(`/api/runs?${q.toString()}`);
+  },
   run: (id: string) => fetchJson<EvaluationRun>(`/api/runs/${id}`),
   runAnalytics: (id: string) => fetchJson<RunAnalytics>(`/api/runs/${id}/analytics`),
   configurations: (kind?: string) =>
@@ -757,6 +798,34 @@ export const api = {
       report?: import("@/lib/opportunityDiscoveryLog").OpportunityDiscoveryReport;
       finished_at_utc: string | null;
     }>(`/api/catalog/discovery-runs/by-job/${encodeURIComponent(jobId)}`),
+  marketCapGlobal: (refresh = false) =>
+    fetchJson<MarketCapGlobal>(`/api/marketcap/global${refresh ? "?refresh=true" : ""}`),
+  marketCapCoins: (params?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    search?: string;
+    sort_by?: string;
+    sort_dir?: string;
+    refresh?: boolean;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", String(params.page));
+    if (params?.limit) query.set("limit", String(params.limit));
+    if (params?.category) query.set("category", params.category);
+    if (params?.search) query.set("search", params.search);
+    if (params?.sort_by) query.set("sort_by", params.sort_by);
+    if (params?.sort_dir) query.set("sort_dir", params.sort_dir);
+    if (params?.refresh) query.set("refresh", "true");
+    const qs = query.toString();
+    return fetchJson<MarketCapCoinsResponse>(`/api/marketcap/coins${qs ? `?${qs}` : ""}`);
+  },
+  marketCapCoin: (id: string) =>
+    fetchJson<MarketCapCoin>(`/api/marketcap/coin/${encodeURIComponent(id)}`),
+  refreshMarketCap: () =>
+    fetchJson<{ status: string; coins_count: number }>("/api/marketcap/refresh", {
+      method: "POST",
+    }),
   postJob: async (jobType: string, body: Record<string, unknown>) => {
     const response = await fetch(
       `${API_BASE}/api/jobs/${jobType}`,
@@ -826,4 +895,61 @@ export type RunAnalytics = {
     duration_seconds: number | null;
   }[];
   by_side: { side: string; trades: number; wins: number; net_pnl: number | null; win_rate_pct: number | null }[];
+};
+
+export type MarketCapGlobal = {
+  total_market_cap_usd: number;
+  total_volume_24h_usd: number;
+  market_cap_change_24h_pct: number;
+  btc_dominance_pct: number;
+  eth_dominance_pct: number;
+  active_cryptocurrencies: number;
+  last_updated_utc: string;
+};
+
+export type MarketCapHyperliquid = {
+  is_perp_available: boolean;
+  funding_rate: number | null;
+  open_interest: number | null;
+  mark_price: number | null;
+  volume_24h_usd: number | null;
+};
+
+export type MarketCapCoin = {
+  id: string;
+  symbol: string;
+  name: string;
+  image?: string | null;
+  current_price: number | null;
+  market_cap: number | null;
+  market_cap_rank: number | null;
+  fully_diluted_valuation: number | null;
+  total_volume: number | null;
+  high_24h: number | null;
+  low_24h: number | null;
+  price_change_24h: number | null;
+  price_change_percentage_24h: number | null;
+  price_change_percentage_1h: number | null;
+  price_change_percentage_7d: number | null;
+  circulating_supply: number | null;
+  total_supply: number | null;
+  max_supply: number | null;
+  ath: number | null;
+  ath_change_percentage: number | null;
+  ath_date: string | null;
+  atl: number | null;
+  atl_change_percentage: number | null;
+  atl_date: string | null;
+  sparkline: number[];
+  hyperliquid?: MarketCapHyperliquid;
+  last_updated?: string | null;
+};
+
+export type MarketCapCoinsResponse = {
+  coins: MarketCapCoin[];
+  total: number;
+  page: number;
+  limit: number;
+  categories: string[];
+  last_updated_utc: string;
 };

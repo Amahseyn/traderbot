@@ -17,7 +17,7 @@ import {
 } from "@/components/DiscoveryReportSections";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Field, TextInput } from "@/components/ui/Field";
+import { Field, SelectInput, TextInput } from "@/components/ui/Field";
 import { api, artifactUrl, withLabAuth } from "@/lib/api";
 import {
   DEFAULT_CREDIT_RESERVE,
@@ -221,14 +221,13 @@ export function OpportunityDiscoveryPanel({
           </p>
         )}
         <Field label="Data source" hint="Hyperliquid uses exported or cached OHLC on the Lab API host (no CoinBeacon credits).">
-          <select
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+          <SelectInput
             value={dataSource}
             onChange={(event) => setDataSource(event.target.value as DiscoveryDataSource)}
           >
             <option value="coinbeacon">CoinBeacon — Binance USDT perps + macro</option>
             <option value="hyperliquid">Hyperliquid — Lab perp universe + OHLC</option>
-          </select>
+          </SelectInput>
         </Field>
         {dataSource === "coinbeacon" && !statusQuery.isLoading && !coinbeaconReady && (
           <p className="mb-4 mt-4 rounded-lg border border-amber-900/50 bg-amber-950/30 px-3 py-2 text-sm text-amber-100/90">
@@ -316,36 +315,33 @@ export function OpportunityDiscoveryPanel({
           {dataSource === "coinbeacon" && (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Exchange" hint="GET /api/coinbeacon/trend-scanner">
-              <select
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+              <SelectInput
                 value={exchange}
                 onChange={(event) => setExchange(event.target.value)}
               >
                 {TREND_EXCHANGES.map((option) => (
                   <option key={option} value={option}>{option}</option>
                 ))}
-              </select>
+              </SelectInput>
             </Field>
             <Field label="Rank trend by">
-              <select
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+              <SelectInput
                 value={trendSort}
                 onChange={(event) => setTrendSort(event.target.value)}
               >
                 {TREND_SORT_TIMEFRAMES.map((option) => (
                   <option key={option} value={option}>{option}</option>
                 ))}
-              </select>
+              </SelectInput>
             </Field>
             <Field label="Trend direction">
-              <select
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+              <SelectInput
                 value={trendDir}
                 onChange={(event) => setTrendDir(event.target.value)}
               >
                 <option value="desc">desc (strongest first)</option>
                 <option value="asc">asc</option>
-              </select>
+              </SelectInput>
             </Field>
             <Field label="Quote">
               <TextInput value={trendQuote} onChange={(event) => setTrendQuote(event.target.value.toUpperCase())} />

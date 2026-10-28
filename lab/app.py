@@ -14,6 +14,7 @@ from lab.store import (
     list_experiments,
     list_sweep_sessions,
     open_database,
+    count_evaluation_runs,
 )
 from lab.store.queries import fetch_experiment
 from lab.store.catalog import (
@@ -66,7 +67,7 @@ def create_app(database_path: Path | None = None):
     try:
         from fastapi import FastAPI, HTTPException, Query
         from fastapi.middleware.cors import CORSMiddleware
-        from fastapi.responses import FileResponse
+        from fastapi.responses import FileResponse, JSONResponse
     except ImportError as import_error:
         raise ImportError(
             "Lab API requires optional dependencies. Install: pip install -e '.[ui]'",
@@ -126,10 +127,19 @@ def create_app(database_path: Path | None = None):
         strategy_id: str | None = None,
         model_id: str | None = None,
         horizon_label: str | None = None,
-        limit: int = Query(default=200, le=500),
+        limit: int = Query(default=25, ge=1, le=500),
+        offset: int = Query(default=0, ge=0),
     ):
         connection = get_connection()
         try:
+            total = count_evaluation_runs(
+                connection,
+                run_kind=run_kind,
+                symbol=symbol,
+                strategy_id=strategy_id,
+                model_id=model_id,
+                horizon_label=horizon_label,
+            )
             rows = list_evaluation_runs(
                 connection,
                 run_kind=run_kind,
@@ -138,8 +148,13 @@ def create_app(database_path: Path | None = None):
                 model_id=model_id,
                 horizon_label=horizon_label,
                 limit=limit,
+                offset=offset,
             )
-            return [_run_to_api(connection, row) for row in rows]
+            payload = [_run_to_api(connection, row) for row in rows]
+            return JSONResponse(
+                content=payload,
+                headers={"X-Total-Count": str(total)},
+            )
         finally:
             connection.close()
 
@@ -491,6 +506,9 @@ def create_app(database_path: Path | None = None):
 
     register_risk_routes(app)
     register_strategy_routes(app, get_connection)
+    from lab.marketcap_routes import register_marketcap_routes
+
+    register_marketcap_routes(app)
 
     return app
 

@@ -56,6 +56,7 @@ class OptimizeSelectConfig:
     search_params: tuple[str, ...] | None = None
     optuna_sampler: Literal["tpe", "random"] = "tpe"
     full_grid_hints: bool = True
+    warmup_bars: int = 0
 
 
 def _validation_payload_to_sweep(
@@ -127,10 +128,28 @@ def _validation_payload_to_sweep(
     optimize_start_utc, optimize_end_utc = (None, None)
     sample_start_utc, sample_end_utc = (None, None)
     if bar_list:
+        # In validation mode the optimizer only fit on the leading ``train``
+        # slice; the validation + test bars together form the held-out tail.
+        # ``fit_window_utc_from_bars`` trims ``holdout_tail_bars`` from the end
+        # before computing the window, so pass the validation+test count so
+        # ``optimize_end_utc`` is the close of the last *training* bar.
+        splits = validation_payload.get("splits") or {}
+        train_count = splits.get("train")
+        fit_holdout: int | None = None
+        if isinstance(train_count, int) and 0 < train_count < len(bar_list):
+            fit_holdout = len(bar_list) - train_count
+        elif isinstance(train_count, int) and train_count >= len(bar_list):
+            # Whole dataset was used for training (no holdout).
+            fit_holdout = None
+        else:
+            # No split metadata — derive from fractions as a fallback.
+            train_fraction = float(validation_payload.get("train_fraction") or 0.6)
+            val_test_count = len(bar_list) - max(1, int(len(bar_list) * train_fraction))
+            fit_holdout = max(0, val_test_count) if 0 < val_test_count < len(bar_list) else None
         optimize_start_utc, optimize_end_utc = fit_window_utc_from_bars(
             bar_list,
             bar_minutes=bar_minutes,
-            holdout_tail_bars=None,
+            holdout_tail_bars=fit_holdout,
         )
         sample_start_utc, sample_end_utc = sample_window_utc_from_bars(bar_list, bar_minutes=bar_minutes)
 
@@ -210,6 +229,7 @@ def run_strategy_optimize(
             search_params=cfg.search_params,
             full_grid_hints=cfg.full_grid_hints,
             sampler=cfg.optuna_sampler,
+            warmup_bars=cfg.warmup_bars,
         )
         use_validation = mode == "validation" and bar_count >= MIN_BARS_FOR_VALIDATION_SPLIT
         if mode == "validation" and not use_validation:
@@ -226,6 +246,7 @@ def run_strategy_optimize(
                 train_fraction=cfg.train_fraction,
                 validation_fraction=cfg.validation_fraction,
                 use_validation_split=True,
+                warmup_bars=cfg.warmup_bars,
             )
             optuna_meta = validation_payload.pop("optuna", None)
             validation_payload["train_fraction"] = cfg.train_fraction
@@ -268,6 +289,7 @@ def run_strategy_optimize(
                 min_trades=options.min_trades,
                 max_combos=options.max_combos,
                 rank_by="return_pct" if options.rank_by == "return_pct" else "edge",
+                warmup_bars=cfg.warmup_bars,
             ),
             base_namespace,
         )
@@ -331,6 +353,10 @@ def optimize_config_from_body(body: dict[str, Any]) -> OptimizeSelectConfig:
         search_params = tuple(str(name).strip() for name in search_raw if str(name).strip())
     sampler_raw = str(body.get("optuna_sampler") or "tpe").strip().lower()
     optuna_sampler: Literal["tpe", "random"] = "random" if sampler_raw == "random" else "tpe"
+    warmup_raw = body.get("warmup_bars", body.get("optimize_warmup_bars"))
+    warmup_bars = int(warmup_raw) if warmup_raw not in (None, "") else 0
+    if warmup_bars < 0:
+        raise ValueError("warmup_bars must be >= 0")
     return OptimizeSelectConfig(
         selection_mode=normalize_optimize_selection_mode(body.get("optimize_selection_mode")),
         train_fraction=train_fraction,
@@ -343,4 +369,5 @@ def optimize_config_from_body(body: dict[str, Any]) -> OptimizeSelectConfig:
         search_params=search_params,
         optuna_sampler=optuna_sampler,
         full_grid_hints=bool(body.get("full_grid", True)),
+        warmup_bars=warmup_bars,
     )

@@ -25,7 +25,7 @@ const RUN_HORIZON_FILTERS = [
   { value: "3h", label: "3 hours ahead" },
   { value: "4h", label: "4 hours ahead" },
   { value: "6h", label: "6 hours ahead" },
-  { value: "12h", label: "12 hours ahead" },
+  { value: "12h", label: "12 minutes ahead" },
   { value: "1d", label: "1 day ahead" },
   { value: "2d", label: "2 days ahead" },
   { value: "3d", label: "3 days ahead" },
@@ -39,47 +39,55 @@ function RunsPageContent() {
   const [horizonLabel, setHorizonLabel] = useState(() => searchParams.get("horizon_label") ?? "");
   const [runsPage, setRunsPage] = useState(1);
 
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams();
-    if (runKind) params.set("run_kind", runKind);
-    if (symbol) params.set("symbol", symbol);
-    if (strategyId) params.set("strategy_id", strategyId);
-    if (horizonLabel) params.set("horizon_label", horizonLabel);
-    const serialized = params.toString();
-    return serialized ? `?${serialized}` : "";
+  // Filters object — changes whenever any filter changes.
+  const filters = useMemo(
+    () => ({
+      run_kind: runKind || undefined,
+      symbol: symbol || undefined,
+      strategy_id: strategyId || undefined,
+      horizon_label: horizonLabel || undefined,
+    }),
+    [runKind, symbol, strategyId, horizonLabel],
+  );
+
+  // Reset to page 1 whenever the filters change.
+  useEffect(() => {
+    setRunsPage(1);
   }, [runKind, symbol, strategyId, horizonLabel]);
 
+  // Server-driven pagination: fetch one page at a time.
+  const offset = (runsPage - 1) * RUNS_PAGE_SIZE;
   const runsQuery = useQuery({
-    queryKey: ["runs", queryString],
-    queryFn: () => api.runs(queryString),
+    queryKey: ["runs", filters, { limit: RUNS_PAGE_SIZE, offset }],
+    queryFn: () =>
+      api.runsPaginated({
+        limit: RUNS_PAGE_SIZE,
+        offset,
+        ...filters,
+      }),
+    placeholderData: (prev) => prev, // keep previous page visible while loading the next
   });
+
   const datasetsQuery = useQuery({ queryKey: ["datasets"], queryFn: () => api.datasets() });
   const strategiesQuery = useQuery({
     queryKey: ["catalog-strategies"],
     queryFn: () => api.catalogStrategies(false),
   });
 
-  const rows = runsQuery.data ?? [];
+  const rows = runsQuery.data?.data ?? [];
+  const totalCount = runsQuery.data?.total ?? 0;
 
   const runsPageCount = useMemo(
-    () => Math.max(1, Math.ceil(rows.length / RUNS_PAGE_SIZE)),
-    [rows.length],
+    () => Math.max(1, Math.ceil(totalCount / RUNS_PAGE_SIZE)),
+    [totalCount],
   );
   const runsPageClamped = Math.min(Math.max(runsPage, 1), runsPageCount);
-  const paginatedRows = useMemo(() => {
-    const start = (runsPageClamped - 1) * RUNS_PAGE_SIZE;
-    return rows.slice(start, start + RUNS_PAGE_SIZE);
-  }, [rows, runsPageClamped]);
 
   useEffect(() => {
     if (runsPage !== runsPageClamped) {
       setRunsPage(runsPageClamped);
     }
   }, [runsPage, runsPageClamped]);
-
-  useEffect(() => {
-    setRunsPage(1);
-  }, [queryString]);
 
   const symbols = useMemo(() => {
     const values = new Set<string>();
@@ -101,7 +109,7 @@ function RunsPageContent() {
   return (
     <Page>
       <PageHeader
-        eyebrow="Step 3 · Review"
+        eyebrow="Run Archive"
         title="Runs"
         description="Strategy backtests in the catalog. Filter the list, then open a run for trade logs, charts, and parameters."
       />
@@ -183,16 +191,16 @@ function RunsPageContent() {
         />
       )}
 
-      {rows.length > 0 && (
+      {totalCount > 0 && (
         <div className="space-y-3">
           <p className="text-muted text-xs">Click a timestamp or ID to open details.</p>
-          <RunsTable runs={paginatedRows} variant="full" />
+          <RunsTable runs={rows} variant="full" />
           <TablePagination
             page={runsPageClamped}
             pageCount={runsPageCount}
             pageSize={RUNS_PAGE_SIZE}
-            totalCount={rows.length}
-            itemLabel={rows.length === 1 ? "run" : "runs"}
+            totalCount={totalCount}
+            itemLabel={totalCount === 1 ? "run" : "runs"}
             onPageChange={setRunsPage}
           />
         </div>

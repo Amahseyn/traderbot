@@ -32,7 +32,18 @@ def split_chronological(
     *,
     train_fraction: float = 0.6,
     validation_fraction: float = 0.2,
+    warmup_bars: int = 0,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Split bars into chronological train / validation / test slices.
+
+    When ``warmup_bars > 0``, the validation and test slices are each prepended
+    with up to ``warmup_bars`` trailing bars from the end of the preceding slice.
+    This gives indicator-based strategies the historical lookback they need to
+    produce signals from the first non-warmup bar.  The warmup bars are *not*
+    part of the disjoint evaluation windows — callers that measure out-of-sample
+    return must skip the leading ``warmup_bars`` of the validation/test slice
+    (see ``return_pct_excluding_warmup``).
+    """
     if not bars:
         raise ValueError("split_chronological requires at least one bar")
     if train_fraction <= 0 or validation_fraction <= 0:
@@ -50,7 +61,41 @@ def split_chronological(
             f"not enough bars ({bar_count}) for fractions "
             f"train={train_fraction}, validation={validation_fraction}"
         )
-    return bars[:train_end], bars[train_end:validation_end], bars[validation_end:]
+    train = bars[:train_end]
+    validation_core = bars[train_end:validation_end]
+    test_core = bars[validation_end:]
+    if warmup_bars and warmup_bars > 0:
+        val_warm = bars[max(0, train_end - warmup_bars):train_end]
+        test_warm = bars[max(train_end, validation_end - warmup_bars):validation_end]
+        validation = list(val_warm) + list(validation_core)
+        test = list(test_warm) + list(test_core)
+    else:
+        validation = validation_core
+        test = test_core
+    return train, validation, test
+
+
+def return_pct_excluding_warmup(
+    equity_curve: list[tuple[int, float]],
+    warmup_bars: int,
+) -> float:
+    """Return % measured from the end of the warmup prefix to the final bar.
+
+    Mirrors the walk-forward ``_oos_segment`` equity-curve return: if a position
+    was opened during warmup, its unrealised PnL is embedded in the equity at the
+    warmup boundary and flows into the return.  Callers that want to exclude
+    warmup-opened trades entirely should filter the trade list by timestamp first.
+    """
+    if not equity_curve:
+        return 0.0
+    if warmup_bars <= 0 or len(equity_curve) <= warmup_bars:
+        start_equity = float(equity_curve[0][1])
+    else:
+        start_equity = float(equity_curve[warmup_bars - 1][1])
+    end_equity = float(equity_curve[-1][1])
+    if start_equity <= 0:
+        return 0.0
+    return (end_equity / start_equity - 1.0) * 100.0
 
 
 def max_drawdown_pct(equity_curve: list[tuple[int, float]]) -> float:

@@ -7,7 +7,7 @@ import { formatApiError, isLabAuthError } from "@/lib/api";
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`animate-pulse rounded-xl bg-gradient-to-r from-panel via-panel-elevated to-panel ${className}`}
+      className={`animate-pulse rounded-lg bg-panel-elevated ${className}`}
       aria-hidden
     />
   );
@@ -39,7 +39,7 @@ export function TableSkeleton({ rows = 6 }: { rows?: number }) {
 
 export function EmptyState({ title, description, action }: { title: string; description?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-dashed border-border/80 bg-gradient-to-b from-panel/50 to-surface/30 px-6 py-14 text-center shadow-card">
+    <div className="flex flex-col items-center rounded-lg border border-dashed border-border bg-panel px-6 py-14 text-center">
       <p className="font-medium text-white">{title}</p>
       {description && <div className="text-muted mt-1 max-w-md text-sm">{description}</div>}
       {action && <div className="mt-4">{action}</div>}
@@ -63,7 +63,7 @@ export function ErrorState({
   const showAuthHint = hintAuth && error != null && isLabAuthError(error);
 
   return (
-    <div role="alert" className="rounded-2xl border border-red-500/35 bg-gradient-to-b from-red-500/15 to-red-500/5 px-4 py-3.5 text-sm shadow-card">
+    <div role="alert" className="rounded-lg border border-red-500/30 bg-red-500/[0.07] px-4 py-3.5 text-sm">
       <p className="font-medium text-red-300">{title}</p>
       {message && <p className="mt-1 break-words text-red-200/80">{message}</p>}
       {showAuthHint ? <LabApiAuthHint /> : null}

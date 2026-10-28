@@ -27,7 +27,11 @@ from traderbot.algorithms.strategies.finrl_ema_intraday import FinrlEmaIntradayA
 from traderbot.algorithms.strategies.macd import MacdCrossAlgorithm
 from traderbot.algorithms.strategies.rsi import RsiThresholdAlgorithm
 from traderbot.algorithms.strategies.sma_cross import SmaCrossAlgorithm
-from traderbot.algorithms.utils import price_context_kwargs_from_namespace
+from traderbot.algorithms.utils import (
+    cost_edge_kwargs_from_namespace,
+    entry_execution_kwargs_from_namespace,
+    price_context_kwargs_from_namespace,
+)
 
 STRATEGY_MODE_RULES = "strategies"
 
@@ -273,8 +277,22 @@ def _scalp_dip_kwargs(namespace: Any) -> dict[str, Any]:
 
 
 _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
-    "sma_cross": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
-    "ema_cross": lambda a: {"fast": a.fast, "slow": a.slow, "price_confirm": a.price_confirm},
+    "sma_cross": lambda a: {
+        "fast": a.fast,
+        "slow": a.slow,
+        "price_confirm": a.price_confirm,
+        **price_context_kwargs_from_namespace(a),
+        **cost_edge_kwargs_from_namespace(a),
+        **entry_execution_kwargs_from_namespace(a),
+    },
+    "ema_cross": lambda a: {
+        "fast": a.fast,
+        "slow": a.slow,
+        "price_confirm": a.price_confirm,
+        **price_context_kwargs_from_namespace(a),
+        **cost_edge_kwargs_from_namespace(a),
+        **entry_execution_kwargs_from_namespace(a),
+    },
     "finrl_ema_intraday": lambda a: {
         "fast": a.fast,
         "slow": a.slow,
@@ -286,17 +304,23 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "oversold": a.oversold,
         "overbought": a.overbought,
         **price_context_kwargs_from_namespace(a),
+        **cost_edge_kwargs_from_namespace(a),
+        **entry_execution_kwargs_from_namespace(a),
     },
     "macd_cross": lambda a: {
         "fast": a.fast,
         "slow": a.slow,
         "signal": a.signal,
         **price_context_kwargs_from_namespace(a),
+        **cost_edge_kwargs_from_namespace(a),
+        **entry_execution_kwargs_from_namespace(a),
     },
     "bollinger_mean_reversion": lambda a: {
         "period": a.period,
         "num_std": a.num_std,
         **price_context_kwargs_from_namespace(a),
+        **cost_edge_kwargs_from_namespace(a),
+        **entry_execution_kwargs_from_namespace(a),
     },
     "chart_patterns": lambda a: {
         "swing_window_bars": a.swing_window_bars,
@@ -453,6 +477,20 @@ _ALGO_KWARG_TO_NAMESPACE_FIELD = {
     "high_tolerance_ratio": "pattern_tolerance_ratio",
 }
 
+#: Execution/cost plumbing rather than alpha: a numeric sweep would propose nonsense
+#: (negative cost multiples, a categorical venue, a ``None`` sentinel).
+_NON_SWEEPABLE_KWARGS = frozenset({"roundtrip_cost_pct", "min_edge_over_cost", "entry_order_mode"})
+
+#: Inert while the entry is a market order, so tuning them only wastes trials.
+_MAKER_ONLY_KWARGS = frozenset({"entry_offset_pct", "entry_ttl_bars"})
+_MAKER_ONLY_STRATEGIES = (
+    "sma_cross",
+    "ema_cross",
+    "rsi_threshold",
+    "macd_cross",
+    "bollinger_mean_reversion",
+)
+
 _STRATEGY_KWARG_NAMESPACE: dict[str, dict[str, str]] = {
     "spot_grid": {
         "start_price": "grid_start_price",
@@ -499,5 +537,12 @@ def strategy_param_names(strategy_id: str) -> list[str]:
     from traderbot.algorithms.cli_args import default_strategy_namespace
 
     kwargs = strategy_kwargs_from_namespace(strategy_id, default_strategy_namespace())
-    names = [_namespace_field_for_kwarg(strategy_id, key) for key in kwargs]
+    excluded = set(_NON_SWEEPABLE_KWARGS)
+    if strategy_id in _MAKER_ONLY_STRATEGIES:
+        excluded |= _MAKER_ONLY_KWARGS
+    names = [
+        _namespace_field_for_kwarg(strategy_id, key)
+        for key in kwargs
+        if key not in excluded
+    ]
     return list(dict.fromkeys(names))

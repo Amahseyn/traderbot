@@ -126,6 +126,8 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 | POST | `/api/strategies/pair-backtest` | Pair stat-arb (Nobitex spot or Hyperliquid perp); live `*_src` or CSV paths |
 | POST | `/api/strategies/grid-backtest` | Spot grid on live candles or CSV |
 | POST | `/api/strategies/funding-backtest` | Hyperliquid funding carry (public funding history) |
+| GET | `/api/marketcap/global`, `/api/marketcap/coins`, `/api/marketcap/coin/{id}` | Local-first market cap rankings, global macro stats, and coin profile drawer |
+| POST | `/api/marketcap/refresh` | Force sync fresh market cap data from providers into local SQLite cache |
 
 `GET /api/pipelines` includes `full`, `steps`, and `inputs` for the Lab Pipelines tab. Full pipelines are the end-to-end jobs. The Pipelines tab keeps Active (run forms) separate from a library where you turn pipelines on or rename the label in this browser. `POST /api/jobs/pipeline-run` takes `pipeline_id` plus those inputs (`dataset_id`, `days`, `all_assets`, `horizon`, `fast`, `slow`). Saved configs use `pipeline-run-config`, which accepts the same `params` and per-step `step_params` the form shows.
 
@@ -137,4 +139,4 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 
 `POST /api/jobs/custom-research` runs optional `export_market_symbol` + `interval` + `export_days` (or a batch `export_market_symbols` × `export_intervals` matrix, max 24 combos unless `max_export_combos` is raised; per-horizon history via `export_days_by_interval` like `{"15": 7}`, falling back to `export_days`; or step-based via `export_steps` / `export_steps_by_interval`, which sizes days as `ceil(steps × minutes / 1440) + 1` and trims files to the last N bars), then on each selected catalog `dataset_ids` entry and/or `use_all_hourly_files` (`*_60.csv`): optional `compare_strategies` (`max_strategies`, `strategy_ids`, `cash`, `fee`, `slippage`, `execution`, `visualize`). Files with no bars (empty file or outside the run window) are skipped, not fatal, unless every file is skipped. At least one data source and `compare_strategies` is required. Add `optimize_before_compare` (with the same `optimize_selection_mode` / fraction options, plus optional `optimize_holdout_tail_bars` for in-sample fallback, `optimize_min_trades` / `optimize_max_combos`) to grid-search each strategy on bars **before** compare, then run compare with the winners. The compare window is a separate out-of-sample segment: when `run_start_utc` is missing or leaves fewer than 40 leading bars, each file is split automatically (leading ~65% for optimizer train data, tail for compare) — no leakage, no hard failure.
 
-Agent conventions for the UI: `.cursor/rules/lab-ui.mdc`.
+Agent conventions for the UI: Section 4 in `AGENTS.md` / `GEMINI.md` (or `.cursor/rules/lab-ui.mdc`).
