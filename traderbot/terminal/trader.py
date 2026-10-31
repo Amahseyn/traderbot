@@ -253,6 +253,16 @@ class TerminalAlgorithmTrader(AlgorithmTrader):
         )
         try:
             AlgorithmTrader.on_signal(self, action, bar)
+            attr = getattr(self, "last_fill_attribution", None)
+            if attr:
+                print_tick_event(
+                    {
+                        "event": "fill_attribution",
+                        "strategy_id": self.strategy_id,
+                        "symbol": bar.get("symbol"),
+                        **attr,
+                    }
+                )
         except Exception as exc:
             print_tick_event(
                 {

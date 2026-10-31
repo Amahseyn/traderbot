@@ -94,6 +94,8 @@ class Algorithm(ABC):
     name = "algorithm"
     # True when ``order_size`` returns partial sizes (vectorbt all-in metrics would not match).
     uses_position_sizing = False
+    #: True when strategy is marked research/experimental-only (e.g. scalp_dip)
+    is_experimental = False
 
     def reset(self) -> None:
         """Clear state before a new backtest run or bot session."""
@@ -101,10 +103,24 @@ class Algorithm(ABC):
     def order_size(self) -> OrderSize | None:
         """Sizing for the most recent non-hold signal; ``None`` = all-in / all-out.
 
-        Only the backtest engine honors partial sizes; live traders treat every
-        ``buy``/``sell`` as a full entry/exit.
+        Backtest and live execution paths calculate actual units from ``target_exposure``
+        or ``cash_fraction``. Venues that do not support shorting (such as spot)
+        reject negative target exposures.
         """
         return None
+
+    def validate_venue_compatibility(self, venue: str) -> None:
+        """Verify that the algorithm's execution requirements are supported on the target venue.
+
+        Raises:
+            ValueError: If the strategy requires capabilities not supported by the venue.
+        """
+        venue_normalized = (venue or "").lower().strip()
+        if self.allow_short and venue_normalized in ("nobitex", "spot"):
+            raise ValueError(
+                f"Strategy {self.name!r} requires short capability (allow_short=True), "
+                f"which is unsupported on spot venue {venue!r}."
+            )
 
     def sync_open_position(self, in_position: bool) -> None:
         """Align internal flags when live inventory diverges from strategy state."""

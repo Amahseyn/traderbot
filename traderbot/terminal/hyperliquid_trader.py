@@ -23,6 +23,7 @@ from traderbot.traders.inventory_reconcile import sync_inventory_to_exchange_bas
 from traderbot.traders.order_sizing import buy_quote_spend, sell_base_amount
 from traderbot.markets.order_limits import base_from_quote
 from traderbot.nobitex.client import NobitexClientError
+from traderbot.risk.runtime import get_portfolio_risk_manager
 from traderbot.terminal.trader import TerminalAlgorithmTrader
 
 logger = logging.getLogger(__name__)
@@ -131,8 +132,12 @@ class HyperliquidTerminalTrader(TerminalAlgorithmTrader):
                 mid = (bid + ask) / 2.0
                 if bid > 0 and ask > 0 and mid > 0:
                     bar["spread_pct"] = (ask - bid) / mid
-            except Exception as exc:  # public book read; trading continues without the filter
-                logger.debug("spread read failed: %s", exc)
+                else:
+                    bar["spread_pct"] = float("inf")
+            except Exception as exc:
+                # When strategy requires a spread limit, missing book data fails closed
+                logger.warning("Spread read failed on %s: %s; failing closed with spread_pct=inf", self._coin(), exc)
+                bar["spread_pct"] = float("inf")
         super().prepare_for_bar(bar)
 
     def perp_equity(self, account_value: float) -> float:
@@ -170,6 +175,15 @@ class HyperliquidTerminalTrader(TerminalAlgorithmTrader):
             raise NobitexClientError(f"risk blocked order: {verdict.reason}")
 
         if action == "buy":
+            portfolio_risk = get_portfolio_risk_manager()
+            port_verdict = portfolio_risk.evaluate_entry(
+                symbol=coin,
+                requested_notional=free_quote,
+                total_equity=equity,
+                current_gross_notional=self.inventory.base_amount * close_price,
+            )
+            if not port_verdict.allowed:
+                raise NobitexClientError(f"portfolio risk blocked order: {port_verdict.reason}")
             spendable = self.inventory.spendable_quote(free_quote)
             spendable *= verdict.size_multiplier
             if self._pending_order_size is not None:
@@ -200,7 +214,49 @@ class HyperliquidTerminalTrader(TerminalAlgorithmTrader):
                 price=fill.avg_price,
             )
             self.last_fill_price = fill.avg_price
-            self._maybe_place_stop(coin, base_amount=fill.filled_size, entry_price=fill.avg_price)
+            slippage_pct = ((fill.avg_price - close_price) / close_price * 100.0) if close_price > 0 else 0.0
+            self.last_fill_attribution = {
+                "action": "buy",
+                "coin": coin,
+                "expected_price": close_price,
+                "realized_price": fill.avg_price,
+                "size": fill.filled_size,
+                "slippage_pct": slippage_pct,
+            }
+            portfolio_risk.update_position(coin, True)
+            try:
+                self._maybe_place_stop(coin, base_amount=fill.filled_size, entry_price=fill.avg_price)
+            except Exception as exc:
+                logger.critical(
+                    "Protective stop placement failed on %s: %s. Initiating emergency flatten.",
+                    coin,
+                    exc,
+                )
+                self.risk.halted = True
+                self.risk.halt_reason = f"emergency_flatten: stop loss placement failed ({exc})"
+                try:
+                    close_size = prepare_order_size(
+                        coin,
+                        fill.filled_size,
+                        price=close_price,
+                        reduce_only=True,
+                        sz_decimals=self._sz_decimals(coin),
+                    )
+                    close_resp = hyperliquid_market_close(coin, size=close_size)
+                    close_fill = self._fill_from_response(close_resp, requested=close_size, coin=coin)
+                    self.inventory.record_sell(base_sold=close_fill.filled_size)
+                    portfolio_risk.update_position(coin, False)
+                    logger.info(
+                        "Emergency flatten filled on %s: size=%s px=%s",
+                        coin,
+                        close_fill.filled_size,
+                        close_fill.avg_price,
+                    )
+                except Exception as close_exc:
+                    logger.critical("Emergency flatten failed on %s: %s", coin, close_exc)
+                raise NobitexClientError(
+                    f"protective stop placement failed (emergency flatten executed): {exc}"
+                ) from exc
             return
 
         if action == "sell":
@@ -233,6 +289,17 @@ class HyperliquidTerminalTrader(TerminalAlgorithmTrader):
                 sold = self.inventory.base_amount
             self.inventory.record_sell(base_sold=sold)
             self.last_fill_price = fill.avg_price
+            slippage_pct = ((close_price - fill.avg_price) / close_price * 100.0) if close_price > 0 else 0.0
+            self.last_fill_attribution = {
+                "action": "sell",
+                "coin": coin,
+                "expected_price": close_price,
+                "realized_price": fill.avg_price,
+                "size": fill.filled_size,
+                "slippage_pct": slippage_pct,
+            }
+            portfolio_risk = get_portfolio_risk_manager()
+            portfolio_risk.update_position(coin, self.inventory.base_amount > 0)
             return
 
     def _cancel_active_stop(self, coin: str) -> None:

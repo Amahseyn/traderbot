@@ -65,6 +65,7 @@ class ScalpDipAlgorithm(Algorithm):
 
     name = "scalp_dip"
     uses_position_sizing = True
+    is_experimental = True
 
     def __init__(
         self,

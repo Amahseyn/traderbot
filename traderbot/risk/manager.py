@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, timezone
+import json
+import logging
+import os
+from pathlib import Path
 from typing import Any
 
 from traderbot.algorithms.base import SignalAction
 from traderbot.algorithms.streaming import atr_init, atr_update
+
+logger = logging.getLogger(__name__)
+
+
+def utc_today() -> date:
+    """Current calendar date in UTC (standard rollover for crypto markets)."""
+    return datetime.now(timezone.utc).date()
 
 
 @dataclass
@@ -29,7 +40,7 @@ class RiskVerdict:
 @dataclass
 class RiskManager:
     limits: RiskLimits
-    session_date: date = field(default_factory=date.today)
+    session_date: date = field(default_factory=utc_today)
     day_start_equity: float | None = None
     peak_equity: float | None = None
     last_equity: float | None = None
@@ -42,7 +53,7 @@ class RiskManager:
             self._atr = atr_init(self.limits.atr_lookback)
 
     def reset_session(self, equity: float) -> None:
-        self.session_date = date.today()
+        self.session_date = utc_today()
         self.day_start_equity = equity
         self.peak_equity = equity
         self.last_equity = equity
@@ -50,7 +61,7 @@ class RiskManager:
         self.halt_reason = ""
 
     def _roll_session_if_new_day(self, equity: float) -> None:
-        today = date.today()
+        today = utc_today()
         if today == self.session_date:
             return
         self.session_date = today
@@ -114,9 +125,57 @@ class RiskManager:
                 "kill_switch": self.limits.kill_switch,
                 "stop_loss_pct": self.limits.stop_loss_pct,
             },
+            "session_date": self.session_date.isoformat(),
             "halted": self.halted,
             "halt_reason": self.halt_reason,
             "day_start_equity": self.day_start_equity,
             "peak_equity": self.peak_equity,
             "last_equity": self.last_equity,
         }
+
+    def restore_from_snapshot(self, data: dict[str, Any]) -> None:
+        """Restore state from snapshot, rolling over if a new UTC day has started."""
+        if not data:
+            return
+        saved_date_str = str(data.get("session_date") or "").strip()
+        current_today = utc_today()
+        if saved_date_str:
+            try:
+                saved_date = date.fromisoformat(saved_date_str)
+            except ValueError:
+                saved_date = current_today
+        else:
+            saved_date = current_today
+
+        self.session_date = saved_date
+        self.day_start_equity = data.get("day_start_equity")
+        self.peak_equity = data.get("peak_equity")
+        self.last_equity = data.get("last_equity")
+        self.halted = bool(data.get("halted", False))
+        self.halt_reason = str(data.get("halt_reason") or "")
+
+        if self.last_equity is not None:
+            self._roll_session_if_new_day(self.last_equity)
+
+    def save_to_file(self, path: Path | str) -> None:
+        """Atomically persist risk state to disk."""
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        tmp = target.with_suffix(f"{target.suffix}.tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(self.snapshot(), f, indent=2)
+        os.replace(tmp, target)
+
+    def load_from_file(self, path: Path | str) -> bool:
+        """Load persisted risk state from disk if file exists."""
+        target = Path(path)
+        if not target.is_file():
+            return False
+        try:
+            with open(target, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.restore_from_snapshot(data)
+            return True
+        except Exception as exc:
+            logger.warning("Failed to load risk state from %s: %s", path, exc)
+            return False

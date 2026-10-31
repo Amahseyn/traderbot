@@ -45,7 +45,7 @@ def _make_db(records: list[tuple[str, str, str, str]]) -> Path:
     )
     for rid, params, end_utc, created_utc in records:
         conn.execute(
-            "INSERT INTO sweep_sessions VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO sweep_sessions VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (rid, "sma_cross", "BTCUSDT", "60", None, params, None, end_utc, None, None, created_utc),
         )
     conn.commit()
@@ -84,13 +84,23 @@ def test_record_is_temporally_eligible_rejects_overlapping_fit() -> None:
         )
         is True
     )
-    # No optimize_end_utc recorded -> conservatively allow (legacy rows)
+    # No optimize_end_utc recorded -> conservatively allow in legacy mode (strict=False)
     assert (
         _record_is_temporally_eligible(
             {"optimize_end_utc": None},
             run_start_unix_seconds=1706745600,
+            strict=False,
         )
         is True
+    )
+    # Under strict temporal provenance, missing optimize_end_utc is rejected
+    assert (
+        _record_is_temporally_eligible(
+            {"optimize_end_utc": None},
+            run_start_unix_seconds=1706745600,
+            strict=True,
+        )
+        is False
     )
 
 

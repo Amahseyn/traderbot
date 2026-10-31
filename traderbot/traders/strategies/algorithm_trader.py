@@ -15,7 +15,7 @@ from traderbot.nobitex.orders import (
     wait_for_order_fill,
 )
 from traderbot.nobitex.trading import list_wallets
-from traderbot.risk.runtime import get_risk_manager
+from traderbot.risk.runtime import get_portfolio_risk_manager, get_risk_manager
 from traderbot.traders.bot_inventory import BotInventory
 from traderbot.traders.execution import ExecutionPolicy
 from traderbot.traders.inventory_reconcile import base_currency_for_symbol, sync_inventory_to_exchange_base
@@ -59,6 +59,7 @@ class AlgorithmTrader(NobitexTrader):
     ):
         super().__init__(client)
         self.algorithm = algorithm
+        self.algorithm.validate_venue_compatibility("nobitex")
         self.bar_source = bar_source
         self.execution = execution or ExecutionPolicy.paper_only()
         self.market_symbol = market_symbol
@@ -245,6 +246,15 @@ class AlgorithmTrader(NobitexTrader):
             raise NobitexClientError(f"risk blocked order: {verdict.reason}")
 
         if action == "buy":
+            portfolio_risk = get_portfolio_risk_manager()
+            port_verdict = portfolio_risk.evaluate_entry(
+                symbol=symbol,
+                requested_notional=wallet_quote,
+                total_equity=equity,
+                current_gross_notional=self.inventory.base_amount * close_price,
+            )
+            if not port_verdict.allowed:
+                raise NobitexClientError(f"portfolio risk blocked order: {port_verdict.reason}")
             spendable = self.inventory.spendable_quote(wallet_quote)
             spendable *= verdict.size_multiplier
             if self._pending_order_size is not None:

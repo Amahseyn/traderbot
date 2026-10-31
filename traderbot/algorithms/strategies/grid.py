@@ -27,6 +27,7 @@ class GridAlgorithm(Algorithm):
         grid_levels = 5,
         grid_breakout_pct = 0.01,
         grid_reanchor_bars = 0,
+        max_exposure = 1.0,
     ):
         if lookback_bars < 1:
             raise ValueError("lookback_bars must be >= 1")
@@ -38,11 +39,14 @@ class GridAlgorithm(Algorithm):
             raise ValueError("grid_breakout_pct must be >= 0")
         if grid_reanchor_bars < 0:
             raise ValueError("grid_reanchor_bars must be >= 0")
+        if not 0.0 < max_exposure <= 1.0:
+            raise ValueError("max_exposure must be in (0, 1]")
         self.lookback_bars = lookback_bars
         self.grid_range_pct = grid_range_pct
         self.grid_levels = grid_levels
         self.grid_breakout_pct = grid_breakout_pct
         self.grid_reanchor_bars = grid_reanchor_bars
+        self.max_exposure = max_exposure
         self.reset()
 
     def reset(self) -> None:
@@ -66,7 +70,8 @@ class GridAlgorithm(Algorithm):
         return min(max(band, 0), self.grid_levels - 1)
 
     def _exposure_for(self, band: int) -> float:
-        return 1.0 - band / (self.grid_levels - 1)
+        raw_exposure = 1.0 - band / (self.grid_levels - 1)
+        return min(raw_exposure, self.max_exposure)
 
     def on_bar(self, bar: Bar) -> SignalAction:
         close = float(bar["close"])

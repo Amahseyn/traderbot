@@ -99,6 +99,7 @@ def _record_is_temporally_eligible(
     record: dict[str, Any],
     *,
     run_start_unix_seconds: int | None,
+    strict: bool = False,
 ) -> bool:
     """True when the sweep's fit window ends before the evaluation run starts.
 
@@ -106,13 +107,17 @@ def _record_is_temporally_eligible(
     apply overfitted parameters to the very bars it was fitted on.  When the
     caller supplies ``run_start_unix_seconds``, records whose
     ``optimize_end_utc`` is at or after that start are rejected.
+
+    When ``strict`` is True, records without a valid ``optimize_end_utc`` are
+    rejected to guarantee temporal provenance.
     """
     if run_start_unix_seconds is None:
+        if strict and record.get("optimize_end_utc") is None:
+            return False
         return True
     fit_end = _iso_utc_to_unix(record.get("optimize_end_utc"))
     if fit_end is None:
-        # No timestamp recorded — conservatively allow it to preserve legacy behaviour.
-        return True
+        return not strict
     return fit_end < int(run_start_unix_seconds)
 
 
@@ -140,6 +145,7 @@ def _fetch_sweep_record_row(
     resolution: str | None,
     horizon_label: str | None = None,
     run_start_unix_seconds: int | None = None,
+    strict_temporal_provenance: bool = False,
 ) -> dict[str, Any] | None:
     columns = _sweep_sessions_window_columns(connection)
     base_clauses = ["strategy_id = ?", "symbol = ?"]
@@ -163,8 +169,13 @@ def _fetch_sweep_record_row(
     if run_start_unix_seconds is not None and "optimize_end_utc" in columns:
         from traderbot.backtesting.bar_windows import unix_to_utc_iso
 
-        fit_end_clause = " AND (optimize_end_utc IS NULL OR optimize_end_utc < ?)"
+        if strict_temporal_provenance:
+            fit_end_clause = " AND (optimize_end_utc IS NOT NULL AND optimize_end_utc < ?)"
+        else:
+            fit_end_clause = " AND (optimize_end_utc IS NULL OR optimize_end_utc < ?)"
         base_params.append(unix_to_utc_iso(int(run_start_unix_seconds)))
+    elif strict_temporal_provenance and "optimize_end_utc" in columns:
+        fit_end_clause = " AND optimize_end_utc IS NOT NULL"
     row = None
     for horizon_clause, horizon_params in _sweep_horizon_tiers(horizon_label, columns):
         clauses = list(base_clauses)
@@ -202,6 +213,7 @@ def resolve_best_sweep_record(
     horizon_label: str | None = None,
     database_path: Path | str | None = None,
     run_start_unix_seconds: int | None = None,
+    strict_temporal_provenance: bool = False,
 ) -> dict[str, Any] | None:
     """Latest sweep row for this market (or liquid fallback), including fit/compare windows.
 
@@ -224,6 +236,7 @@ def resolve_best_sweep_record(
                 resolution=resolution,
                 horizon_label=horizon_label,
                 run_start_unix_seconds=run_start_unix_seconds,
+                strict_temporal_provenance=strict_temporal_provenance,
             )
             if record is not None:
                 record["symbol"] = candidate.upper()
@@ -239,6 +252,7 @@ def resolve_best_sweep_params(
     horizon_label: str | None = None,
     database_path: Path | str | None = None,
     run_start_unix_seconds: int | None = None,
+    strict_temporal_provenance: bool = False,
 ) -> tuple[dict[str, Any] | None, str | None]:
     """Latest sweep winner for this market, else the same strategy on a default liquid pair."""
     record = resolve_best_sweep_record(
@@ -248,6 +262,7 @@ def resolve_best_sweep_params(
         horizon_label=horizon_label,
         database_path=database_path,
         run_start_unix_seconds=run_start_unix_seconds,
+        strict_temporal_provenance=strict_temporal_provenance,
     )
     if record is None:
         return None, None
@@ -262,6 +277,7 @@ def best_sweep_params_from_db(
     horizon_label: str | None = None,
     database_path: Path | str | None = None,
     run_start_unix_seconds: int | None = None,
+    strict_temporal_provenance: bool = False,
 ) -> dict[str, Any] | None:
     params, _symbol = resolve_best_sweep_params(
         strategy_id,
@@ -270,6 +286,7 @@ def best_sweep_params_from_db(
         horizon_label=horizon_label,
         database_path=database_path,
         run_start_unix_seconds=run_start_unix_seconds,
+        strict_temporal_provenance=strict_temporal_provenance,
     )
     return params
 
@@ -285,6 +302,7 @@ def resolve_optimized_namespace(
     database_path: Path | str | None = None,
     apply_sweep_winner: bool = False,
     run_start_unix_seconds: int | None = None,
+    strict_temporal_provenance: bool = False,
 ) -> Any:
     """Robust tuned defaults; sweep winner only when ``apply_sweep_winner`` is explicitly set.
 
@@ -316,6 +334,7 @@ def resolve_optimized_namespace(
             horizon_label=horizon_label_from_csv_path(csv_path),
             database_path=database_path,
             run_start_unix_seconds=run_start_unix_seconds,
+            strict_temporal_provenance=strict_temporal_provenance,
         )
         if sweep_params:
             for name, value in sweep_params.items():

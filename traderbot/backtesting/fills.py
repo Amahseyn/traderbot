@@ -17,12 +17,20 @@ from typing import Any, Literal
 Side = Literal["buy", "sell"]
 
 
-def limit_fill_price(side: str, limit_price: float, bar: dict[str, Any]) -> float | None:
+def limit_fill_price(
+    side: str,
+    limit_price: float,
+    bar: dict[str, Any],
+    *,
+    penetration_pct: float = 0.0,
+) -> float | None:
     low = float(bar.get("low", bar["close"]))
     high = float(bar.get("high", bar["close"]))
-    if side == "buy" and low < limit_price:
+    buy_threshold = limit_price * (1.0 - abs(penetration_pct))
+    sell_threshold = limit_price * (1.0 + abs(penetration_pct))
+    if side == "buy" and low < buy_threshold:
         return limit_price
-    if side == "sell" and high > limit_price:
+    if side == "sell" and high > sell_threshold:
         return limit_price
     return None
 

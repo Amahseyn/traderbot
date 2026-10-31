@@ -77,6 +77,9 @@ class HyperliquidOrderManager:
     bracket: LiveBracket | None = None
     position: float = 0.0
     _decimals: int | None = None
+    emergency_flatten_on_stop_failure: bool = True
+    halted: bool = False
+    halt_reason: str = ""
 
     # --- helpers --------------------------------------------------------------------------
 
@@ -159,9 +162,43 @@ class HyperliquidOrderManager:
                 bracket.sl_oid = hl.hyperliquid_order_id(response)
             except hl.HyperliquidTradingError as exc:
                 self.emit({"event": "bracket_error", "leg": "stop_loss", "message": str(exc)})
+                if self.emergency_flatten_on_stop_failure:
+                    self._emergency_flatten(direction, size, str(exc))
+                    return
         self.bracket = bracket
         self.emit({"event": "bracket_placed", "tp": bracket.take_profit_price, "stop": bracket.stop_price,
                    "tp_oid": bracket.tp_oid, "sl_oid": bracket.sl_oid})
+
+    def _emergency_flatten(self, direction: int, size: float, error_message: str) -> None:
+        """Immediately market-close open position when a required protective stop fails to be placed."""
+        self.halted = True
+        self.halt_reason = f"emergency_flatten: stop loss placement failed ({error_message})"
+        exit_buy = direction < 0
+        self.emit({
+            "event": "emergency_flatten",
+            "coin": self.coin,
+            "direction": direction,
+            "size": size,
+            "reason": error_message,
+        })
+        if self.bracket is not None and self.bracket.tp_oid is not None:
+            self._cancel(self.bracket.tp_oid)
+        self.bracket = None
+        try:
+            self.api.market_open(self.coin, is_buy=exit_buy, size=size)
+            self.position = self._refresh_position()
+            self.emit({
+                "event": "emergency_flatten_filled",
+                "coin": self.coin,
+                "position": self.position,
+            })
+        except Exception as exc:
+            logger.critical("Failed emergency flatten on %s: %s", self.coin, exc)
+            self.emit({
+                "event": "emergency_flatten_failed",
+                "coin": self.coin,
+                "message": str(exc),
+            })
 
     def _clear_bracket(self) -> None:
         if self.bracket is not None:
@@ -279,7 +316,15 @@ class HyperliquidOrderManager:
                 self._attach_bracket(direction, status.avg_price, abs(position), spec.take_profit_pct,
                                      spec.stop_loss_pct)
 
+    def reconcile_on_start(self) -> float:
+        """Query position on startup to synchronize initial state."""
+        self.position = self._refresh_position()
+        return self.position
+
     def step(self, bar: Bar) -> SignalAction:
+        if self.halted:
+            logger.warning("HyperliquidOrderManager is halted: %s", self.halt_reason)
+            return "hold"
         close_price = float(bar["close"])
         self._poll_resting(close_price)
         self._poll_bracket(close_price)

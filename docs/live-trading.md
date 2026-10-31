@@ -13,13 +13,17 @@ Paper mode is the default. **Hyperliquid perps** are the primary live venue (ter
 
 | Step | Behavior |
 |------|----------|
-| Buy | Market open → update `BotInventory` (no exchange stop orders on HL path) |
+| Buy | Market open → update `BotInventory` → place protective stop if configured |
+| Stop Failure | If protective stop placement fails, immediately triggers **emergency market flatten** to close open position and halts the trader |
 | Sell | Market close for tracked size → then reduce inventory |
 | Each bar (live) | Reconcile inventory **down** if exchange position is smaller than tracked |
 | Risk | Kill switch / daily loss / drawdown block **new buys**; **sells** still allowed to flatten |
-| Scope | Risk state is **per market symbol**, not one global pool |
+| Risk Rollover | Daily loss reset evaluates strictly against **00:00 UTC** (`datetime.now(timezone.utc).date()`) |
+| Spread Gate | If `max_spread_pct > 0`, book read failures fail closed (`spread_pct = inf`), blocking entries |
+| Fill Attribution | Captures expected vs realized fill price and slippage in tick telemetry |
+| Scope | Risk state is per market symbol (`RiskManager`), with optional account-level cross-symbol limits (`PortfolioRiskManager`) |
 
-Implementation: `HyperliquidTerminalTrader` in `traderbot/terminal/hyperliquid_trader.py`.
+Implementation: `HyperliquidTerminalTrader` in `traderbot/terminal/hyperliquid_trader.py` and `HyperliquidOrderManager` in `traderbot/hyperliquid/order_manager.py`.
 
 ## Optional: Nobitex spot
 
@@ -94,8 +98,10 @@ Strategies that return an `OrderSpec` or quotes (`perp_market_making`, `scalp_di
 
 ## Monitoring and incident response
 
-- Watch job logs (`/live` in the UI) and terminal JSON events for `live order failed`.
-- If inventory and exchange diverge: stop the session, compare wallet/position vs bot inventory snapshot, fix manually on the exchange if needed, then restart (surplus exchange balance is **not** auto-adopted as bot inventory).
+- Watch job logs (`/live` in the UI) and terminal JSON events for `live order failed` or `emergency_flatten`.
+- **Reconciliation audits:** Run `audit_and_reconcile_inventory()` (`traderbot/traders/inventory_reconcile.py`) to inspect structured `ReconciliationReport` results.
+- If inventory and exchange diverge: stop the session, compare wallet/position vs bot inventory snapshot, fix manually on the exchange if needed, then restart (surplus exchange balance produces explicit divergence warnings and is **not** auto-adopted as bot inventory).
+- Risk limits can be persisted and restored atomically via `save_to_file()` and `load_from_file()` on `RiskManager` and `PortfolioRiskManager`.
 - Rotate `LAB_API_TOKEN` and exchange keys if the API was exposed without auth.
 
 ## Research vs live

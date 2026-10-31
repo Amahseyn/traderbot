@@ -6,7 +6,7 @@ from typing import Any
 
 from traderbot.algorithms.base import Algorithm, SignalAction
 from traderbot.utils.bars import bars_from_ohlc_rows, load_bars_csv, normalize_bar
-from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION
+from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION, infer_exchange
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +53,25 @@ class BacktestResult:
     execution: str = DEFAULT_BACKTEST_EXECUTION
     total_fees: float = 0.0
     maker_fee_rate: float = 0.0
+    exchange: str | None = None
 
     @property
     def return_pct(self) -> float:
         if self.initial_cash == 0:
             return 0.0
         return (self.final_equity / self.initial_cash - 1.0) * 100.0
+
+    def cost_and_execution_summary(self) -> dict[str, Any]:
+        """Explicit cost attribution and fill model metadata for audit and comparison."""
+        return {
+            "execution": self.execution,
+            "is_causal": self.execution == "next_open",
+            "fee_rate": self.fee_rate,
+            "maker_fee_rate": self.maker_fee_rate,
+            "slippage_rate": self.slippage_rate,
+            "total_fees": self.total_fees,
+            "exchange": self.exchange,
+        }
 
 
 def _fill_price(raw_price: float, action: SignalAction, slippage_rate: float) -> float:
@@ -78,6 +91,7 @@ def run_backtest(
     reset_algorithm: bool = True,
     maker_fee_rate: float | None = None,
     allow_short: bool | None = None,
+    exchange: str | None = None,
 ) -> BacktestResult:
     """
     Backtest with mark-to-market each bar. Default: long-only, full cash on buy, full exit
@@ -100,9 +114,16 @@ def run_backtest(
 
     if not bars:
         raise ValueError("run_backtest requires at least one bar")
+    if execution == "close":
+        logger.warning(
+            "run_backtest: execution='close' fills at current close (optimistic). "
+            "Use execution='next_open' for causal out-of-sample validation."
+        )
     if reset_algorithm:
         algorithm.reset()
     normalized = [normalize_bar(raw_bar) for raw_bar in bars]
+    first_symbol = next((str(bar.get("symbol")) for bar in normalized[:1] if bar.get("symbol")), None)
+    resolved_exchange = exchange or infer_exchange(first_symbol) or "hyperliquid"
     broker = SimBroker(
         algorithm,
         initial_cash=initial_cash,
@@ -111,7 +132,7 @@ def run_backtest(
         execution=execution,
         maker_fee_rate=maker_fee_rate,
         allow_short=allow_short,
-        symbol=next((str(bar.get("symbol")) for bar in normalized[:1] if bar.get("symbol")), None),
+        symbol=first_symbol,
     )
     equity_curve: list[tuple[int, float]] = []
     for bar in normalized:
@@ -140,6 +161,7 @@ def run_backtest(
         execution=execution,
         total_fees=broker.total_fees,
         maker_fee_rate=broker.maker_rate,
+        exchange=resolved_exchange,
     )
 
 
