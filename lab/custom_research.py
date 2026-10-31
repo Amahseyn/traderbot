@@ -389,6 +389,7 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
                     run_end_unix_seconds=body.get("run_end_unix_seconds"),
                     use_optimized_strategy_params=use_optimized,
                     apply_sweep_winner=apply_sweep_winner,
+                    allow_short=bool(body.get("allow_short")) if body.get("allow_short") is not None else None,
                 ),
                 log=log,
             )

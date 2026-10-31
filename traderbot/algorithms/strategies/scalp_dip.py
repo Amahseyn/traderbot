@@ -7,7 +7,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 from traderbot.algorithms.base import Algorithm, Bar, OrderSize, OrderSpec, SignalAction
+from traderbot.algorithms.price_context import apply_mean_reversion_context, signal_clears_cost
 from traderbot.algorithms.streaming import atr_init, atr_update
+from traderbot.algorithms.validators import validate_cost_edge, validate_price_context
 
 ORDER_MODES = ("legacy", "bracket", "maker")
 THRESHOLD_MODES = ("fixed", "atr")
@@ -88,6 +90,13 @@ class ScalpDipAlgorithm(Algorithm):
         min_volume_ratio: float = 0.0,
         max_spread_pct: float = 0.0,
         allow_short: bool = False,
+        context_bars: int = 0,
+        buy_min_recent_return: float = -0.03,
+        sell_max_recent_return: float = 0.03,
+        buy_min_fine_last_5m: float | None = None,
+        sell_max_fine_last_5m: float | None = None,
+        min_edge_over_cost: float | None = None,
+        roundtrip_cost_pct: float | None = None,
     ):
         if dip_lookback_bars < 2:
             raise ValueError("dip_lookback_bars must be >= 2")
@@ -109,6 +118,8 @@ class ScalpDipAlgorithm(Algorithm):
             raise ValueError("entry_offset_pct must be in [0, 0.05) and entry_ttl_bars >= 1")
         if min_volume_ratio < 0 or max_spread_pct < 0:
             raise ValueError("min_volume_ratio and max_spread_pct must be >= 0")
+        validate_price_context(context_bars, buy_min_recent_return, sell_max_recent_return)
+        validate_cost_edge(min_edge_over_cost, roundtrip_cost_pct)
         self.dip_lookback_bars = int(dip_lookback_bars)
         self.dip_pct = dip_pct
         self.take_profit_pct = take_profit_pct
@@ -127,10 +138,18 @@ class ScalpDipAlgorithm(Algorithm):
         self.min_volume_ratio = min_volume_ratio
         self.max_spread_pct = max_spread_pct
         self.allow_short = bool(allow_short)
+        self.context_bars = int(context_bars)
+        self.buy_min_recent_return = float(buy_min_recent_return)
+        self.sell_max_recent_return = float(sell_max_recent_return)
+        self.buy_min_fine_last_5m = buy_min_fine_last_5m
+        self.sell_max_fine_last_5m = sell_max_fine_last_5m
+        self.min_edge_over_cost = 0.0 if min_edge_over_cost is None else float(min_edge_over_cost)
+        self.roundtrip_cost_pct = roundtrip_cost_pct
         self.reset()
 
     def reset(self) -> None:
-        self._closes: deque[float] = deque(maxlen=self.dip_lookback_bars)
+        lookback = max(self.dip_lookback_bars, self.context_bars + 1)
+        self._closes: deque[float] = deque(maxlen=lookback)
         self._volumes: deque[float] = deque(maxlen=self.dip_lookback_bars)
         self._atr = atr_init(self.atr_period)
         self._direction = 0  # +1 long, -1 short, 0 flat (or entry pending)
@@ -294,8 +313,32 @@ class ScalpDipAlgorithm(Algorithm):
         if thresholds is None or not self._filters_pass(bar, prior_volumes):
             return "hold"
         dip, tp, sl = thresholds
-        if close <= max(prior_closes) * (1 - dip) and close > open_price:
-            return self._enter(1, close, tp, sl)
-        if self.allow_short and close >= min(prior_closes) * (1 + dip) and close < open_price:
-            return self._enter(-1, close, tp, sl)
+        dip_closes = prior_closes[-self.dip_lookback_bars:]
+        action: SignalAction | None = None
+        if close <= max(dip_closes) * (1 - dip) and close > open_price:
+            action = "buy"
+        elif self.allow_short and close >= min(dip_closes) * (1 + dip) and close < open_price:
+            action = "sell"
+
+        if action is not None:
+            if not signal_clears_cost(
+                tp,
+                roundtrip_cost_pct=self.roundtrip_cost_pct,
+                min_edge_over_cost=self.min_edge_over_cost,
+            ):
+                return "hold"
+            action = apply_mean_reversion_context(
+                action,
+                self._closes,
+                context_bars=self.context_bars,
+                buy_min_recent_return=self.buy_min_recent_return,
+                sell_max_recent_return=self.sell_max_recent_return,
+                bar=bar,
+                buy_min_fine_last_5m=self.buy_min_fine_last_5m,
+                sell_max_fine_last_5m=self.sell_max_fine_last_5m,
+            )
+            if action == "buy":
+                return self._enter(1, close, tp, sl)
+            if action == "sell":
+                return self._enter(-1, close, tp, sl)
         return "hold"

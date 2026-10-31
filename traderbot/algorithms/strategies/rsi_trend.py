@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+from traderbot.algorithms.price_context import (
+    recent_cumulative_return,
+    trend_signal_clears_cost,
+)
 from traderbot.algorithms.streaming import ema_init, ema_reset, ema_update, rsi_init, rsi_reset, rsi_update
+from traderbot.algorithms.validators import validate_cost_edge
 
 
 class RsiTrendAlgorithm(Algorithm):
@@ -19,6 +24,8 @@ class RsiTrendAlgorithm(Algorithm):
         rsi_trend_entry = 55.0,
         rsi_trend_exit = 45.0,
         trend_filter_period = 50,
+        min_edge_over_cost: float | None = None,
+        roundtrip_cost_pct: float | None = None,
     ):
         if period < 2:
             raise ValueError("period must be >= 2")
@@ -26,15 +33,19 @@ class RsiTrendAlgorithm(Algorithm):
             raise ValueError("need 0 < rsi_trend_exit < rsi_trend_entry < 100")
         if trend_filter_period < 1:
             raise ValueError("trend_filter_period must be >= 1")
+        validate_cost_edge(min_edge_over_cost, roundtrip_cost_pct)
         self.period = period
         self.rsi_trend_entry = rsi_trend_entry
         self.rsi_trend_exit = rsi_trend_exit
         self.trend_filter_period = trend_filter_period
+        self.min_edge_over_cost = 0.0 if min_edge_over_cost is None else float(min_edge_over_cost)
+        self.roundtrip_cost_pct = roundtrip_cost_pct
         self._rsi = rsi_init(period)
         self._ema = ema_init(trend_filter_period)
         self._bar_count = 0
         self._prev_rsi: float | None = None
         self._in_position = False
+        self._closes: list[float] = []
 
     def reset(self) -> None:
         rsi_reset(self._rsi)
@@ -42,12 +53,14 @@ class RsiTrendAlgorithm(Algorithm):
         self._bar_count = 0
         self._prev_rsi = None
         self._in_position = False
+        self._closes.clear()
 
     def sync_open_position(self, in_position: bool) -> None:
         self._in_position = in_position
 
     def on_bar(self, bar: Bar) -> SignalAction:
         close = float(bar["close"])
+        self._closes.append(close)
         self._bar_count += 1
         current_rsi = rsi_update(self._rsi, close)
         trend = ema_update(self._ema, close)
@@ -61,6 +74,14 @@ class RsiTrendAlgorithm(Algorithm):
                 return "sell"
             return "hold"
         if prev_rsi < self.rsi_trend_entry <= current_rsi and close > trend:
+            move_pct = recent_cumulative_return(self._closes, self.period)
+            if not trend_signal_clears_cost(
+                "buy",
+                move_pct,
+                roundtrip_cost_pct=self.roundtrip_cost_pct,
+                min_edge_over_cost=self.min_edge_over_cost,
+            ):
+                return "hold"
             self._in_position = True
             return "buy"
         return "hold"

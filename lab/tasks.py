@@ -135,6 +135,7 @@ def run_strategy_compare_task(body: dict[str, Any], csv_path: str) -> None:
             strategy_namespace=_strategy_namespace_from_body(body),
             mode=mode,
             use_optimized_strategy_params=bool(body.get("use_optimized_strategy_params", True)),
+            allow_short=bool(body.get("allow_short")) if body.get("allow_short") is not None else None,
         ),
         log=lambda message: print(message, flush=True),
     )

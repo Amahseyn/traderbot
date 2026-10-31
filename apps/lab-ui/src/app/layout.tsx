@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import { ApiOfflineBanner } from "@/components/ApiOfflineBanner";
 import { LabAuthBanner } from "@/components/LabApiAuth";
 import { Nav } from "@/components/Nav";
@@ -7,12 +6,6 @@ import { PageBackdrop } from "@/components/PageBackdrop";
 import { Providers } from "@/components/Providers";
 import { SiteFooter } from "@/components/SiteFooter";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-sans",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -24,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en">
       <body className="flex min-h-dvh flex-col bg-surface font-sans">
         <PageBackdrop />
         <a href="#main-content" className="skip-link">

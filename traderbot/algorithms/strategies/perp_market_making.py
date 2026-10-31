@@ -32,14 +32,14 @@ class PerpMarketMakingAlgorithm(Algorithm):
     def __init__(
         self,
         *,
-        half_spread_pct: float = 0.0005,
+        half_spread_pct: float = 0.0015,
         inventory_skew: float = 0.0,
         vol_spread_mult: float = 0.5,
         atr_period: int = 14,
         adverse_move_atr: float = 2.0,
         trend_ema_period: int = 20,
         stop_loss_pct: float = 0.004,
-        min_profit_pct: float = 0.0004,
+        min_profit_pct: float = 0.0015,
         order_fraction: float = 1.0,
         allow_short: bool = False,
         trend_guard: bool = True,
@@ -72,7 +72,7 @@ class PerpMarketMakingAlgorithm(Algorithm):
     def reset(self) -> None:
         self._atr = atr_init(self.atr_period)
         self._ema = ema_init(self.trend_ema_period)
-        self._emas: deque[float] = deque(maxlen=3)
+        self._emas: deque[float] = deque(maxlen=self.trend_ema_period)
         self._direction = 0  # +1 long, -1 short, 0 flat
         self._entry_price = 0.0
         self._quotes: list[Quote] = []

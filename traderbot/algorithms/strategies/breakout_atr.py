@@ -1,7 +1,9 @@
 from collections import deque
 
 from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+from traderbot.algorithms.price_context import signal_clears_cost
 from traderbot.algorithms.streaming import atr_init, atr_reset, atr_update
+from traderbot.algorithms.validators import validate_cost_edge
 
 
 class BreakoutAtrAlgorithm(Algorithm):
@@ -16,6 +18,8 @@ class BreakoutAtrAlgorithm(Algorithm):
         atr_period = 14,
         atr_multiplier = 1.5,
         stop_atr_multiplier = 1.0,
+        min_edge_over_cost: float | None = None,
+        roundtrip_cost_pct: float | None = None,
     ):
         if lookback_bars < 2:
             raise ValueError("lookback_bars must be >= 2")
@@ -25,10 +29,13 @@ class BreakoutAtrAlgorithm(Algorithm):
             raise ValueError("atr_multiplier must be positive")
         if stop_atr_multiplier <= 0:
             raise ValueError("stop_atr_multiplier must be positive")
+        validate_cost_edge(min_edge_over_cost, roundtrip_cost_pct)
         self.lookback_bars = lookback_bars
         self.atr_period = atr_period
         self.atr_multiplier = atr_multiplier
         self.stop_atr_multiplier = stop_atr_multiplier
+        self.min_edge_over_cost = 0.0 if min_edge_over_cost is None else float(min_edge_over_cost)
+        self.roundtrip_cost_pct = roundtrip_cost_pct
         self._highs: deque[float] = deque(maxlen=lookback_bars + 1)
         self._lows: deque[float] = deque(maxlen=lookback_bars + 1)
         self._atr = atr_init(atr_period)
@@ -78,6 +85,13 @@ class BreakoutAtrAlgorithm(Algorithm):
             return "hold"
 
         if close > upper_break:
+            edge_pct = (self.atr_multiplier * atr_now) / close if close > 0 else 0.0
+            if not signal_clears_cost(
+                edge_pct,
+                roundtrip_cost_pct=self.roundtrip_cost_pct,
+                min_edge_over_cost=self.min_edge_over_cost,
+            ):
+                return "hold"
             self._in_long = True
             self._stop_price = close - self.stop_atr_multiplier * atr_now
             return "buy"

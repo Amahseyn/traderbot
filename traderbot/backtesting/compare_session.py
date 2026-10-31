@@ -57,12 +57,14 @@ class StrategyCompareOptions(ResolvesCostRates):
     vectorbt: bool = False
     strategy_namespace: Any | None = None
     mode: str = "strategies"
+    allow_short: bool | None = None
     strategy_ids: frozenset[str] | None = None
     max_strategies: int | None = None
     run_start_unix_seconds: int | None = None
     run_end_unix_seconds: int | None = None
     use_optimized_strategy_params: bool = True
     apply_sweep_winner: bool = False
+    allow_short: bool | None = None
 
 
 def strategy_ids_for_compare(
@@ -208,6 +210,11 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
         kwargs = _algorithm_kwargs(algorithm_id, options)
         kwargs.update(extra)
         algo = algorithm_for_id(algorithm_id, **kwargs)
+        allow_short = (
+            options.allow_short
+            if options.allow_short is not None
+            else (bool(getattr(options.strategy_namespace, "allow_short", 0)) if options.strategy_namespace is not None else None)
+        )
         result = run_backtest(
             algo,
             bars,
@@ -215,6 +222,8 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
             fee_rate=options.fee,
             slippage_rate=options.slippage,
             execution=options.execution,
+            allow_short=allow_short,
+            exchange=options.exchange,
         )
         equity_by_strategy[strategy_id] = list(result.equity_curve)
         row = backtest_summary_dict(
@@ -302,6 +311,7 @@ class StrategyTestOptions(ResolvesCostRates):
     vectorbt: bool = False
     strategy_namespace: Any | None = None
     mode: str = "strategies"
+    allow_short: bool | None = None
 
 
 def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None) -> dict[str, Any]:
@@ -315,10 +325,12 @@ def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None)
         cash=options.cash,
         fee=options.fee,
         slippage=options.slippage,
+        exchange=options.exchange,
         execution=options.execution,
         vectorbt=options.vectorbt,
         strategy_namespace=options.strategy_namespace,
         mode=mode,
+        allow_short=options.allow_short,
     )
     csv_path = options.csv_path.resolve()
     bars = enrich_bars_for_csv(load_bars_csv(csv_path), csv_path, options.strategy_namespace)
@@ -328,6 +340,11 @@ def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None)
     _log(log, f"strategy test: {mode} mode, {options.strategy_id} on {csv_path.name} ({len(bars)} bars, {compare_options.execution} fills)")
     kwargs = _algorithm_kwargs(options.strategy_id, compare_options)
     algo = algorithm_for_id(options.strategy_id, **kwargs)
+    allow_short = (
+        options.allow_short
+        if options.allow_short is not None
+        else (bool(getattr(options.strategy_namespace, "allow_short", 0)) if options.strategy_namespace is not None else None)
+    )
     result = run_backtest(
         algo,
         bars,
@@ -335,6 +352,8 @@ def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None)
         fee_rate=options.fee,
         slippage_rate=options.slippage,
         execution=options.execution,
+        allow_short=allow_short,
+        exchange=options.exchange,
     )
     summary = backtest_summary_dict(
         algo,

@@ -53,6 +53,7 @@ def record_strategy_backtest(
     extra: dict[str, Any] | None = None,
     compare_session_id: str | None = None,
     experiment_id: str | None = None,
+    created_at_utc: str | None = None,
     database_path: Path | None = None,
 ) -> str | None:
     extra = dict(extra or {})
@@ -97,6 +98,7 @@ def record_strategy_backtest(
             metrics=summary,
             compare_session_id=compare_session_id,
             experiment_id=experiment_id,
+            created_at_utc=created_at_utc,
         )
 
     try:

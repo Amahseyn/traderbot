@@ -7,6 +7,8 @@ from collections import deque
 from typing import Protocol
 
 from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+from traderbot.algorithms.price_context import signal_clears_cost
+from traderbot.algorithms.validators import validate_cost_edge
 
 
 class EventSignalSource(Protocol):
@@ -77,6 +79,8 @@ class MomentumShockAlgorithm(Algorithm):
         shock_hold_bars = 12,
         trailing_stop_pct = 0.0,
         event_source: EventSignalSource | None = None,
+        min_edge_over_cost: float | None = None,
+        roundtrip_cost_pct: float | None = None,
     ):
         if lookback_bars < 3:
             raise ValueError("lookback_bars must be >= 3")
@@ -86,8 +90,11 @@ class MomentumShockAlgorithm(Algorithm):
             raise ValueError("shock_hold_bars must be >= 1")
         if not 0 <= trailing_stop_pct < 1:
             raise ValueError("trailing_stop_pct must be in [0, 1)")
+        validate_cost_edge(min_edge_over_cost, roundtrip_cost_pct)
         self.shock_hold_bars = shock_hold_bars
         self.trailing_stop_pct = trailing_stop_pct
+        self.min_edge_over_cost = 0.0 if min_edge_over_cost is None else float(min_edge_over_cost)
+        self.roundtrip_cost_pct = roundtrip_cost_pct
         self.event_source: EventSignalSource = event_source or PriceVolumeShockSource(
             lookback_bars=lookback_bars,
             shock_return_std=shock_return_std,
@@ -100,6 +107,7 @@ class MomentumShockAlgorithm(Algorithm):
         self._bars_held = 0
         self._in_position = False
         self._peak_close = 0.0
+        self._prev_close: float | None = None
 
     def sync_open_position(self, in_position: bool) -> None:
         if not in_position:
@@ -108,6 +116,8 @@ class MomentumShockAlgorithm(Algorithm):
     def on_bar(self, bar: Bar) -> SignalAction:
         close = float(bar["close"])
         score = self.event_source.score_bar(bar)
+        prev = self._prev_close
+        self._prev_close = close
         if self._in_position:
             self._bars_held += 1
             self._peak_close = max(self._peak_close, close)
@@ -117,6 +127,13 @@ class MomentumShockAlgorithm(Algorithm):
                 return "sell"
             return "hold"
         if score > 0:
+            move = (close / prev - 1.0) if prev and prev > 0 else 0.0
+            if not signal_clears_cost(
+                move,
+                min_edge_over_cost=self.min_edge_over_cost,
+                roundtrip_cost_pct=self.roundtrip_cost_pct,
+            ):
+                return "hold"
             self._in_position = True
             self._bars_held = 0
             self._peak_close = close

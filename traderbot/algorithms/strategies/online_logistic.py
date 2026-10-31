@@ -33,9 +33,10 @@ class OnlineLogisticAlgorithm(Algorithm):
         lookback_bars = 24,
         ml_horizon_bars = 6,
         ml_learning_rate = 0.05,
-        ml_buy_threshold = 0.55,
-        ml_sell_threshold = 0.45,
+        ml_buy_threshold = 0.60,
+        ml_sell_threshold = 0.40,
         ml_warmup_samples = 100,
+        min_hold_bars = 3,
     ):
         if lookback_bars < MOMENTUM_BARS:
             raise ValueError(f"lookback_bars must be >= {MOMENTUM_BARS}")
@@ -45,6 +46,8 @@ class OnlineLogisticAlgorithm(Algorithm):
             raise ValueError("ml_learning_rate must be positive")
         if not 0 < ml_sell_threshold <= ml_buy_threshold < 1:
             raise ValueError("need 0 < ml_sell_threshold <= ml_buy_threshold < 1")
+        if min_hold_bars < 0:
+            raise ValueError("min_hold_bars must be >= 0")
         self.period = period
         self.lookback_bars = lookback_bars
         self.ml_horizon_bars = ml_horizon_bars
@@ -52,6 +55,7 @@ class OnlineLogisticAlgorithm(Algorithm):
         self.ml_buy_threshold = ml_buy_threshold
         self.ml_sell_threshold = ml_sell_threshold
         self.ml_warmup_samples = ml_warmup_samples
+        self.min_hold_bars = int(min_hold_bars)
         self.reset()
 
     def reset(self) -> None:
@@ -67,10 +71,13 @@ class OnlineLogisticAlgorithm(Algorithm):
         self._feature_m2 = [0.0] * FEATURE_COUNT
         self._trained_samples = 0
         self._in_position = False
+        self._bars_in_position = 0
         self.last_probability: float | None = None
 
     def sync_open_position(self, in_position: bool) -> None:
         self._in_position = in_position
+        if not in_position:
+            self._bars_in_position = 0
 
     def _raw_features(self, close: float, volume: float, rsi_value: float) -> list[float] | None:
         closes = list(self._closes)
@@ -134,10 +141,16 @@ class OnlineLogisticAlgorithm(Algorithm):
             return "hold"
         probability = self._probability(features)
         self.last_probability = probability
-        if not self._in_position and probability >= self.ml_buy_threshold:
-            self._in_position = True
-            return "buy"
-        if self._in_position and probability <= self.ml_sell_threshold:
-            self._in_position = False
-            return "sell"
+        if not self._in_position:
+            self._bars_in_position = 0
+            if probability >= self.ml_buy_threshold:
+                self._in_position = True
+                self._bars_in_position = 1
+                return "buy"
+        else:
+            self._bars_in_position += 1
+            if probability <= self.ml_sell_threshold and self._bars_in_position >= self.min_hold_bars:
+                self._in_position = False
+                self._bars_in_position = 0
+                return "sell"
         return "hold"

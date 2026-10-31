@@ -38,6 +38,8 @@ class RsiThresholdAlgorithm(Algorithm):
         entry_order_mode: str = "market",
         entry_offset_pct: float = 0.0002,
         entry_ttl_bars: int = 2,
+        stop_loss_pct: float | None = None,
+        take_profit_pct: float | None = None,
     ):
         validate_rsi_bands(period, oversold, overbought)
         validate_price_context(context_bars, buy_min_recent_return, sell_max_recent_return)
@@ -58,6 +60,8 @@ class RsiThresholdAlgorithm(Algorithm):
             entry_order_mode=entry_order_mode,
             entry_offset_pct=entry_offset_pct,
             entry_ttl_bars=entry_ttl_bars,
+            stop_loss_pct=stop_loss_pct,
+            take_profit_pct=take_profit_pct,
         )
         self._closes: list[float] = []
         self._recent: deque[float] = deque(maxlen=period)
@@ -70,7 +74,7 @@ class RsiThresholdAlgorithm(Algorithm):
 
     @property
     def uses_order_engine(self) -> bool:
-        return self._entry.is_maker
+        return self._entry.uses_order_engine
 
     def order_spec(self) -> OrderSpec | None:
         return self._spec

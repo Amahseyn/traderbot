@@ -7,7 +7,17 @@ from typing import Any
 DEFAULTS_PATH = Path(__file__).with_name("strategy_defaults.json")
 
 #: Strategies whose entries follow a cross/trend rather than fading an extreme.
-TREND_STRATEGIES = ("sma_cross", "ema_cross", "macd_cross")
+TREND_STRATEGIES = (
+    "sma_cross",
+    "ema_cross",
+    "macd_cross",
+    "breakout_atr",
+    "rsi_trend",
+    "ma_trend",
+    "finrl_ema_intraday",
+    "range_breakout",
+    "momentum_shock",
+)
 
 #: The shared ``--buy-min-recent-return`` / ``--sell-max-recent-return`` defaults, which are
 #: mean-reversion semantics; trend strategies replace them with 0.0 / 0.0.
@@ -65,12 +75,22 @@ def robust_params_for(
     resolution: str | None = None,
     horizon_label: str | None = None,
     path: Path | str | None = None,
+    require_positive_metric: bool = False,
 ) -> dict[str, Any] | None:
-    """Averaged robust defaults for one strategy (None when never tuned)."""
+    """Averaged robust defaults for one strategy (None when never tuned or losing)."""
     content = load_robust_defaults_file(path)
     for key in _bucket_keys(resolution=resolution, horizon_label=horizon_label):
         entry = (content.get(key) or {}).get(strategy_id)
         if entry and entry.get("robust_params"):
+            if require_positive_metric:
+                mean_metric = entry.get("basis", {}).get("mean_metric")
+                if mean_metric is not None:
+                    try:
+                        metric_val = float(mean_metric)
+                        if metric_val <= 0 or metric_val == float("-inf") or metric_val != metric_val:
+                            continue
+                    except (ValueError, TypeError):
+                        continue
             return dict(entry["robust_params"])
     return None
 
@@ -81,12 +101,22 @@ def best_params_for(
     resolution: str | None = None,
     horizon_label: str | None = None,
     path: Path | str | None = None,
+    require_positive_metric: bool = False,
 ) -> dict[str, Any] | None:
     """Single-run winner for one strategy (kept separate from robust defaults)."""
     content = load_robust_defaults_file(path)
     for key in _bucket_keys(resolution=resolution, horizon_label=horizon_label):
         entry = (content.get(key) or {}).get(strategy_id)
         if entry and entry.get("best_params"):
+            if require_positive_metric:
+                mean_metric = entry.get("basis", {}).get("mean_metric")
+                if mean_metric is not None:
+                    try:
+                        metric_val = float(mean_metric)
+                        if metric_val <= 0 or metric_val == float("-inf") or metric_val != metric_val:
+                            continue
+                    except (ValueError, TypeError):
+                        continue
             return dict(entry["best_params"])
     return None
 

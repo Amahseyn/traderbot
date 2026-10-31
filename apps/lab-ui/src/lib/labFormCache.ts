@@ -19,6 +19,7 @@ export type CustomResearchDraft = {
   feePct: string;
   execution: string;
   vectorbt: boolean;
+  allowShort?: boolean;
   visualize: boolean;
   limitRunWindow: boolean;
   runStartLocal: string;
@@ -116,6 +117,7 @@ export function loadCustomResearchDraft(): CustomResearchDraft | null {
       feePct: typeof raw.feePct === "string" ? raw.feePct : "0.045",
       execution: typeof raw.execution === "string" ? raw.execution : "next_open",
       vectorbt: raw.vectorbt !== false,
+      allowShort: raw.allowShort !== false,
       visualize: raw.visualize !== false,
       limitRunWindow: Boolean(raw.limitRunWindow),
       runStartLocal: typeof raw.runStartLocal === "string" ? raw.runStartLocal : "",

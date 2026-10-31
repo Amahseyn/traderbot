@@ -70,14 +70,37 @@ def insert_evaluation_run(
     metrics: dict[str, Any],
     compare_session_id: str | None = None,
     experiment_id: str | None = None,
+    created_at_utc: str | None = None,
 ) -> str:
     out_dir_str = str(out_dir)
+    now_utc = created_at_utc or _utc_now()
+    metrics_str = json.dumps(metrics, default=str)
     existing = connection.execute(
         "SELECT id FROM evaluation_runs WHERE out_dir = ? AND run_kind = ?",
         (out_dir_str, run_kind),
     ).fetchone()
     if existing is not None:
-        return str(existing["id"])
+        run_id = str(existing["id"])
+        connection.execute(
+            """
+            UPDATE evaluation_runs
+            SET config_id = ?,
+                metrics_json = ?,
+                created_at_utc = ?,
+                compare_session_id = ?,
+                experiment_id = ?
+            WHERE id = ?
+            """,
+            (
+                config_id,
+                metrics_str,
+                now_utc,
+                compare_session_id,
+                experiment_id,
+                run_id,
+            ),
+        )
+        return run_id
     run_id = uuid.uuid4().hex
     connection.execute(
         """
@@ -91,8 +114,8 @@ def insert_evaluation_run(
             run_kind,
             config_id,
             out_dir_str,
-            json.dumps(metrics, default=str),
-            _utc_now(),
+            metrics_str,
+            now_utc,
             compare_session_id,
             experiment_id,
         ),

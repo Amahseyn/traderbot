@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from lab.store.database import open_database
@@ -61,6 +62,7 @@ def sync_results_tree(
                 trades=[],
                 equity_curve=[],
             )
+            mtime = datetime.fromtimestamp(summary_path.stat().st_mtime, timezone.utc).replace(microsecond=0).isoformat()
             record_strategy_backtest(
                 algorithm,
                 backtest_result,
@@ -68,6 +70,7 @@ def sync_results_tree(
                 bars=int(summary.get("bars", 0)),
                 summary=summary,
                 extra={"strategy_id": strategy_id, "csv": summary.get("csv")},
+                created_at_utc=mtime,
                 database_path=database_path,
             )
             counts["strategy"] += 1

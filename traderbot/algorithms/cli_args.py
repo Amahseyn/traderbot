@@ -40,8 +40,8 @@ EXTRA_STRATEGY_PARAMS: tuple[tuple[str, type, object, str], ...] = (
     ("shock_hold_bars", int, 12, "momentum_shock: max bars to hold after an event"),
     ("ml_horizon_bars", int, 6, "online_logistic: label horizon (bars ahead)"),
     ("ml_learning_rate", float, 0.05, "online_logistic SGD learning rate"),
-    ("ml_buy_threshold", float, 0.55, "online_logistic: buy when P(up) is at least this"),
-    ("ml_sell_threshold", float, 0.45, "online_logistic: sell when P(up) is at most this"),
+    ("ml_buy_threshold", float, 0.60, "online_logistic: buy when P(up) is at least this"),
+    ("ml_sell_threshold", float, 0.40, "online_logistic: sell when P(up) is at most this"),
     ("ml_warmup_samples", int, 100, "online_logistic: labelled samples before trading"),
     (
         "ensemble_preset",
@@ -68,7 +68,7 @@ EXTRA_STRATEGY_PARAMS: tuple[tuple[str, type, object, str], ...] = (
     ("mm_trend_ema_period", int, 20, "perp_market_making: EMA for the trend guard"),
     ("mm_trend_guard", int, 1, "perp_market_making: 1 = no bids while the EMA falls (asks while it rises)"),
     ("mm_stop_loss_pct", float, 0.004, "perp_market_making protective stop from the fill (0=off)"),
-    ("mm_min_profit_pct", float, 0.0004, "perp_market_making: exit quote at least this far beyond entry"),
+    ("mm_min_profit_pct", float, 0.0015, "perp_market_making: exit quote at least this far beyond entry"),
     ("mm_order_fraction", float, 1.0, "perp_market_making: position size as a fraction of equity"),
     (
         "min_edge_over_cost",
@@ -125,7 +125,7 @@ def default_strategy_namespace(**overrides: Any) -> argparse.Namespace:
         "pair_entry_threshold": 2.0,
         "pair_exit_threshold": 0.5,
         "pair_hedge_ratio": 1.0,
-        "mm_half_spread_pct": 0.0005,
+        "mm_half_spread_pct": 0.0015,
         "mm_inventory_skew": 0.0,
         "ensemble_preset": "1m_scalp_trend",
         "ensemble_entry_rule": "all",

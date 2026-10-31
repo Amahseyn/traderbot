@@ -108,6 +108,29 @@ def test_strategy_baseline_defaults_fix_shared_cli_knobs():
     bollinger = default_strategy_namespace()
     apply_strategy_baseline_defaults(bollinger, "bollinger_mean_reversion")
     assert bollinger.period == 20
+    # Trend strategies replace generic mean-reversion -0.03/0.03 with 0.0/0.0 momentum confirmation
+    for trend_strat in ("breakout_atr", "rsi_trend", "ma_trend", "sma_cross", "ema_cross"):
+        ns = default_strategy_namespace()
+        apply_strategy_baseline_defaults(ns, trend_strat)
+        assert ns.buy_min_recent_return == 0.0
+        assert ns.sell_max_recent_return == 0.0
+
+
+def test_high_frequency_edge_default_applies_positive_margin():
+    from traderbot.algorithms.strategy_defaults import apply_high_frequency_edge_default
+
+    ns_1m = default_strategy_namespace(min_edge_over_cost=None)
+    apply_high_frequency_edge_default(ns_1m, bar_minutes=1)
+    assert ns_1m.min_edge_over_cost == 1.0
+
+    ns_5m = default_strategy_namespace(min_edge_over_cost=None)
+    apply_high_frequency_edge_default(ns_5m, bar_minutes=5)
+    assert ns_5m.min_edge_over_cost == 1.0
+
+    ns_60m = default_strategy_namespace(min_edge_over_cost=None)
+    apply_high_frequency_edge_default(ns_60m, bar_minutes=60)
+    assert ns_60m.min_edge_over_cost == 0.0
+
 
 
 def test_namespace_for_strategy_backtest_uses_horizon_bucket(tmp_path: Path):

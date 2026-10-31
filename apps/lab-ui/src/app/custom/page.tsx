@@ -65,6 +65,7 @@ export default function CustomPipelinePage() {
   const [feePct, setFeePct] = useState("0.045");
   const [execution, setExecution] = useState("next_open");
   const [vectorbt, setVectorbt] = useState(true);
+  const [allowShort, setAllowShort] = useState(true);
   const [visualize, setVisualize] = useState(true);
   const [limitRunWindow, setLimitRunWindow] = useState(false);
   const [runStartLocal, setRunStartLocal] = useState("");
@@ -131,6 +132,7 @@ export default function CustomPipelinePage() {
       setFeePct(draft.feePct);
       setExecution(draft.execution);
       setVectorbt(draft.vectorbt);
+      setAllowShort(draft.allowShort !== false);
       setVisualize(draft.visualize);
       setLimitRunWindow(draft.limitRunWindow);
       setRunStartLocal(draft.runStartLocal);
@@ -162,6 +164,7 @@ export default function CustomPipelinePage() {
         feePct,
         execution,
         vectorbt,
+        allowShort,
         visualize,
         limitRunWindow,
         runStartLocal,
@@ -343,6 +346,7 @@ export default function CustomPipelinePage() {
         fee: Number(feePct) / 100,
         execution,
         vectorbt,
+        allow_short: allowShort,
         use_optimized_strategy_params: useOptimizedStrategyParams,
         optimize_before_compare: optimizeBeforeCompare,
         optimize_selection_mode: optimizeSelectionMode,
@@ -729,6 +733,14 @@ export default function CustomPipelinePage() {
                 onChange={(event) => setVectorbt(event.target.checked)}
               />
               Include vectorbt risk metrics on compare runs
+            </label>
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                checked={allowShort}
+                onChange={(event) => setAllowShort(event.target.checked)}
+              />
+              Allow short positions (Hyperliquid perps; spot/Nobitex stay long-only)
             </label>
 
             <p className="text-xs leading-relaxed text-muted">

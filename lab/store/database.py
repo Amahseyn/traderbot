@@ -15,6 +15,9 @@ def default_database_path() -> Path:
     return REPO_ROOT / "data" / "traderbot.db"
 
 
+_DATABASE_INITIALIZED: set[str] = set()
+
+
 def open_database(database_path: Path | None = None) -> sqlite3.Connection:
     path = database_path or default_database_path()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -23,7 +26,10 @@ def open_database(database_path: Path | None = None) -> sqlite3.Connection:
     connection.execute("PRAGMA foreign_keys = ON")
     connection.execute("PRAGMA journal_mode = WAL")
     connection.execute("PRAGMA busy_timeout = 30000")
-    init_database(connection)
+    key = str(path.resolve())
+    if key not in _DATABASE_INITIALIZED:
+        init_database(connection)
+        _DATABASE_INITIALIZED.add(key)
     return connection
 
 

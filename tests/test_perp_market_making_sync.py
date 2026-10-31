@@ -79,3 +79,19 @@ def test_shorts_only_when_allowed_and_not_on_nobitex() -> None:
     irt = [dict(bar, symbol="BTCIRT") for bar in bars]
     algo = PerpMarketMakingAlgorithm(half_spread_pct=0.005, vol_spread_mult=0.0, atr_period=1, allow_short=True)
     assert run_backtest(algo, irt, fee_rate=0.0035).trades == []
+
+
+def test_trend_guard_blocks_bid_in_persistent_downtrend() -> None:
+    # 10 down bars followed by 1 small green tick; overall EMA slope is still negative.
+    bars = [_bar(i, 100.0 - i, 100.2 - i, 98.8 - i, 99.0 - i) for i in range(10)]
+    # Bar 10 has a tiny green tick (open 90, close 90.1), but previous trend is down
+    bars.append(_bar(10, 89.0, 89.3, 88.9, 89.1))
+    algo = PerpMarketMakingAlgorithm(
+        half_spread_pct=0.005, vol_spread_mult=0.0, atr_period=5, trend_ema_period=10, trend_guard=True
+    )
+    for b in bars:
+        algo.on_bar(b)
+    # The negative EMA slope over 10 bars should block buy quotes
+    buy_quotes = [q for q in (algo.quotes() or []) if q.side == "buy"]
+    assert buy_quotes == []
+

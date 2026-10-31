@@ -52,6 +52,26 @@ def test_record_and_query_strategy_run(tmp_path: Path):
     finally:
         connection.close()
 
+    # Re-run in the same out_dir must update metrics instead of leaving stale records
+    run_id2 = record_strategy_backtest(
+        algorithm,
+        result,
+        out_dir=out_dir,
+        bars=50,
+        summary={"return_pct": 12.0, "strategy_id": "sma_cross"},
+        extra={"strategy_id": "sma_cross", "csv": "data/BTCIRT_D.csv"},
+        database_path=database_path,
+    )
+    assert run_id2 == run_id
+
+    connection = open_database(database_path)
+    try:
+        updated = fetch_evaluation_run(connection, run_id)
+        assert updated is not None
+        assert updated.metrics["return_pct"] == 12.0
+    finally:
+        connection.close()
+
 
 def _insert_strategy_run(
     connection,

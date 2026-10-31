@@ -65,6 +65,7 @@ function RunsPageContent() {
         offset,
         ...filters,
       }),
+    refetchInterval: 15_000,
     placeholderData: (prev) => prev, // keep previous page visible while loading the next
   });
 
@@ -112,6 +113,15 @@ function RunsPageContent() {
         eyebrow="Run Archive"
         title="Runs"
         description="Strategy backtests in the catalog. Filter the list, then open a run for trade logs, charts, and parameters."
+        actions={
+          <Button
+            variant="secondary"
+            onClick={() => void runsQuery.refetch()}
+            disabled={runsQuery.isFetching}
+          >
+            {runsQuery.isFetching ? "Refreshing…" : "Refresh"}
+          </Button>
+        }
       />
 
       <div className="panel-inset grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">

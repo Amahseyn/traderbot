@@ -255,6 +255,13 @@ _SCALP_DIP_FIELDS = (
     "entry_ttl_bars",
     "min_volume_ratio",
     "max_spread_pct",
+    "context_bars",
+    "buy_min_recent_return",
+    "sell_max_recent_return",
+    "buy_min_fine_last_5m",
+    "sell_max_fine_last_5m",
+    "min_edge_over_cost",
+    "roundtrip_cost_pct",
 )
 
 
@@ -298,6 +305,8 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "slow": a.slow,
         "price_confirm": a.price_confirm,
         "signal_style": getattr(a, "signal_style", "level_lag"),
+        **price_context_kwargs_from_namespace(a),
+        **cost_edge_kwargs_from_namespace(a),
     },
     "rsi_threshold": lambda a: {
         "period": a.period,
@@ -328,11 +337,13 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "low_tolerance_ratio": a.pattern_tolerance_ratio,
         "high_tolerance_ratio": a.pattern_tolerance_ratio,
         "pattern_score_threshold": a.pattern_score_threshold,
+        **cost_edge_kwargs_from_namespace(a),
     },
     "breakout_atr": lambda a: {
         "lookback_bars": a.lookback_bars,
         "atr_period": a.atr_period,
         "atr_multiplier": a.atr_multiplier,
+        **cost_edge_kwargs_from_namespace(a),
     },
     "spot_grid": lambda a: {
         "start_price": a.grid_start_price,
@@ -356,7 +367,13 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
     "ma_trend": _pick(
         "trend_fast_period", "trend_slow_period", "ma_kind", "ma_entry_mode", "trailing_stop_pct", "trend_max_adds"
     ),
-    "rsi_trend": _pick("period", "rsi_trend_entry", "rsi_trend_exit", "trend_filter_period"),
+    "rsi_trend": lambda a: {
+        "period": a.period,
+        "rsi_trend_entry": a.rsi_trend_entry,
+        "rsi_trend_exit": a.rsi_trend_exit,
+        "trend_filter_period": a.trend_filter_period,
+        **cost_edge_kwargs_from_namespace(a),
+    },
     "rsi_divergence": _pick(
         "period",
         "swing_window_bars",
@@ -365,19 +382,25 @@ _KWARGS_FROM_ARGS: dict[str, Callable[[Any], dict[str, Any]]] = {
         "divergence_stop_buffer_pct",
         "trailing_stop_pct",
     ),
-    "range_breakout": _pick(
-        "lookback_bars",
-        "range_max_width_pct",
-        "breakout_volume_multiplier",
-        "breakout_stop_fraction",
-        "measured_move_multiplier",
-    ),
+    "range_breakout": lambda a: {
+        "lookback_bars": a.lookback_bars,
+        "range_max_width_pct": a.range_max_width_pct,
+        "breakout_volume_multiplier": a.breakout_volume_multiplier,
+        "breakout_stop_fraction": a.breakout_stop_fraction,
+        "measured_move_multiplier": a.measured_move_multiplier,
+        **cost_edge_kwargs_from_namespace(a),
+    },
     "scalp_dip": lambda a: _scalp_dip_kwargs(a),
     "dca": _pick("dca_interval_bars", "dca_order_count"),
     "grid": _pick("lookback_bars", "grid_range_pct", "grid_levels", "grid_breakout_pct", "grid_reanchor_bars"),
-    "momentum_shock": _pick(
-        "lookback_bars", "shock_return_std", "shock_volume_multiplier", "shock_hold_bars", "trailing_stop_pct"
-    ),
+    "momentum_shock": lambda a: {
+        "lookback_bars": a.lookback_bars,
+        "shock_return_std": a.shock_return_std,
+        "shock_volume_multiplier": a.shock_volume_multiplier,
+        "shock_hold_bars": a.shock_hold_bars,
+        "trailing_stop_pct": a.trailing_stop_pct,
+        **cost_edge_kwargs_from_namespace(a),
+    },
     "online_logistic": _pick(
         "period",
         "lookback_bars",

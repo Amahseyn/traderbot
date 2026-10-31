@@ -162,6 +162,40 @@ def test_scalp_dip_size_never_increases_after_loss():
     assert sizes <= {0.5}
 
 
+def test_scalp_dip_blocks_when_tp_does_not_clear_cost():
+    # take_profit_pct is 0.001 (0.1%), but roundtrip cost is 0.0019 (0.19%) with min_edge=1.0
+    closes = [100.0] * 10 + [99.4]
+    opens = [100.0] * 10 + [99.2]
+    algorithm = ScalpDipAlgorithm(
+        dip_lookback_bars=5,
+        dip_pct=0.005,
+        take_profit_pct=0.001,
+        stop_loss_pct=0.005,
+        min_edge_over_cost=1.0,
+        roundtrip_cost_pct=0.0019,
+    )
+    bars = _bars(closes + [100.3], opens=opens + [99.4], spread=0.0)
+    signals = _signals(algorithm, bars)
+    assert signals[10] == "hold"
+
+
+def test_scalp_dip_blocks_buy_into_dump_with_context():
+    # Asset dropped 5% over 10 bars (from 100 to 95)
+    closes = [100.0 - i * 0.5 for i in range(10)] + [94.5]
+    opens = [100.0 - i * 0.5 for i in range(10)] + [94.0]
+    algorithm = ScalpDipAlgorithm(
+        dip_lookback_bars=5,
+        dip_pct=0.005,
+        context_bars=10,
+        buy_min_recent_return=-0.03,
+    )
+    bars = _bars(closes, opens=opens, spread=0.0)
+    signals = _signals(algorithm, bars)
+    # The 5% drop is worse than -3% threshold -> blocked as hold
+    assert signals[-1] == "hold"
+
+
+
 def test_dca_buys_fixed_amounts_and_compares_lump_sum():
     bars = _bars([100.0 + index for index in range(50)])
     algorithm = DcaAlgorithm(dca_interval_bars=10, dca_order_count=4)
