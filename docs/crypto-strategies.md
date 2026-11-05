@@ -32,8 +32,8 @@ entry/exit. Sized strategies (`ma_trend`, `scalp_dip`, `dca`, `grid`) skip vecto
 
 ## Cost-aware edge gate (1-minute profitability)
 
-Roundtrip friction is `2 × (fee + slippage)`: **0.190%** on Hyperliquid perp taker
-(`0.045% + 0.05%`) and **0.900%** on Nobitex spot retail (`0.35% + 0.10%`). The median 1-minute
+Roundtrip friction is `2 × (fee + slippage)`: **0.110%** on Hyperliquid perp taker
+(`0.045% + 0.01%`) and **0.900%** on Nobitex spot retail (`0.35% + 0.10%`). The median 1-minute
 candle on these files moves `0.04–0.08%`, so a strategy that roundtrips every ~10 minutes pays
 several times the move it is trying to capture.
 

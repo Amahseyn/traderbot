@@ -13,8 +13,8 @@ class BollingerMeanReversionAlgorithm(Algorithm):
 
     ``min_edge_over_cost`` requires the distance from the close to the band **mean** — the
     reversion the entry is betting on — to cover that multiple of the roundtrip friction
-    (0.19% on Hyperliquid taker). On 1-minute bars the bands sit well inside the cost, so the
-    gate is what keeps the strategy from paying 0.19% to capture 0.04%.
+    (0.11% on Hyperliquid taker). On 1-minute bars the bands sit well inside the cost, so the
+    gate is what keeps the strategy from paying 0.11% to capture 0.04%.
     """
 
     name = "bollinger_mean_reversion"
@@ -39,10 +39,14 @@ class BollingerMeanReversionAlgorithm(Algorithm):
         target_exposure: float = 1.0,
         max_tranches: int = 1,
         tranche_gap_bars: int = 0,
+        exit_target: str = "mean",
     ):
         validate_bollinger(period, num_std)
         validate_price_context(context_bars, buy_min_recent_return, sell_max_recent_return)
         validate_cost_edge(min_edge_over_cost, roundtrip_cost_pct)
+        if exit_target not in ("mean", "upper"):
+            raise ValueError(f"exit_target must be 'mean' or 'upper', got {exit_target!r}")
+        self.exit_target = exit_target
         self._entries = EntryTranches(
             target_exposure=target_exposure,
             max_tranches=max_tranches,
@@ -74,6 +78,12 @@ class BollingerMeanReversionAlgorithm(Algorithm):
         self._closes: deque[float] = deque(maxlen=close_history)
         self._spec: OrderSpec | None = None
         self._size: OrderSize | None = None
+        self._in_position = False
+
+    def sync_open_position(self, in_position: bool) -> None:
+        self._in_position = bool(in_position)
+        if not in_position:
+            self._entries.reset()
 
     @property
     def entry_order_mode(self) -> str:
@@ -94,6 +104,7 @@ class BollingerMeanReversionAlgorithm(Algorithm):
         self._closes.clear()
         self._spec = None
         self._size = None
+        self._in_position = False
         self._entries.reset()
 
     def on_bar(self, bar: Bar) -> SignalAction:
@@ -107,7 +118,7 @@ class BollingerMeanReversionAlgorithm(Algorithm):
         lower, upper, mean = levels
         if close <= lower:
             action = "buy"
-        elif close >= upper:
+        elif close >= upper or (self._in_position and self.exit_target == "mean" and close >= mean):
             action = "sell"
         else:
             return "hold"
@@ -130,9 +141,14 @@ class BollingerMeanReversionAlgorithm(Algorithm):
             sell_max_fine_last_5m=self.sell_max_fine_last_5m,
         )
         if action != "hold":
-            if action == "buy" and not self._entries.allows_entry():
-                self._size = self._entries.repeat_entry()
-            else:
-                self._size = self._entries.note_entry() if action == "buy" else self._entries.note_exit()
+            if action == "buy":
+                self._in_position = True
+                if not self._entries.allows_entry():
+                    self._size = self._entries.repeat_entry()
+                else:
+                    self._size = self._entries.note_entry()
+            elif action == "sell":
+                self._in_position = False
+                self._size = self._entries.note_exit()
             self._spec = self._entry.spec_for(action, close)
         return action

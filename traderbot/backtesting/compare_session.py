@@ -64,7 +64,10 @@ class StrategyCompareOptions(ResolvesCostRates):
     run_end_unix_seconds: int | None = None
     use_optimized_strategy_params: bool = True
     apply_sweep_winner: bool = False
-    allow_short: bool | None = None
+    order_cash_fraction: float | None = None
+    max_positions: int = 1
+    order_cash_fraction: float | None = None
+    max_positions: int = 1
 
 
 def strategy_ids_for_compare(
@@ -224,6 +227,8 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
             execution=options.execution,
             allow_short=allow_short,
             exchange=options.exchange,
+            order_cash_fraction=options.order_cash_fraction,
+            max_positions=options.max_positions,
         )
         equity_by_strategy[strategy_id] = list(result.equity_curve)
         row = backtest_summary_dict(
@@ -330,6 +335,8 @@ class StrategyTestOptions(ResolvesCostRates):
     allow_short: bool | None = None
     use_optimized_strategy_params: bool = True
     apply_sweep_winner: bool = False
+    order_cash_fraction: float | None = None
+    max_positions: int = 1
 
 
 def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None) -> dict[str, Any]:
@@ -351,6 +358,8 @@ def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None)
         allow_short=options.allow_short,
         use_optimized_strategy_params=options.use_optimized_strategy_params,
         apply_sweep_winner=options.apply_sweep_winner,
+        order_cash_fraction=options.order_cash_fraction,
+        max_positions=options.max_positions,
     )
     csv_path = options.csv_path.resolve()
     bars = enrich_bars_for_csv(load_bars_csv(csv_path), csv_path, options.strategy_namespace)
@@ -374,6 +383,8 @@ def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None)
         execution=options.execution,
         allow_short=allow_short,
         exchange=options.exchange,
+        order_cash_fraction=options.order_cash_fraction,
+        max_positions=options.max_positions,
     )
     summary = backtest_summary_dict(
         algo,

@@ -8,7 +8,7 @@ from typing import Any
 
 from traderbot.algorithms.base import Algorithm, Bar, OrderSize, OrderSpec, SignalAction
 from traderbot.algorithms.price_context import apply_mean_reversion_context, signal_clears_cost
-from traderbot.algorithms.streaming import atr_init, atr_update
+from traderbot.algorithms.streaming import atr_init, atr_update, ema_init, ema_reset, ema_update
 from traderbot.algorithms.validators import validate_cost_edge, validate_price_context
 
 ORDER_MODES = ("legacy", "bracket", "maker")
@@ -97,6 +97,7 @@ class ScalpDipAlgorithm(Algorithm):
         sell_max_fine_last_5m: float | None = None,
         min_edge_over_cost: float | None = None,
         roundtrip_cost_pct: float | None = None,
+        trend_ema_period: int = 0,
     ):
         if dip_lookback_bars < 2:
             raise ValueError("dip_lookback_bars must be >= 2")
@@ -145,6 +146,8 @@ class ScalpDipAlgorithm(Algorithm):
         self.sell_max_fine_last_5m = sell_max_fine_last_5m
         self.min_edge_over_cost = 0.0 if min_edge_over_cost is None else float(min_edge_over_cost)
         self.roundtrip_cost_pct = roundtrip_cost_pct
+        self.trend_ema_period = max(0, int(trend_ema_period))
+        self._trend_ema = ema_init(self.trend_ema_period) if self.trend_ema_period > 0 else None
         self.reset()
 
     def reset(self) -> None:
@@ -152,6 +155,8 @@ class ScalpDipAlgorithm(Algorithm):
         self._closes: deque[float] = deque(maxlen=lookback)
         self._volumes: deque[float] = deque(maxlen=self.dip_lookback_bars)
         self._atr = atr_init(self.atr_period)
+        if self._trend_ema is not None:
+            ema_reset(self._trend_ema)
         self._direction = 0  # +1 long, -1 short, 0 flat (or entry pending)
         self._pending_entry = 0
         self._awaiting_fill = False
@@ -273,6 +278,7 @@ class ScalpDipAlgorithm(Algorithm):
         low = float(bar["low"])
         close = float(bar["close"])
         atr = atr_update(self._atr, high=high, low=low, close=close)
+        trend_val = ema_update(self._trend_ema, close) if self._trend_ema is not None else None
         prior_closes = list(self._closes)
         prior_volumes = list(self._volumes)
         self._closes.append(close)
@@ -321,6 +327,11 @@ class ScalpDipAlgorithm(Algorithm):
             action = "sell"
 
         if action is not None:
+            if trend_val is not None and self.trend_ema_period > 0:
+                if action == "buy" and close < trend_val:
+                    return "hold"
+                if action == "sell" and close > trend_val:
+                    return "hold"
             if not signal_clears_cost(
                 tp,
                 roundtrip_cost_pct=self.roundtrip_cost_pct,

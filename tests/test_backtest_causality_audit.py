@@ -52,3 +52,79 @@ def test_audit_backtest_causality_flags_timestamp_breach() -> None:
     assert audit["is_causal"] is False
     assert any(f["type"] == "TIMESTAMP_CAUSALITY_BREACH" for f in audit["findings"])
 
+
+def test_audit_backtest_causality_pair_backtest_clean_next_open() -> None:
+    from traderbot.algorithms.strategies.pair_trading import PairTradingAlgorithm
+    from traderbot.backtesting.pair_engine import run_perp_pair_backtest
+
+    def _make_bar(symbol: str, timestamp: int, price: float) -> dict:
+        return {
+            "symbol": symbol,
+            "resolution": "60",
+            "timestamp": timestamp,
+            "open": price,
+            "high": price * 1.001,
+            "low": price * 0.999,
+            "close": price,
+            "volume": 100.0,
+        }
+
+    dominant_bars = []
+    hedge_bars = []
+    for index in range(50):
+        t = index * 3600
+        p_d = 100.0
+        p_h = 100.0 if index < 25 else (130.0 if index < 35 else 100.0)
+        dominant_bars.append(_make_bar("BTCUSDT", t, p_d))
+        hedge_bars.append(_make_bar("ETHUSDT", t, p_h))
+
+    algo = PairTradingAlgorithm(lookback_period=20, entry_threshold=1.5, exit_threshold=0.5)
+    result = run_perp_pair_backtest(
+        algo,
+        dominant_bars,
+        hedge_bars,
+        execution="next_open",
+    )
+    audit = audit_backtest_causality(result)
+    assert audit["is_causal"] is True
+    assert audit["clean"] is True
+    assert audit["execution_mode"] == "next_open"
+
+
+def test_audit_backtest_causality_pair_backtest_flags_same_bar_close() -> None:
+    from traderbot.algorithms.strategies.pair_trading import PairTradingAlgorithm
+    from traderbot.backtesting.pair_engine import run_perp_pair_backtest
+
+    def _make_bar(symbol: str, timestamp: int, price: float) -> dict:
+        return {
+            "symbol": symbol,
+            "resolution": "60",
+            "timestamp": timestamp,
+            "open": price,
+            "high": price * 1.001,
+            "low": price * 0.999,
+            "close": price,
+            "volume": 100.0,
+        }
+
+    dominant_bars = []
+    hedge_bars = []
+    for index in range(50):
+        t = index * 3600
+        p_d = 100.0
+        p_h = 100.0 if index < 25 else (130.0 if index < 35 else 100.0)
+        dominant_bars.append(_make_bar("BTCUSDT", t, p_d))
+        hedge_bars.append(_make_bar("ETHUSDT", t, p_h))
+
+    algo = PairTradingAlgorithm(lookback_period=20, entry_threshold=1.5, exit_threshold=0.5)
+    result = run_perp_pair_backtest(
+        algo,
+        dominant_bars,
+        hedge_bars,
+        execution="close",
+    )
+    audit = audit_backtest_causality(result)
+    assert audit["is_causal"] is False
+    assert any(f["type"] == "SAME_BAR_FILL_CONTAMINATION" for f in audit["findings"])
+
+

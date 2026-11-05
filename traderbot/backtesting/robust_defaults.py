@@ -38,7 +38,7 @@ DEFAULT_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
     "grid": {"grid_range_pct": [0.03, 0.05, 0.1], "grid_levels": [4, 6, 10]},
     "spot_grid": {"grid_count": [4, 6, 8], "grid_take_profit_pct": [0.008, 0.01, 0.012]},
     "perp_market_making": {
-        "mm_half_spread_pct": [0.0003, 0.0005, 0.0008],
+        "mm_half_spread_pct": [0.0015, 0.0025, 0.0040],
         "mm_inventory_skew": [0.0, 0.25],
     },
     "momentum_shock": {"shock_return_std": [2.0, 2.5, 3.0], "shock_hold_bars": [6, 12, 24]},
@@ -79,7 +79,7 @@ FULL_TUNE_GRIDS: dict[str, dict[str, list[Any]]] = {
         "grid_take_profit_pct": [0.006, 0.008, 0.01, 0.012, 0.018],
     },
     "perp_market_making": {
-        "mm_half_spread_pct": [0.0002, 0.0003, 0.0005, 0.0008, 0.0012],
+        "mm_half_spread_pct": [0.0012, 0.0018, 0.0025, 0.0035, 0.0050],
         "mm_inventory_skew": [0.0, 0.15, 0.25, 0.4, 0.5],
     },
     "momentum_shock": {"shock_return_std": [1.5, 2.0, 2.5, 3.0, 3.5], "shock_hold_bars": [3, 6, 12, 24, 48]},

@@ -175,3 +175,26 @@ def test_optimize_rejects_start_at_or_after_end() -> None:
     }
     with pytest.raises(ResearchWindowError, match="before"):
         validate_research_optimizer_windows(body)
+
+
+def test_assert_optimize_sweep_coverage_fallback(tmp_path: Path) -> None:
+    from traderbot.backtesting.research_windows import assert_optimize_sweep_coverage
+
+    csv_path = tmp_path / "ETHUSDT_1.csv"
+    results = [
+        {"csv": str(csv_path), "strategy_id": "sma_cross", "best_params": {"fast": 10, "slow": 30}},
+        {"csv": str(csv_path), "strategy_id": "spot_grid", "skipped": True},  # failed
+    ]
+    # With fallback enabled (default), populates fallback baseline and succeeds
+    assert_optimize_sweep_coverage([csv_path], ["sma_cross", "spot_grid"], results, allow_fallback=True)
+    fallback_entries = [r for r in results if r.get("fallback")]
+    assert len(fallback_entries) == 1
+    assert fallback_entries[0]["strategy_id"] == "spot_grid"
+
+    # With fallback disabled, raises ResearchWindowError
+    clean_results = [
+        {"csv": str(csv_path), "strategy_id": "sma_cross", "best_params": {"fast": 10, "slow": 30}},
+    ]
+    with pytest.raises(ResearchWindowError, match="optimizer did not produce"):
+        assert_optimize_sweep_coverage([csv_path], ["sma_cross", "spot_grid"], clean_results, allow_fallback=False)
+

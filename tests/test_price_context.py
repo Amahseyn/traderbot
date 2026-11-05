@@ -55,7 +55,7 @@ def test_validate_price_context_ordering():
 
 
 def test_resolve_roundtrip_cost_pct_defaults_to_hyperliquid_taker():
-    assert resolve_roundtrip_cost_pct(None) == pytest.approx(0.0019)
+    assert resolve_roundtrip_cost_pct(None) == pytest.approx(0.0011)
     assert resolve_roundtrip_cost_pct(0.0) == 0.0
     assert resolve_roundtrip_cost_pct(0.009) == pytest.approx(0.009)
 

@@ -470,6 +470,22 @@ def resolve_custom_research_body(connection: sqlite3.Connection, body: dict[str,
         "vectorbt": body.get("vectorbt"),
         "compare_mode": body.get("compare_mode") or "strategies",
     }
+    if body.get("order_cash_fraction") not in (None, ""):
+        try:
+            fraction = float(body["order_cash_fraction"])
+            if not 0.0 < fraction <= 1.0:
+                raise JobPayloadError("order_cash_fraction must be in (0, 1]")
+            prepared["order_cash_fraction"] = fraction
+        except (TypeError, ValueError) as exc:
+            raise JobPayloadError("order_cash_fraction must be a float in (0, 1]") from exc
+    if body.get("max_positions") not in (None, ""):
+        try:
+            max_pos = int(body["max_positions"])
+            if max_pos < 1:
+                raise JobPayloadError("max_positions must be at least 1")
+            prepared["max_positions"] = max_pos
+        except (TypeError, ValueError) as exc:
+            raise JobPayloadError("max_positions must be an integer >= 1") from exc
     if prepared["fee"] is not None and prepared["fee"] >= 1:
         raise JobPayloadError("fee must be below 1 (fraction, e.g. 0.001 for 0.1%)")
     from traderbot.utils.trading_costs import DEFAULT_BACKTEST_EXECUTION

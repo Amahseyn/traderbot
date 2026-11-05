@@ -202,3 +202,67 @@ def test_custom_research_grid_search_holdout_exceeding_bars(tmp_path: Path, monk
     assert any("sweep grid" in line for line in logs)
 
 
+def test_custom_research_inverted_run_window_recovers(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "lab.db"
+    monkeypatch.setenv("TRADERBOT_DB", str(db_path))
+    connection = open_database(db_path)
+    init_database(connection)
+    connection.close()
+
+    csv_path = tmp_path / "INVERT_1.csv"
+    closes = [100.0 + (index % 10) for index in range(100)]
+    _write_csv(csv_path, closes, start_ts=1_700_000_000, step_seconds=60)
+
+    summary = run_custom_research(
+        {
+            "compare_strategies": True,
+            "run_start_unix_seconds": 1_700_000_000 + 60 * 60,
+            "run_end_unix_seconds": 1_700_000_000 + 20 * 60,  # inverted end < start
+            "strategy_ids": ["sma_cross"],
+            "visualize": False,
+            "cash": 10_000.0,
+            "fee": 0.0,
+            "execution": "close",
+            "dataset_rows": [{"repo_path": str(csv_path)}],
+        },
+        log=lambda *_args, **_kwargs: None,
+    )
+    compare = summary.get("compare") or []
+    assert len(compare) == 1
+    assert not compare[0].get("skipped")
+
+
+def test_custom_research_optuna_holdout_exceeding_bars(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "lab.db"
+    monkeypatch.setenv("TRADERBOT_DB", str(db_path))
+    connection = open_database(db_path)
+    init_database(connection)
+    connection.close()
+
+    csv_path = tmp_path / "SHORT_1.csv"
+    closes = [100.0 + (index % 8) * 1.5 for index in range(60)]
+    _write_csv(csv_path, closes, start_ts=1_700_000_000, step_seconds=60)
+
+    summary = run_custom_research(
+        {
+            "compare_strategies": True,
+            "optimize_before_compare": True,
+            "optimize_method": "optuna",
+            "optimize_n_trials": 5,
+            "optimize_selection_mode": "in_sample",
+            "optimize_holdout_tail_bars": 200,  # 200 > 60
+            "strategy_ids": ["sma_cross"],
+            "visualize": False,
+            "cash": 10_000.0,
+            "fee": 0.0,
+            "execution": "close",
+            "dataset_rows": [{"repo_path": str(csv_path)}],
+        },
+        log=lambda *_args, **_kwargs: None,
+    )
+    optimize_rows = summary.get("optimize") or []
+    assert optimize_rows
+    assert summary.get("compare")
+
+
+

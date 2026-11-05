@@ -22,6 +22,10 @@ def _load_pair_bars(
     *,
     leg: str,
 ) -> list[dict[str, Any]]:
+    bars_key = f"{leg}_bars"
+    if bars_key in body and isinstance(body[bars_key], list):
+        return body[bars_key]
+
     exchange = normalize_live_exchange(str(body.get("exchange") or "nobitex"))
     csv_key = f"{leg}_csv"
     csv_path = str(body.get(csv_key) or "").strip()
@@ -95,7 +99,13 @@ def register_strategy_routes(app, get_connection) -> None:
         lookback = int(body.get("lookback_period") or 60)
         entry = float(body.get("entry_threshold") or 2.0)
         exit_threshold = float(body.get("exit_threshold") or 0.5)
+        stop_threshold = float(body.get("stop_threshold") or 4.0)
+        max_holding_bars = int(body["max_holding_bars"]) if body.get("max_holding_bars") else None
         hedge_ratio = float(body.get("hedge_ratio") or 1.0)
+        intercept = float(body.get("intercept") or 0.0)
+        spread_model = str(body.get("spread_model") or "cointegration")
+        sizing_model = str(body.get("sizing_model") or "hedge_ratio")
+        qualification_status = str(body.get("qualification_status") or "qualified")
         initial_cash = float(body.get("initial_cash") or 10_000.0)
         fee_rate = float(body.get("fee_rate") if body.get("fee_rate") is not None else costs.fee_rate)
         slippage_rate = float(
@@ -107,6 +117,13 @@ def register_strategy_routes(app, get_connection) -> None:
             lookback_period=lookback,
             entry_threshold=entry,
             exit_threshold=exit_threshold,
+            stop_threshold=stop_threshold,
+            max_holding_bars=max_holding_bars,
+            hedge_ratio=hedge_ratio,
+            intercept=intercept,
+            spread_model=spread_model,
+            sizing_model=sizing_model,
+            qualification_status=qualification_status,
         )
         result = run_pair_backtest_for_exchange(
             exchange,
@@ -117,10 +134,13 @@ def register_strategy_routes(app, get_connection) -> None:
             fee_rate=fee_rate,
             slippage_rate=slippage_rate,
             hedge_ratio=hedge_ratio,
+            sizing_model=sizing_model,
         )
         return {
             "exchange": exchange,
             "fee_role": fee_role,
+            "spread_model": result.spread_model,
+            "sizing_model": result.sizing_model,
             "initial_cash": result.initial_cash,
             "final_equity": result.final_equity,
             "return_pct": result.return_pct,
@@ -131,6 +151,7 @@ def register_strategy_routes(app, get_connection) -> None:
             "equity_curve": result.equity_curve[-500:],
             "spread_curve": result.spread_curve[-500:],
             "z_score_curve": result.z_score_curve[-500:],
+            "exposure_curve": result.exposure_curve[-500:],
             "trades": [
                 {
                     "timestamp": trade.timestamp,
@@ -139,6 +160,8 @@ def register_strategy_routes(app, get_connection) -> None:
                     "price": trade.price,
                     "size": trade.size,
                     "fee": trade.fee,
+                    "notional": trade.notional,
+                    "beta_exposure": trade.beta_exposure,
                 }
                 for trade in result.trades[-100:]
             ],
@@ -254,3 +277,91 @@ def register_strategy_routes(app, get_connection) -> None:
             "final_equity": result.final_equity,
             "total_fees": result.total_fees,
         }
+
+    @app.post("/api/strategies/pair-walk-forward")
+    def api_pair_walk_forward(body: dict[str, Any]):
+        """Run chronological walk-forward validation on a candidate pair."""
+        from traderbot.backtesting.walk_forward import (
+            PairWalkForwardOptions,
+            run_pair_walk_forward,
+        )
+
+        dominant_bars = body.get("dominant_bars") or []
+        hedge_bars = body.get("hedge_bars") or []
+        if not dominant_bars or not hedge_bars:
+            return JSONResponse(status_code=400, content={"error": "dominant_bars and hedge_bars are required"})
+
+        param_grid = body.get("param_grid") or {
+            "entry_threshold": [1.5, 2.0],
+            "exit_threshold": [0.4, 0.8],
+        }
+
+        try:
+            options = PairWalkForwardOptions(
+                dominant_bars=dominant_bars,
+                hedge_bars=hedge_bars,
+                train_bars=int(body.get("train_bars") or 60),
+                test_bars=int(body.get("test_bars") or 20),
+                warmup_bars=int(body.get("warmup_bars") or 15),
+                purge_bars=int(body.get("purge_bars") or 5),
+                window_mode=str(body.get("window_mode") or "rolling"),
+                param_grid=param_grid,
+                cash=float(body.get("cash") or 10_000.0),
+                fee=float(body.get("fee") or 0.00045),
+                execution=str(body.get("execution") or "close"),
+            )
+            result = run_pair_walk_forward(options)
+            return result
+        except Exception as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)})
+
+    @app.post("/api/strategies/multi-pair-backtest")
+    def api_multi_pair_backtest(body: dict[str, Any]):
+        """Run concurrent multi-pair backtesting with shared portfolio capital."""
+        from traderbot.algorithms.strategies.pair_trading import PairTradingAlgorithm
+        from traderbot.backtesting.pair_engine import run_multi_pair_backtest
+
+        pairs_raw = body.get("pairs") or []
+        if not pairs_raw:
+            return JSONResponse(status_code=400, content={"error": "pairs list is required"})
+
+        pairs_config = []
+        for p in pairs_raw:
+            algo = PairTradingAlgorithm(
+                symbol_a=p.get("symbol_a"),
+                symbol_b=p.get("symbol_b"),
+                hedge_ratio=float(p.get("hedge_ratio") or 1.0),
+                intercept=float(p.get("intercept") or 0.0),
+                entry_threshold=float(p.get("entry_threshold") or 2.0),
+                exit_threshold=float(p.get("exit_threshold") or 0.5),
+                stop_threshold=float(p.get("stop_threshold") or 4.0),
+            )
+            pairs_config.append({
+                "pair_id": p.get("pair_id", f"{p.get('symbol_a')}-{p.get('symbol_b')}"),
+                "algorithm": algo,
+                "dominant_bars": p["dominant_bars"],
+                "hedge_bars": p["hedge_bars"],
+                "weight": float(p.get("weight") or 1.0),
+            })
+
+        try:
+            res = run_multi_pair_backtest(
+                pairs_config,
+                initial_cash=float(body.get("initial_cash") or 10_000.0),
+                fee_rate=float(body.get("fee_rate") or 0.00045),
+                execution=str(body.get("execution") or "close"),
+            )
+            return {
+                "initial_cash": res.initial_cash,
+                "final_equity": res.final_equity,
+                "return_pct": res.return_pct,
+                "max_drawdown_pct": res.max_drawdown_pct,
+                "portfolio_equity_curve": res.portfolio_equity_curve,
+                "portfolio_exposure_curve": res.portfolio_exposure_curve,
+                "total_fees": res.total_fees,
+                "total_funding": res.total_funding,
+                "pair_count": len(res.pair_results),
+            }
+        except Exception as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)})
+

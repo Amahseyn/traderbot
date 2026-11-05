@@ -1,226 +1,182 @@
 {
-  "nobitex:BTCIRT:1": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:BTCIRT:5": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:BTCIRT:15": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:BTCIRT:60": {
-    "recommended": true,
-    "strategy_id": "pair_trading",
-    "median_return_pct": 21.1675,
-    "median_excess_vs_buy_hold_pct": 1.4337,
-    "pct_profitable_windows": 84.0,
-    "median_sharpe": 6.1101
-  },
-  "nobitex:BTCIRT:240": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:BTCIRT:D": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:ETHIRT:1": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:ETHIRT:5": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:ETHIRT:15": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:ETHIRT:60": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:ETHIRT:240": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:ETHIRT:D": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:BTCUSDT:1": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:BTCUSDT:5": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:BTCUSDT:15": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:BTCUSDT:60": {
-    "recommended": true,
-    "strategy_id": "pair_trading",
-    "median_return_pct": 4.6208,
-    "median_excess_vs_buy_hold_pct": 0.4404,
-    "pct_profitable_windows": 78.0,
-    "median_sharpe": 1.7839
-  },
-  "nobitex:BTCUSDT:240": {
-    "recommended": true,
-    "strategy_id": "pair_trading",
-    "median_return_pct": 4.0285,
-    "median_excess_vs_buy_hold_pct": 0.4177,
-    "pct_profitable_windows": 73.0,
-    "median_sharpe": 1.9155
-  },
-  "nobitex:BTCUSDT:D": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:ETHUSDT:1": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:ETHUSDT:5": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:ETHUSDT:15": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:ETHUSDT:60": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:ETHUSDT:240": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
-  "nobitex:ETHUSDT:D": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
-  },
   "hyperliquid:btc:1": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "recommended": true,
+    "strategy_id": "rsi_threshold",
+    "median_return_pct": 0.1767,
+    "median_sharpe": 4.7955,
+    "median_excess_vs_buy_hold_pct": 0.0833
   },
   "hyperliquid:btc:5": {
     "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "reason": "No strategy met out-of-sample positive excess return threshold."
   },
   "hyperliquid:btc:15": {
     "recommended": true,
-    "strategy_id": "rsi_threshold",
-    "median_return_pct": 0.9218,
-    "median_excess_vs_buy_hold_pct": 0.595,
-    "pct_profitable_windows": 76.0,
-    "median_sharpe": 2.804
+    "strategy_id": "spot_grid",
+    "median_return_pct": 0.5968,
+    "median_sharpe": 2.6109,
+    "median_excess_vs_buy_hold_pct": 1.3988
   },
   "hyperliquid:btc:60": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "recommended": true,
+    "strategy_id": "chart_patterns",
+    "median_return_pct": 0.1164,
+    "median_sharpe": 0.5875,
+    "median_excess_vs_buy_hold_pct": 0.3662
   },
   "hyperliquid:btc:240": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "recommended": true,
+    "strategy_id": "scalp_dip",
+    "median_return_pct": 0.2403,
+    "median_sharpe": 0.984,
+    "median_excess_vs_buy_hold_pct": 2.2728
   },
   "hyperliquid:btc:D": {
     "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "reason": "No strategy met out-of-sample positive excess return threshold."
   },
   "hyperliquid:eth:1": {
     "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "reason": "No strategy met out-of-sample positive excess return threshold."
   },
   "hyperliquid:eth:5": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "recommended": true,
+    "strategy_id": "rsi_divergence",
+    "median_return_pct": 0.6964,
+    "median_sharpe": 7.0952,
+    "median_excess_vs_buy_hold_pct": 3.6816
   },
   "hyperliquid:eth:15": {
     "recommended": true,
     "strategy_id": "rsi_threshold",
-    "median_return_pct": 2.0755,
-    "median_excess_vs_buy_hold_pct": 1.1492,
-    "pct_profitable_windows": 67.0,
-    "median_sharpe": 3.8654
+    "median_return_pct": 0.1689,
+    "median_sharpe": 1.9959,
+    "median_excess_vs_buy_hold_pct": 1.3363
   },
   "hyperliquid:eth:60": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "recommended": true,
+    "strategy_id": "momentum_shock",
+    "median_return_pct": 0.1244,
+    "median_sharpe": 0.5752,
+    "median_excess_vs_buy_hold_pct": 2.7134
   },
   "hyperliquid:eth:240": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "recommended": true,
+    "strategy_id": "macd_cross",
+    "median_return_pct": 0.3282,
+    "median_sharpe": 1.5847,
+    "median_excess_vs_buy_hold_pct": 7.182
   },
   "hyperliquid:eth:D": {
     "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "reason": "No strategy met out-of-sample positive excess return threshold."
   },
   "hyperliquid:sol:1": {
     "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "reason": "No strategy met out-of-sample positive excess return threshold."
   },
   "hyperliquid:sol:5": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "recommended": true,
+    "strategy_id": "rsi_threshold",
+    "median_return_pct": 0.1414,
+    "median_sharpe": 1.326,
+    "median_excess_vs_buy_hold_pct": 3.8961
   },
   "hyperliquid:sol:15": {
     "recommended": true,
-    "strategy_id": "rsi_threshold",
-    "median_return_pct": 2.3255,
-    "median_excess_vs_buy_hold_pct": 1.8392,
-    "pct_profitable_windows": 69.0,
-    "median_sharpe": 6.1758
+    "strategy_id": "rsi_divergence",
+    "median_return_pct": 1.1439,
+    "median_sharpe": 1.7719,
+    "median_excess_vs_buy_hold_pct": 4.382
   },
   "hyperliquid:sol:60": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "recommended": true,
+    "strategy_id": "spot_grid",
+    "median_return_pct": 1.1388,
+    "median_sharpe": 1.4868,
+    "median_excess_vs_buy_hold_pct": 0.8948
   },
   "hyperliquid:sol:240": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "recommended": true,
+    "strategy_id": "dca",
+    "median_return_pct": 1.2415,
+    "median_sharpe": 2.7533,
+    "median_excess_vs_buy_hold_pct": 0.398
   },
   "hyperliquid:sol:D": {
     "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "reason": "No strategy met out-of-sample positive excess return threshold."
   },
   "hyperliquid:arb:1": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "recommended": true,
+    "strategy_id": "rsi_divergence",
+    "median_return_pct": 0.2217,
+    "median_sharpe": 6.0946,
+    "median_excess_vs_buy_hold_pct": 0.2686
   },
   "hyperliquid:arb:5": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "recommended": true,
+    "strategy_id": "spot_grid",
+    "median_return_pct": 1.0892,
+    "median_sharpe": 4.8475,
+    "median_excess_vs_buy_hold_pct": 4.0023
   },
   "hyperliquid:arb:15": {
     "recommended": true,
-    "strategy_id": "bollinger_mean_reversion",
-    "median_return_pct": 7.4164,
-    "median_excess_vs_buy_hold_pct": 10.0512,
-    "pct_profitable_windows": 84.0,
-    "median_sharpe": 4.4509
+    "strategy_id": "rsi_divergence",
+    "median_return_pct": 1.2812,
+    "median_sharpe": 1.2008,
+    "median_excess_vs_buy_hold_pct": 9.4166
   },
   "hyperliquid:arb:60": {
-    "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "recommended": true,
+    "strategy_id": "sma_cross",
+    "median_return_pct": 36.0007,
+    "median_sharpe": 3.779,
+    "median_excess_vs_buy_hold_pct": 1.1129
   },
   "hyperliquid:arb:240": {
-    "recommended": true,
-    "strategy_id": "chart_patterns",
-    "median_return_pct": 6.4046,
-    "median_excess_vs_buy_hold_pct": 0.2097,
-    "pct_profitable_windows": 63.64,
-    "median_sharpe": 1.8536
+    "recommended": false,
+    "reason": "No strategy met out-of-sample positive excess return threshold."
   },
   "hyperliquid:arb:D": {
     "recommended": false,
-    "reason": "No strategy met OOS robustness thresholds."
+    "reason": "No strategy met out-of-sample positive excess return threshold."
+  },
+  "hyperliquid:doge:1": {
+    "recommended": true,
+    "strategy_id": "dca",
+    "median_return_pct": 0.3448,
+    "median_sharpe": 11.1032,
+    "median_excess_vs_buy_hold_pct": 0.0156
+  },
+  "hyperliquid:doge:5": {
+    "recommended": false,
+    "reason": "No strategy met out-of-sample positive excess return threshold."
+  },
+  "hyperliquid:doge:15": {
+    "recommended": true,
+    "strategy_id": "rsi_divergence",
+    "median_return_pct": 0.0877,
+    "median_sharpe": 0.2757,
+    "median_excess_vs_buy_hold_pct": 5.8055
+  },
+  "hyperliquid:doge:60": {
+    "recommended": true,
+    "strategy_id": "rsi_threshold",
+    "median_return_pct": 3.1865,
+    "median_sharpe": 1.7314,
+    "median_excess_vs_buy_hold_pct": 6.2515
+  },
+  "hyperliquid:doge:240": {
+    "recommended": true,
+    "strategy_id": "grid",
+    "median_return_pct": 1.7027,
+    "median_sharpe": 2.8978,
+    "median_excess_vs_buy_hold_pct": 2.3321
+  },
+  "hyperliquid:doge:D": {
+    "recommended": false,
+    "reason": "No strategy met out-of-sample positive excess return threshold."
   }
 }

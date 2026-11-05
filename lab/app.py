@@ -57,6 +57,7 @@ LAB_API_FEATURES = (
     "strategy_sweep",
     "opportunity_discovery",
     "coinbeacon",
+    "pair_discovery",
 )
 
 
@@ -537,6 +538,9 @@ def create_app(database_path: Path | None = None):
     from lab.marketcap_routes import register_marketcap_routes
 
     register_marketcap_routes(app)
+    from lab.pair_routes import register_pair_routes
+
+    register_pair_routes(app, get_connection)
 
     return app
 

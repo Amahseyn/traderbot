@@ -25,6 +25,8 @@ class RsiTrendAlgorithm(Algorithm):
         rsi_trend_entry = 55.0,
         rsi_trend_exit = 45.0,
         trend_filter_period = 50,
+        stop_loss_pct: float | None = None,
+        trailing_stop_pct: float | None = None,
         min_edge_over_cost: float | None = None,
         roundtrip_cost_pct: float | None = None,
         target_exposure: float = 1.0,
@@ -37,6 +39,10 @@ class RsiTrendAlgorithm(Algorithm):
             raise ValueError("need 0 < rsi_trend_exit < rsi_trend_entry < 100")
         if trend_filter_period < 1:
             raise ValueError("trend_filter_period must be >= 1")
+        if stop_loss_pct is not None and stop_loss_pct <= 0:
+            raise ValueError("stop_loss_pct must be positive")
+        if trailing_stop_pct is not None and trailing_stop_pct <= 0:
+            raise ValueError("trailing_stop_pct must be positive")
         validate_cost_edge(min_edge_over_cost, roundtrip_cost_pct)
         self._entries = EntryTranches(
             target_exposure=target_exposure,
@@ -50,6 +56,8 @@ class RsiTrendAlgorithm(Algorithm):
         self.rsi_trend_entry = rsi_trend_entry
         self.rsi_trend_exit = rsi_trend_exit
         self.trend_filter_period = trend_filter_period
+        self.stop_loss_pct = float(stop_loss_pct) if stop_loss_pct is not None else None
+        self.trailing_stop_pct = float(trailing_stop_pct) if trailing_stop_pct is not None else None
         self.min_edge_over_cost = 0.0 if min_edge_over_cost is None else float(min_edge_over_cost)
         self.roundtrip_cost_pct = roundtrip_cost_pct
         self._rsi = rsi_init(period)
@@ -57,6 +65,8 @@ class RsiTrendAlgorithm(Algorithm):
         self._bar_count = 0
         self._prev_rsi: float | None = None
         self._in_position = False
+        self._entry_price = 0.0
+        self._highest_price = 0.0
         self._closes: list[float] = []
         self._size: OrderSize | None = None
 
@@ -66,6 +76,8 @@ class RsiTrendAlgorithm(Algorithm):
         self._bar_count = 0
         self._prev_rsi = None
         self._in_position = False
+        self._entry_price = 0.0
+        self._highest_price = 0.0
         self._closes.clear()
         self._size = None
         self._entries.reset()
@@ -91,7 +103,12 @@ class RsiTrendAlgorithm(Algorithm):
             return "hold"
         crossed_up = prev_rsi < self.rsi_trend_entry <= current_rsi and close > trend
         if self._in_position:
-            if (prev_rsi >= self.rsi_trend_exit > current_rsi) or close < trend:
+            self._highest_price = max(self._highest_price, close)
+            stopped_out = (
+                (self.stop_loss_pct is not None and close <= self._entry_price * (1.0 - self.stop_loss_pct))
+                or (self.trailing_stop_pct is not None and close <= self._highest_price * (1.0 - self.trailing_stop_pct))
+            )
+            if (prev_rsi >= self.rsi_trend_exit > current_rsi) or close < trend or stopped_out:
                 self._in_position = False
                 self._size = self._entries.note_exit()
                 return "sell"
@@ -109,6 +126,8 @@ class RsiTrendAlgorithm(Algorithm):
             ):
                 return "hold"
             self._in_position = True
+            self._entry_price = close
+            self._highest_price = close
             self._size = self._entries.note_entry()
             return "buy"
         return "hold"

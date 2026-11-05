@@ -320,6 +320,34 @@ export default function CustomPipelinePage() {
     () => (datasetsQuery.data ?? []).filter((row) => dataState.datasetIds.includes(row.id)),
     [datasetsQuery.data, dataState.datasetIds],
   );
+
+  const downloadTargetList = useMemo(() => {
+    if (dataState.dataSourceMode !== "download") return [];
+    const symbols =
+      dataState.exportMarketSymbols.length > 0
+        ? dataState.exportMarketSymbols
+        : dataState.exportMarketSymbol.trim()
+          ? [dataState.exportMarketSymbol.trim()]
+          : [];
+    const intervals =
+      dataState.exportIntervals.length > 0
+        ? dataState.exportIntervals
+        : dataState.exportInterval
+          ? [dataState.exportInterval]
+          : ["60"];
+    return symbols.flatMap((sym) => intervals.map((intv) => `${sym} · ${intv}m`));
+  }, [
+    dataState.dataSourceMode,
+    dataState.exportMarketSymbols,
+    dataState.exportMarketSymbol,
+    dataState.exportIntervals,
+    dataState.exportInterval,
+  ]);
+
+  const totalTargetCount =
+    (dataState.dataSourceMode === "download" ? downloadTargetList.length : 0) +
+    selectedDatasets.length +
+    (dataState.useAllHourly ? 1 : 0);
   const candleMinutes = minutesFromResolution(firstDataset?.resolution) ?? 60;
   const runWindowCatalogHint = useMemo(() => {
     if (selectedDatasets.length === 0) {
@@ -847,6 +875,60 @@ export default function CustomPipelinePage() {
             </div>
           </div>
         </Card>
+
+        {totalTargetCount > 0 && (
+          <div className="rounded-lg border border-border bg-panel/70 p-3.5 text-xs space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted">
+                Execution Targets Preview ({totalTargetCount} file{totalTargetCount === 1 ? "" : "s"})
+              </span>
+              {dataState.dataSourceMode === "download" && selectedDatasets.length > 0 && (
+                <button
+                  type="button"
+                  className="text-xs text-muted hover:text-negative hover:underline"
+                  onClick={() => patchDataState({ datasetIds: [] })}
+                >
+                  Clear catalog selection ({selectedDatasets.length})
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {downloadTargetList.map((target) => (
+                <span
+                  key={target}
+                  className="inline-flex items-center gap-1 rounded border border-border bg-surface px-2 py-0.5 font-mono text-[11px] text-slate-200"
+                >
+                  <span className="text-muted">download:</span> {target}
+                </span>
+              ))}
+              {selectedDatasets.map((dataset) => (
+                <span
+                  key={dataset.id}
+                  className="inline-flex items-center gap-1.5 rounded border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono text-[11px] text-slate-200"
+                >
+                  <span className="text-muted">catalog:</span> {dataset.label}
+                  <button
+                    type="button"
+                    className="text-muted hover:text-negative"
+                    title={`Remove ${dataset.label}`}
+                    onClick={() =>
+                      patchDataState({
+                        datasetIds: dataState.datasetIds.filter((id) => id !== dataset.id),
+                      })
+                    }
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              {dataState.useAllHourly && (
+                <span className="inline-flex items-center gap-1 rounded border border-border bg-surface px-2 py-0.5 font-mono text-[11px] text-slate-200">
+                  <span className="text-muted">catalog:</span> all *_60.csv
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         <JobErrorAlert error={runMutation.error} />
         {runBlockers.length > 0 && !runMutation.isPending && (

@@ -137,7 +137,7 @@ Source of truth: `apps/lab-ui/design-system/traderbot-lab/MASTER.md`. Guidance s
 
 - **Context Rule:** Strategy signals must respect recent price path, not blind thresholds. Never fire on a single indicator level alone.
 - **Cost-Aware Edge Gate:**
-  - Roundtrip friction: `0.190%` on Hyperliquid perp taker, `0.900%` on Nobitex spot retail. Median 1m candle moves `0.04–0.08%`. Any signal whose expected move is smaller than friction is a guaranteed loss.
+  - Roundtrip friction: `0.110%` on Hyperliquid perp taker, `0.900%` on Nobitex spot retail. Median 1m candle moves `0.04–0.08%`. Any signal whose expected move is smaller than friction is a guaranteed loss.
   - `min_edge_over_cost`: Expected move as multiple of roundtrip cost. `1.0` is break-even; `0` disables. Default `None` resolves via `strategy_defaults.apply_high_frequency_edge_default`: **1.0 on 1m–5m bars, 0 above**.
   - `roundtrip_cost_pct`: Resolved from CSV venue via `trading_costs.roundtrip_cost_pct`; `0` disables.
   - Expected move calculation: Mean reversion uses distance to reversion target (band mean for `bollinger_mean_reversion`, `period`-bar mean for `rsi_threshold`) via `signal_clears_cost`; trend uses signed recent move over `context_bars` via `trend_signal_clears_cost`.

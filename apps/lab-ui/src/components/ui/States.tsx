@@ -37,6 +37,25 @@ export function TableSkeleton({ rows = 6 }: { rows?: number }) {
   );
 }
 
+export function LoadingState({
+  label = "Loading…",
+  className = "",
+}: {
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex flex-col items-center justify-center rounded-lg border border-border bg-panel p-8 text-center ${className}`}
+      aria-busy="true"
+      aria-label={label}
+    >
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-border-bright border-t-accent" />
+      <p className="mt-3 text-xs text-muted font-mono">{label}</p>
+    </div>
+  );
+}
+
 export function EmptyState({ title, description, action }: { title: string; description?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center rounded-lg border border-dashed border-border bg-panel px-6 py-14 text-center">
@@ -50,16 +69,18 @@ export function EmptyState({ title, description, action }: { title: string; desc
 export function ErrorState({
   title = "Something went wrong",
   error,
+  message: rawMessage,
   action,
   hintAuth = true,
 }: {
   title?: string;
   error?: unknown;
+  message?: ReactNode;
   action?: ReactNode;
   /** When true, show Settings link for 401 / missing Lab API token errors. */
   hintAuth?: boolean;
 }) {
-  const message = error != null ? formatApiError(error) : null;
+  const message = rawMessage ?? (error != null ? formatApiError(error) : null);
   const showAuthHint = hintAuth && error != null && isLabAuthError(error);
 
   return (
@@ -71,3 +92,12 @@ export function ErrorState({
     </div>
   );
 }
+
+export const States = {
+  Loading: LoadingState,
+  Error: ErrorState,
+  Empty: EmptyState,
+  Skeleton,
+  PageSkeleton,
+  TableSkeleton,
+};

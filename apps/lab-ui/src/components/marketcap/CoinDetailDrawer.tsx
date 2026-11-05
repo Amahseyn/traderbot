@@ -141,9 +141,9 @@ export function CoinDetailDrawer({ coin, onClose }: CoinDetailDrawerProps) {
             />
           </div>
           <div className="flex items-center justify-between font-mono text-xs tabular-nums text-zinc-300">
-            <span>{formatPrice(low24)}</span>
-            <span className="text-muted">Current: {formatPrice(current)}</span>
-            <span>{formatPrice(high24)}</span>
+            <span>{formatCryptoPrice(low24)}</span>
+            <span className="text-muted">Current: {formatCryptoPrice(current)}</span>
+            <span>{formatCryptoPrice(high24)}</span>
           </div>
         </div>
 
@@ -239,7 +239,7 @@ export function CoinDetailDrawer({ coin, onClose }: CoinDetailDrawerProps) {
               <div className="rounded border border-border bg-panel p-3">
                 <div className="text-[11px] text-muted">Mark Price</div>
                 <div className="mt-1 font-semibold tabular-nums text-white">
-                  {formatPrice(coin.hyperliquid.mark_price)}
+                  {formatCryptoPrice(coin.hyperliquid.mark_price)}
                 </div>
               </div>
               <div className="rounded border border-border bg-panel p-3">

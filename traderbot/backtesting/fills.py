@@ -11,10 +11,60 @@ All checks use only the bar *after* an order was placed, so there is no look-ahe
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any, Literal
 
 Side = Literal["buy", "sell"]
+
+
+def calculate_market_impact(
+    price: float,
+    qty: float,
+    volume: float | None = None,
+    volatility: float | None = None,
+    gamma: float = 0.1,
+) -> float:
+    """Square-root market impact per execution-realistic-simulation skill.
+
+    I(Q) = gamma * sigma * sqrt(Q / V) * P_mid.
+    """
+    if price <= 0 or qty <= 0:
+        return 0.0
+    if volume is None or volume <= 0 or volatility is None or volatility <= 0:
+        return 0.0
+    participation = qty / volume
+    participation = min(1.0, max(0.0, participation))
+    return float(gamma * volatility * math.sqrt(participation) * price)
+
+
+def simulated_fill_price(
+    side: Side,
+    mid_price: float,
+    *,
+    qty: float = 0.0,
+    volume: float | None = None,
+    volatility: float | None = None,
+    spread_pct: float = 0.0,
+    slippage_rate: float = 0.0,
+    is_maker: bool = False,
+    gamma: float = 0.1,
+) -> float:
+    """Calculate realistic executable fill price incorporating spread crossing, impact, and slippage."""
+    if mid_price <= 0:
+        raise ValueError("mid_price must be positive")
+    if is_maker:
+        return mid_price
+
+    half_spread = max(0.0, spread_pct) / 2.0
+    impact = calculate_market_impact(mid_price, qty, volume, volatility, gamma=gamma)
+    impact_pct = impact / mid_price if mid_price > 0 else 0.0
+
+    total_frictions = half_spread + slippage_rate + impact_pct
+    if side == "buy":
+        return mid_price * (1.0 + total_frictions)
+    return mid_price * (1.0 - total_frictions)
+
 
 
 def limit_fill_price(

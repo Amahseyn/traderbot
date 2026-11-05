@@ -47,7 +47,7 @@ FUNDING_PARAM_GRID: dict[str, list[Any]] = {
 }
 
 MM_PARAM_GRID: dict[str, list[Any]] = {
-    "half_spread_pct": [0.0003, 0.0005, 0.0008],
+    "half_spread_pct": [0.0015, 0.0025, 0.0040],
 }
 
 NOBITEX_MARKETS: tuple[tuple[str, str, str], ...] = (

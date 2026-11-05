@@ -46,6 +46,7 @@ from lab.tasks import (
     run_strategy_test_task,
     run_custom_research_task,
     run_opportunity_discovery_task,
+    run_pair_discovery_task,
     run_finrl_platform_task,
     run_wondertrader_platform_task,
 )
@@ -505,6 +506,22 @@ def register_job_routes(app, get_connection: Callable) -> None:
             job_id,
             "opportunity-discovery",
             lambda: run_opportunity_discovery_task(task_body),
+        )
+        return {"id": job_id, "status": JOB_STATUS_QUEUED}
+
+    @app.post("/api/jobs/pair-discovery")
+    def job_pair_discovery(body: dict[str, Any]):
+        connection = get_connection()
+        try:
+            job_id = _insert_job(connection, "pair-discovery", body)
+        finally:
+            connection.close()
+        task_body = {**body, "job_id": job_id}
+        _start_inprocess(
+            get_connection,
+            job_id,
+            "pair-discovery",
+            lambda: run_pair_discovery_task(task_body),
         )
         return {"id": job_id, "status": JOB_STATUS_QUEUED}
 

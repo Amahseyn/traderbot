@@ -32,4 +32,5 @@ def test_perp_pair_backtest_opens_signed_legs():
         slippage_rate=0.0005,
     )
     assert result.final_equity > 0
-    assert len(result.trades) >= 0
+    assert len(result.trades) > 0
+    assert len(result.equity_curve) == bar_count

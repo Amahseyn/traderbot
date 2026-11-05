@@ -24,7 +24,7 @@ def test_lab_api_requires_token_for_mutations(tmp_path: Path, monkeypatch: pytes
     import lab.security as lab_security
     from lab.app import create_app
 
-    monkeypatch.delenv("LAB_API_DISABLE_AUTH", raising=False)
+    monkeypatch.setenv("LAB_API_DISABLE_AUTH", "0")
     monkeypatch.setenv("LAB_API_TOKEN", "secret-test-token")
     lab_security._TOKEN = None
 
@@ -55,7 +55,7 @@ def test_lab_api_risk_limits_validated(tmp_path: Path, monkeypatch: pytest.Monke
 
     import lab.security as lab_security
 
-    monkeypatch.delenv("LAB_API_DISABLE_AUTH", raising=False)
+    monkeypatch.setenv("LAB_API_DISABLE_AUTH", "0")
     monkeypatch.setenv("LAB_API_TOKEN", "secret-test-token")
     lab_security._TOKEN = None
 

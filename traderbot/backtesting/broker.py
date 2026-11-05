@@ -77,6 +77,8 @@ class SimBroker:
         maker_fee_rate: float | None = None,
         allow_short: bool | None = None,
         symbol: str | None = None,
+        order_cash_fraction: float | None = None,
+        max_positions: int = 1,
     ):
         if initial_cash <= 0:
             raise ValueError("initial_cash must be positive")
@@ -86,6 +88,10 @@ class SimBroker:
             raise ValueError("slippage_rate must be in [0, 1)")
         if execution not in EXECUTION_MODES:
             raise ValueError(f"execution must be one of {EXECUTION_MODES}")
+        if order_cash_fraction is not None and not (0.0 < order_cash_fraction <= 1.0):
+            raise ValueError("order_cash_fraction must be in (0, 1]")
+        if max_positions < 1:
+            raise ValueError("max_positions must be >= 1")
         maker_rate = maker_fee_for(fee_rate) if maker_fee_rate is None else float(maker_fee_rate)
         if not 0 <= maker_rate < 1:
             raise ValueError("maker_fee_rate must be in [0, 1)")
@@ -96,6 +102,9 @@ class SimBroker:
         self.maker_rate = maker_rate
         self.execution = execution
         self.shorts = shorts_allowed(algorithm, symbol, allow_short)
+        self.order_cash_fraction = order_cash_fraction
+        self.max_positions = max_positions
+        self.open_tranches = 0
         self.cash = float(initial_cash)
         self.position = 0.0
         self.total_fees = 0.0
@@ -136,7 +145,20 @@ class SimBroker:
         if price <= 0:
             return 0.0
         equity = self.cash + self.position * price
-        target_units = _target_exposure(action, size, self.position, self.shorts) * equity / price
+        if size is None and self.order_cash_fraction is not None:
+            if action == "buy":
+                if self.open_tranches < self.max_positions and self.cash > MIN_ORDER_CASH:
+                    current_exp = (self.position * price) / equity if equity > 0 else 0.0
+                    target_exp = min(1.0, current_exp + self.order_cash_fraction)
+                else:
+                    return 0.0
+            elif action == "sell":
+                target_exp = 0.0
+            else:
+                return 0.0
+            target_units = target_exp * equity / price
+        else:
+            target_units = _target_exposure(action, size, self.position, self.shorts) * equity / price
         cash_before = self.cash
         if action == "buy":
             delta = target_units - self.position
@@ -148,6 +170,7 @@ class SimBroker:
             fee = notional * rate
             self.cash -= notional + fee
             self.position += delta
+            self.open_tranches += 1
         elif action == "sell":
             delta = self.position - target_units
             if not self.shorts:
@@ -158,6 +181,8 @@ class SimBroker:
             fee = notional * rate
             self.cash += notional - fee
             self.position -= delta
+            if self.position == 0.0:
+                self.open_tranches = 0
         else:
             return 0.0
         if abs(self.position) * price <= MIN_ORDER_CASH:
@@ -165,6 +190,7 @@ class SimBroker:
         self.total_fees += fee
         if self.position == 0.0:
             self.bracket = None
+            self.open_tranches = 0
         self._record(ts, action, price, delta, fee, cash_before, mark, reason, role)
         self.algorithm.on_fill(action, price, delta, reason, self.position)  # type: ignore[arg-type]
         return delta
@@ -202,22 +228,34 @@ class SimBroker:
             self.total_fees += fee
             self._record(ts, action, fill_price, traded, fee, cash_before, mark, "market", "taker")
             self.algorithm.on_fill(action, fill_price, traded, "market", self.position)
-        elif action == "buy" and self.position == 0 and self.cash > 0 and fill_price > 0:
-            cash_before = self.cash
-            fee = cash_before * self.fee_rate
-            self.total_fees += fee
-            self.position = (cash_before - fee) / fill_price
-            self.cash = 0.0
-            self._record(ts, "buy", fill_price, self.position, fee, cash_before, mark, "market", "taker")
-            self.algorithm.on_fill("buy", fill_price, self.position, "market", self.position)
+        elif action == "buy" and fill_price > 0:
+            if self.order_cash_fraction is not None:
+                spend_target = self.initial_cash * self.order_cash_fraction
+                spend = min(self.cash, spend_target)
+                can_enter = spend > MIN_ORDER_CASH and self.open_tranches < self.max_positions
+            else:
+                can_enter = self.position == 0 and self.cash > 0
+                spend = self.cash
+
+            if can_enter and spend > 0:
+                cash_before = self.cash
+                fee = spend * self.fee_rate
+                self.total_fees += fee
+                bought = (spend - fee) / fill_price
+                self.position += bought
+                self.cash -= spend
+                self.open_tranches += 1
+                self._record(ts, "buy", fill_price, bought, fee, cash_before, mark, "market", "taker")
+                self.algorithm.on_fill("buy", fill_price, bought, "market", self.position)
         elif action == "sell" and self.position > 0 and fill_price > 0:
             cash_before = self.cash
             position_before = self.position
             proceeds = position_before * fill_price
             fee = proceeds * self.fee_rate
             self.total_fees += fee
-            self.cash = proceeds - fee
+            self.cash += proceeds - fee
             self.position = 0.0
+            self.open_tranches = 0
             self._record(ts, "sell", fill_price, position_before, fee, cash_before, mark, "market", "taker")
             self.algorithm.on_fill("sell", fill_price, position_before, "market", 0.0)
 

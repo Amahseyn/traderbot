@@ -61,7 +61,7 @@ def required_signal_edge_pct(
 
     ``min_edge_over_cost`` is a multiple of the roundtrip friction: 1.0 is break-even, below
     which the trade is expected to lose money on average no matter how good the entry looks.
-    The threshold self-scales by venue (0.19% on Hyperliquid taker, 0.90% on Nobitex) and by
+    The threshold self-scales by venue (0.11% on Hyperliquid taker, 0.90% on Nobitex) and by
     bar size, so 1-minute signals need a real move while daily ones clear it trivially.
     """
     if min_edge_over_cost <= 0:
@@ -98,7 +98,7 @@ def trend_signal_clears_cost(
 ) -> bool:
     """Signed variant for trend entries: momentum must clear cost *in the trade direction*.
 
-    A cross that fires on a 0.02% drift cannot pay a 0.19% roundtrip even if it is right, so
+    A cross that fires on a 0.02% drift cannot pay a 0.11% roundtrip even if it is right, so
     the buy needs ``move_pct >= required`` and the sell ``move_pct <= -required``.
     """
     required = required_signal_edge_pct(roundtrip_cost_pct, min_edge_over_cost)

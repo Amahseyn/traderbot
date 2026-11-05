@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
+import math
+from typing import Any, Sequence
+import numpy as np
 
 from traderbot.algorithms.base import Algorithm, Bar, SignalAction
 from traderbot.backtesting.engine import run_backtest
@@ -132,3 +134,114 @@ def buy_and_hold_return_pct(
         execution=execution,
     )
     return result.return_pct
+
+
+def calculate_returns_from_equity_curve(equity_curve: list[tuple[int, float]]) -> list[float]:
+    if len(equity_curve) < 2:
+        return []
+    returns: list[float] = []
+    for index in range(1, len(equity_curve)):
+        prev = equity_curve[index - 1][1]
+        curr = equity_curve[index][1]
+        if prev > 0:
+            returns.append(curr / prev - 1.0)
+        else:
+            returns.append(0.0)
+    return returns
+
+
+def annualized_sharpe_ratio(
+    returns: Sequence[float],
+    periods_per_year: float = 8760.0,
+    risk_free_rate: float = 0.0,
+) -> float | None:
+    if len(returns) < 2:
+        return None
+    arr = np.asarray(returns, dtype=float)
+    excess = arr - (risk_free_rate / periods_per_year)
+    mean = np.mean(excess)
+    std = np.std(excess, ddof=1)
+    if std <= 1e-12:
+        return None
+    return float(mean / std * math.sqrt(periods_per_year))
+
+
+def annualized_sortino_ratio(
+    returns: Sequence[float],
+    periods_per_year: float = 8760.0,
+    target_return: float = 0.0,
+) -> float | None:
+    if len(returns) < 2:
+        return None
+    arr = np.asarray(returns, dtype=float)
+    excess = arr - (target_return / periods_per_year)
+    mean = np.mean(excess)
+    downside = np.minimum(0.0, excess)
+    downside_var = np.mean(downside ** 2)
+    if downside_var <= 1e-12:
+        return float(math.inf) if mean > 0 else 0.0
+    downside_std = math.sqrt(downside_var)
+    return float(mean / downside_std * math.sqrt(periods_per_year))
+
+
+def calmar_ratio(annualized_return_pct: float, max_drawdown_pct: float) -> float | None:
+    dd = abs(max_drawdown_pct)
+    if dd <= 1e-12:
+        return None
+    return float(annualized_return_pct / dd)
+
+
+def profit_factor(trade_pnls: Sequence[float]) -> float | None:
+    if not trade_pnls:
+        return None
+    gross_profits = sum(p for p in trade_pnls if p > 0)
+    gross_losses = abs(sum(p for p in trade_pnls if p < 0))
+    if gross_losses <= 1e-12:
+        return float(math.inf) if gross_profits > 0 else 1.0
+    return float(gross_profits / gross_losses)
+
+
+def expectancy(trade_pnls: Sequence[float]) -> float | None:
+    if not trade_pnls:
+        return None
+    return float(sum(trade_pnls) / len(trade_pnls))
+
+
+def turnover_ratio(trades: Sequence[Any], initial_cash: float) -> float:
+    if initial_cash <= 0:
+        return 0.0
+    total_notional = 0.0
+    for trade in trades:
+        notional = getattr(trade, "notional", 0.0)
+        if not notional:
+            price = getattr(trade, "price", 0.0)
+            size = getattr(trade, "size", 0.0)
+            notional = price * size
+        total_notional += notional
+    return float(total_notional / initial_cash)
+
+
+def exposure_time_pct(exposure_curve: Sequence[tuple[int, float]]) -> float:
+    if not exposure_curve:
+        return 0.0
+    active_bars = sum(1 for _, exp in exposure_curve if abs(exp) > 1e-12)
+    return float(active_bars / len(exposure_curve) * 100.0)
+
+
+def pair_buy_and_hold_benchmarks(
+    bars_a: list[dict[str, Any]],
+    bars_b: list[dict[str, Any]],
+    *,
+    initial_cash: float = 10_000.0,
+) -> dict[str, float]:
+    if not bars_a or not bars_b:
+        return {"buy_hold_a_pct": 0.0, "buy_hold_b_pct": 0.0, "equal_weight_pct": 0.0}
+    ret_a = (float(bars_a[-1]["close"]) / float(bars_a[0]["close"]) - 1.0) * 100.0
+    ret_b = (float(bars_b[-1]["close"]) / float(bars_b[0]["close"]) - 1.0) * 100.0
+    ret_eq = (ret_a + ret_b) / 2.0
+    return {
+        "buy_hold_a_pct": round(ret_a, 6),
+        "buy_hold_b_pct": round(ret_b, 6),
+        "equal_weight_pct": round(ret_eq, 6),
+    }
+

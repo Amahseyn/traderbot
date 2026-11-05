@@ -108,6 +108,21 @@ def test_bollinger_context_reduces_buys_in_steep_decline():
     assert filtered_buys < plain_buys
 
 
+def test_bollinger_exits_at_mean():
+    # Price establishes baseline at 100, drops to 90 (below lower band), then recovers to 100 (mean), but not 110 (upper)
+    closes = [100.0] * 25 + [90.0, 91.0, 100.0, 99.0]
+    bars = _bars(closes)
+    algo_mean = BollingerMeanReversionAlgorithm(period=20, num_std=2.0, exit_target="mean")
+    algo_upper = BollingerMeanReversionAlgorithm(period=20, num_std=2.0, exit_target="upper")
+    
+    actions_mean = [algo_mean.on_bar(b) for b in bars]
+    actions_upper = [algo_upper.on_bar(b) for b in bars]
+
+    assert "buy" in actions_mean
+    assert "sell" in actions_mean  # exits at 100.0 (mean)
+    assert "sell" not in actions_upper  # upper target requires > 105+, never triggered
+
+
 def test_ema_price_confirm_blocks_buy_below_fast():
     algo = EmaCrossAlgorithm(fast=2, slow=4, price_confirm=True)
     closes = [10.0, 10.5, 11.0, 11.5, 12.0, 11.0, 10.5, 10.0]
@@ -307,7 +322,7 @@ def test_backtest_namespace_resolves_the_roundtrip_cost_from_the_venue(tmp_path)
         "bollinger_mean_reversion", None, csv_path=tmp_path / "ARBUSDT_1.csv"
     )
     assert nobitex.roundtrip_cost_pct == pytest.approx(0.009)
-    assert hyperliquid.roundtrip_cost_pct == pytest.approx(0.0019)
+    assert hyperliquid.roundtrip_cost_pct == pytest.approx(0.0011)
 
 
 def test_trend_strategies_default_to_momentum_confirmation_bounds():

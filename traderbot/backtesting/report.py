@@ -40,6 +40,62 @@ def backtest_summary_dict(
     return payload
 
 
+def pair_backtest_summary_dict(
+    result: Any,
+    *,
+    bars: int,
+    benchmarks: dict[str, float] | None = None,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    from traderbot.backtesting.metrics import (
+        annualized_sharpe_ratio,
+        annualized_sortino_ratio,
+        calmar_ratio,
+        calculate_returns_from_equity_curve,
+        exposure_time_pct,
+        turnover_ratio,
+    )
+
+    returns = calculate_returns_from_equity_curve(result.equity_curve)
+    sharpe = annualized_sharpe_ratio(returns)
+    sortino = annualized_sortino_ratio(returns)
+    calmar = calmar_ratio(result.return_pct, result.max_drawdown_pct)
+    exp_time = exposure_time_pct(result.exposure_curve) if hasattr(result, "exposure_curve") else 0.0
+    turnover = turnover_ratio(result.trades, result.initial_cash)
+
+    payload: dict[str, Any] = {
+        "bars": bars,
+        "trades": len(result.trades),
+        "initial_cash": result.initial_cash,
+        "final_equity": round(result.final_equity, 6),
+        "marked_equity": round(getattr(result, "marked_equity", result.final_equity), 6),
+        "liquidated_equity": round(getattr(result, "liquidated_equity", result.final_equity), 6),
+        "return_pct": round(result.return_pct, 6),
+        "max_drawdown_pct": round(result.max_drawdown_pct, 6),
+        "annualized_sharpe": round(sharpe, 4) if sharpe is not None else None,
+        "annualized_sortino": round(sortino, 4) if sortino is not None else None,
+        "calmar_ratio": round(calmar, 4) if calmar is not None else None,
+        "win_rate_pct": getattr(result, "win_rate_pct", None),
+        "turnover_ratio": round(turnover, 4),
+        "exposure_time_pct": round(exp_time, 2),
+        "fee_rate": getattr(result, "fee_rate", 0.0),
+        "total_fees": round(getattr(result, "total_fees", 0.0), 6),
+        "total_funding": round(getattr(result, "total_funding", 0.0), 6),
+        "total_funding_paid": round(getattr(result, "total_funding_paid", 0.0), 6),
+        "total_funding_received": round(getattr(result, "total_funding_received", 0.0), 6),
+        "total_slippage_cost": round(getattr(result, "total_slippage_cost", 0.0), 6),
+        "execution": getattr(result, "execution", "next_open"),
+    }
+    if benchmarks:
+        payload["benchmarks"] = benchmarks
+    if hasattr(result, "breakdown_events") and result.breakdown_events:
+        payload["breakdown_events"] = result.breakdown_events
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+
 def save_backtest_result(
     algorithm: Algorithm,
     result: BacktestResult,

@@ -36,8 +36,9 @@ class OnlineLogisticAlgorithm(Algorithm):
         ml_learning_rate = 0.05,
         ml_buy_threshold = 0.60,
         ml_sell_threshold = 0.40,
-        ml_warmup_samples = 100,
+        ml_warmup_samples = 20,
         min_hold_bars = 3,
+        l2_reg: float = 0.005,
         target_exposure: float = 1.0,
         max_tranches: int = 1,
         tranche_gap_bars: int = 0,
@@ -48,10 +49,13 @@ class OnlineLogisticAlgorithm(Algorithm):
             raise ValueError("ml_horizon_bars and ml_warmup_samples must be >= 1")
         if ml_learning_rate <= 0:
             raise ValueError("ml_learning_rate must be positive")
+        if l2_reg < 0:
+            raise ValueError("l2_reg must be >= 0")
         if not 0 < ml_sell_threshold <= ml_buy_threshold < 1:
             raise ValueError("need 0 < ml_sell_threshold <= ml_buy_threshold < 1")
         if min_hold_bars < 0:
             raise ValueError("min_hold_bars must be >= 0")
+        self.l2_reg = float(l2_reg)
         self._entries = EntryTranches(
             target_exposure=target_exposure,
             max_tranches=max_tranches,
@@ -138,8 +142,9 @@ class OnlineLogisticAlgorithm(Algorithm):
             label = 1.0 if close > entry_close else 0.0
             error = self._probability(features) - label
             self._bias -= self.ml_learning_rate * error
+            decay = max(0.0, 1.0 - self.ml_learning_rate * self.l2_reg)
             for index, value in enumerate(features):
-                self._weights[index] -= self.ml_learning_rate * error * value
+                self._weights[index] = self._weights[index] * decay - self.ml_learning_rate * error * value
             self._trained_samples += 1
 
     def on_bar(self, bar: Bar) -> SignalAction:

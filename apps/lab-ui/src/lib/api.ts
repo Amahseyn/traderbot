@@ -438,6 +438,105 @@ export type PairBacktestResult = {
   }>;
 };
 
+export type PairMarketSummary = {
+  exchange: string;
+  tradable_markets: string[];
+  total_scanned: number;
+  tradable_count: number;
+  rejected_count: number;
+  rejected_markets: Record<string, string>;
+};
+
+export type PairCandidateItem = {
+  id: string;
+  run_id: string;
+  pair_id: string;
+  symbol_a: string;
+  symbol_b: string;
+  correlation: number;
+  candidate_category: string;
+};
+
+export type PairCandidatesResponse = {
+  run_id: string | null;
+  count: number;
+  candidates: PairCandidateItem[];
+};
+
+export type PairCointegrationItem = {
+  id: string;
+  run_id: string;
+  pair_id: string;
+  qualification_status: string;
+  cointegration_status: string;
+  hedge_ratio: number;
+  half_life_bars: number | null;
+  cointegration_pvalue: number;
+  adf_statistic: number;
+  rejection_reasons: string[];
+};
+
+export type PairCointegrationResponse = {
+  run_id: string | null;
+  count: number;
+  results: PairCointegrationItem[];
+};
+
+export type PairRankedItem = {
+  pair_id: string;
+  exchange: string;
+  symbol_a: string;
+  symbol_b: string;
+  timeframe: string;
+  correlation: number;
+  cointegration_status: string;
+  hedge_ratio: number;
+  half_life_bars: number | null;
+  liquidity_score: number;
+  stability_score: number;
+  pair_quality_score: number;
+  ranking_position: number | null;
+  qualification_status: string;
+  rejection_reasons: string[];
+};
+
+export type PairRankingsResponse = {
+  exchange: string;
+  timeframe: string;
+  count: number;
+  pairs: PairRankedItem[];
+};
+
+export type PairPaperPositionItem = {
+  id: string;
+  pair_id: string;
+  status: string;
+  opened_at_utc: string;
+  closed_at_utc?: string | null;
+  entry_spread: number;
+  exit_spread?: number | null;
+  entry_z_score?: number | null;
+  exit_z_score?: number | null;
+  leg_a_qty: number;
+  leg_b_qty: number;
+  entry_price_a: number;
+  entry_price_b: number;
+  exit_price_a?: number | null;
+  exit_price_b?: number | null;
+  realized_pnl: number;
+  unrealized_pnl: number;
+  total_fees: number;
+  total_funding: number;
+  snapshot?: Record<string, unknown>;
+};
+
+export type PairPaperPositionsResponse = {
+  active_count: number;
+  active_positions: PairPaperPositionItem[];
+  history_count: number;
+  history: PairPaperPositionItem[];
+};
+
 export type FundingBacktestResult = {
   exchange: string;
   src: string;
@@ -737,6 +836,40 @@ export const api = {
   strategyExchangeCatalog: () => fetchJson<StrategyExchangeCatalog>("/api/strategies/exchange-catalog"),
   pairBacktest: (body: Record<string, unknown>) =>
     fetchJson<PairBacktestResult>("/api/strategies/pair-backtest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  pairMarkets: (exchange = "hyperliquid", run_id?: string) =>
+    fetchJson<PairMarketSummary>(
+      `/api/pairs/markets?exchange=${encodeURIComponent(exchange)}${run_id ? `&run_id=${encodeURIComponent(run_id)}` : ""}`,
+    ),
+  pairCandidates: (run_id?: string, category?: string, limit = 100) =>
+    fetchJson<PairCandidatesResponse>(
+      `/api/pairs/candidates?limit=${limit}${run_id ? `&run_id=${encodeURIComponent(run_id)}` : ""}${category ? `&category=${encodeURIComponent(category)}` : ""}`,
+    ),
+  pairCorrelation: (run_id?: string, limit = 50) =>
+    fetchJson<{ run_id: string | null; count: number; pairs: PairCandidateItem[] }>(
+      `/api/pairs/correlation?limit=${limit}${run_id ? `&run_id=${encodeURIComponent(run_id)}` : ""}`,
+    ),
+  pairCointegration: (run_id?: string, status?: string, limit = 100) =>
+    fetchJson<PairCointegrationResponse>(
+      `/api/pairs/cointegration?limit=${limit}${run_id ? `&run_id=${encodeURIComponent(run_id)}` : ""}${status ? `&status=${encodeURIComponent(status)}` : ""}`,
+    ),
+  pairRankings: (exchange = "hyperliquid", timeframe = "60", top_n = 10) =>
+    fetchJson<PairRankingsResponse>(
+      `/api/pairs/rankings?exchange=${encodeURIComponent(exchange)}&timeframe=${encodeURIComponent(timeframe)}&top_n=${top_n}`,
+    ),
+  pairPaperPositions: (limit = 50) =>
+    fetchJson<PairPaperPositionsResponse>(`/api/pairs/paper/positions?limit=${limit}`),
+  pairEmergencyExit: (body: { pair_id?: string; reason?: string }) =>
+    fetchJson<{ status: string; flattened_pairs: string[]; reason: string }>("/api/pairs/paper/emergency-exit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  pairWalkForward: (body: Record<string, unknown>) =>
+    fetchJson<Record<string, unknown>>("/api/strategies/pair-walk-forward", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

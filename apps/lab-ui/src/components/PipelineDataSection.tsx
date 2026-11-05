@@ -399,6 +399,20 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
             Pick Nobitex markets and horizons below. The pipeline exports every combination as part of the
             same job (or run a standalone export below).
           </p>
+          {state.datasetIds.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-xs">
+              <span className="text-muted">
+                <span className="font-mono font-medium text-accent">{state.datasetIds.length}</span> catalog file{state.datasetIds.length === 1 ? "" : "s"} currently selected from existing catalog.
+              </span>
+              <button
+                type="button"
+                className="text-xs text-muted hover:text-negative hover:underline"
+                onClick={() => onChange({ datasetIds: [] })}
+              >
+                Clear catalog selection
+              </button>
+            </div>
+          )}
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium text-slate-200">History size</legend>
             <div className="flex flex-wrap gap-4 text-sm text-slate-200">
@@ -725,7 +739,7 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
                               key={symbol}
                               type="button"
                               title={`Remove ${symbol}`}
-                              className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 font-mono text-xs text-slate-100 hover:border-red-400/60 hover:text-red-200"
+                              className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 font-mono text-xs text-slate-100 hover:border-negative/60 hover:text-negative"
                               onClick={() =>
                                 onChange({
                                   exportMarketSymbols: state.exportMarketSymbols.filter(
@@ -770,7 +784,29 @@ export function PipelineDataSection({ state, onChange, onExportJobStarted }: Pip
           </>
 
           <details className="text-sm text-muted">
-            <summary className="cursor-pointer text-slate-200">Also use catalog files (optional)</summary>
+            <summary className="flex cursor-pointer items-center justify-between text-slate-200">
+              <span className="flex items-center gap-2">
+                <span>Also use catalog files (optional)</span>
+                {state.datasetIds.length > 0 && (
+                  <span className="font-mono text-xs font-medium text-accent">
+                    ({state.datasetIds.length} selected)
+                  </span>
+                )}
+              </span>
+              {state.datasetIds.length > 0 && (
+                <button
+                  type="button"
+                  className="text-xs text-muted hover:text-negative hover:underline"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onChange({ datasetIds: [] });
+                  }}
+                >
+                  Clear catalog selection ({state.datasetIds.length})
+                </button>
+              )}
+            </summary>
             <div className="mt-3 space-y-3">
               <div className="grid gap-3 sm:grid-cols-3">
                 <Field label="Search">
@@ -830,16 +866,20 @@ export function pipelineDataSourceReady(state: PipelineDataSectionState): boolea
 }
 
 export function pipelineDataSourceBlockers(state: PipelineDataSectionState): string[] {
-  if (state.useAllHourly || state.datasetIds.length > 0) {
-    return [];
-  }
   if (state.dataSourceMode === "download") {
-    if (state.exportMarketSymbol.trim() || state.exportMarketSymbols.length > 0) {
+    const hasDownloadTarget = Boolean(
+      state.exportMarketSymbol.trim() || state.exportMarketSymbols.length > 0
+    );
+    const hasCatalogFallback = state.useAllHourly || state.datasetIds.length > 0;
+    if (hasDownloadTarget || hasCatalogFallback) {
       return [];
     }
     return [
-      "Step 1 · Data: pick catalog file(s), tick “Include all hourly files”, or select market(s) and horizon(s) to download.",
+      "Step 1 · Data: select market(s) and interval(s) to download, or pick catalog file(s).",
     ];
+  }
+  if (state.useAllHourly || state.datasetIds.length > 0) {
+    return [];
   }
   return [
     "Step 1 · Data: select one or more catalog files, or tick “Include all hourly files”.",

@@ -7,6 +7,11 @@ import {
   FundingBacktestCharts,
   StrategyDashboardCharts,
 } from "@/components/StrategyDashboardCharts";
+import { StatArbCointegrationView } from "@/components/StatArbCointegrationView";
+import { StatArbCorrelationView } from "@/components/StatArbCorrelationView";
+import { StatArbDiscoveryView } from "@/components/StatArbDiscoveryView";
+import { StatArbPaperTradingView } from "@/components/StatArbPaperTradingView";
+import { StatArbRankingsView } from "@/components/StatArbRankingsView";
 import { StrategyCatalogPerformance } from "@/components/StrategyCatalogPerformance";
 import { StrategyExchangeMatrix } from "@/components/StrategyExchangeMatrix";
 import { Button } from "@/components/ui/Button";
@@ -67,6 +72,9 @@ export default function StrategiesDashboardPage() {
   const [gridSrc, setGridSrc] = useState("btc");
   const [gridDst, setGridDst] = useState("usdt");
   const [gridCsv, setGridCsv] = useState("");
+  const [statArbTab, setStatArbTab] = useState<
+    "backtest" | "discovery" | "correlation" | "cointegration" | "rankings" | "paper"
+  >("backtest");
 
   const pairMutation = useMutation({
     mutationFn: () => {
@@ -192,11 +200,64 @@ export default function StrategiesDashboardPage() {
       ) : null}
 
       <Card>
-        <h2 className="text-sm font-semibold text-white">Pair trading (stat arb)</h2>
-        <p className="mt-1 text-sm text-muted">
-          Nobitex: mix catalog CSVs and live <code className="text-xs">src</code> per leg. Hyperliquid: perp long/short
-          on public OHLC (e.g. BTC + ETH).
-        </p>
+        <div className="flex flex-wrap items-center justify-between border-b border-border pb-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Statistical Arbitrage & Pair Research</h2>
+            <p className="mt-0.5 text-xs text-muted">
+              Institutional pair research loop: discovery, return correlation, cointegration qualification, dynamic ranking, and two-leg paper trading.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5 pt-2 sm:pt-0">
+            {[
+              { id: "backtest", label: "Interactive Backtest" },
+              { id: "discovery", label: "Discovery" },
+              { id: "correlation", label: "Correlation" },
+              { id: "cointegration", label: "Cointegration" },
+              { id: "rankings", label: "Rankings" },
+              { id: "paper", label: "Live Paper" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setStatArbTab(tab.id as any)}
+                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                  statArbTab === tab.id
+                    ? "bg-accent text-on-accent"
+                    : "bg-surface text-muted hover:text-foreground"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {statArbTab === "discovery" ? (
+          <div className="mt-4">
+            <StatArbDiscoveryView exchange={exchange} />
+          </div>
+        ) : statArbTab === "correlation" ? (
+          <div className="mt-4">
+            <StatArbCorrelationView />
+          </div>
+        ) : statArbTab === "cointegration" ? (
+          <div className="mt-4">
+            <StatArbCointegrationView />
+          </div>
+        ) : statArbTab === "rankings" ? (
+          <div className="mt-4">
+            <StatArbRankingsView exchange={exchange} />
+          </div>
+        ) : statArbTab === "paper" ? (
+          <div className="mt-4">
+            <StatArbPaperTradingView />
+          </div>
+        ) : (
+          <div>
+            <p className="mt-4 text-xs text-muted">
+              Nobitex: mix catalog CSVs and live <code className="text-xs">src</code> per leg. Hyperliquid: perp long/short
+              on public OHLC (e.g. BTC + ETH).
+            </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {exchange === "nobitex" ? (
             <>
@@ -358,6 +419,8 @@ export default function StrategiesDashboardPage() {
             ) : null}
           </div>
         ) : null}
+          </div>
+        )}
       </Card>
 
       <Card>

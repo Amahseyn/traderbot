@@ -25,7 +25,7 @@ TREND_STRATEGIES = (
 GENERIC_BUY_MIN_RECENT_RETURN = -0.03
 GENERIC_SELL_MAX_RECENT_RETURN = 0.03
 
-#: Bars this short are where the roundtrip friction (0.19% on Hyperliquid taker) rivals or
+#: Bars this short are where the roundtrip friction (0.11% on Hyperliquid taker) rivals or
 #: exceeds the median candle, so the cost-aware edge gate is on by default at or below it.
 #: Coarser bars clear the friction on their own; there the gate only costs trades.
 HIGH_FREQUENCY_MAX_BAR_MINUTES = 5

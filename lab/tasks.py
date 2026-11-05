@@ -232,6 +232,47 @@ def run_opportunity_discovery_task(body: dict[str, Any]) -> None:
     run_discovery(body, job_id=job_id, log=print)
 
 
+def run_pair_discovery_task(body: dict[str, Any]) -> None:
+    from traderbot.analysis.pairs.engine import PairDiscoveryConfig, PairDiscoveryEngine
+    from traderbot.analysis.pairs.models import DynamicRankingConfig
+    from traderbot.hyperliquid.market_data import fetch_hyperliquid_perp_coins, fetch_hyperliquid_recent_closed_bars
+
+    exchange = str(body.get("exchange") or "hyperliquid").lower()
+    timeframe = str(body.get("timeframe") or "60")
+    job_id = str(body.get("job_id") or "") or None
+    top_n = int(body.get("top_n") or 10)
+    symbols = body.get("symbols")
+
+    bars_by_symbol = dict(body.get("bars_by_symbol") or {})
+    if not bars_by_symbol:
+        if not symbols:
+            if exchange == "hyperliquid":
+                symbols = fetch_hyperliquid_perp_coins()[:20]
+            else:
+                symbols = ["BTC", "ETH", "SOL"]
+
+        for sym in symbols:
+            try:
+                if exchange == "hyperliquid":
+                    bars = fetch_hyperliquid_recent_closed_bars(src=sym, resolution=timeframe, max_bars=150)
+                    bars_by_symbol[sym.upper()] = bars
+            except Exception as exc:
+                print(f"Error loading {sym}: {exc}")
+
+    config = PairDiscoveryConfig(
+        exchange=exchange,
+        timeframe=timeframe,
+        ranking_config=DynamicRankingConfig(top_n=top_n),
+        persist=True,
+    )
+    engine = PairDiscoveryEngine(config)
+    ranked, snapshot, transitions, summary = engine.run_discovery(
+        bars_by_symbol=bars_by_symbol,
+        job_id=job_id,
+    )
+    print(f"Pair discovery completed: {summary}")
+
+
 def run_named_pipeline_task(body: dict[str, Any]) -> None:
     import json
 

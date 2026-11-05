@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Literal
 
@@ -14,9 +15,9 @@ HYPERLIQUID_PERP_TAKER_FEE = 0.00045
 HYPERLIQUID_PERP_MAKER_FEE = 0.00015
 HYPERLIQUID_SPOT_TAKER_FEE = 0.0007
 HYPERLIQUID_SPOT_MAKER_FEE = 0.0004
-# Taker (IOC/market) fills cross the spread and walk the book; 0.05% per fill is the documented
-# research default (docs/live-trading.md). Maker fills rest at the limit price: no slippage.
-HYPERLIQUID_TAKER_SLIPPAGE = 0.0005
+# Taker (IOC/market) fills cross the spread and walk the book; 0.01% (1 bp) per fill is the
+# documented research default (docs/live-trading.md). Maker fills rest at the limit price: no slippage.
+HYPERLIQUID_TAKER_SLIPPAGE = 0.0001
 HYPERLIQUID_MAKER_SLIPPAGE = 0.0
 HYPERLIQUID_SLIPPAGE = HYPERLIQUID_TAKER_SLIPPAGE
 
@@ -25,6 +26,16 @@ _NOBITEX_TAKER = 0.0035
 _NOBITEX_MAKER = 0.0025
 _NOBITEX_SLIPPAGE = 0.001
 _NOBITEX_MAKER_SLIPPAGE = 0.0
+
+
+def _rate_from_env(name: str, default: float) -> float:
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,11 +61,12 @@ def execution_cost_profile(
         else:
             fee = HYPERLIQUID_PERP_MAKER_FEE if fee_role == "maker" else HYPERLIQUID_PERP_TAKER_FEE
             label = f"Hyperliquid perp {fee_role}"
+        hl_taker_slippage = _rate_from_env("TRADERBOT_DEFAULT_SLIPPAGE_RATE", HYPERLIQUID_TAKER_SLIPPAGE)
         return ExecutionCostProfile(
             exchange=venue,
             fee_role=fee_role,
             fee_rate=fee,
-            slippage_rate=HYPERLIQUID_MAKER_SLIPPAGE if fee_role == "maker" else HYPERLIQUID_TAKER_SLIPPAGE,
+            slippage_rate=HYPERLIQUID_MAKER_SLIPPAGE if fee_role == "maker" else hl_taker_slippage,
             label=label,
         )
     fee = _NOBITEX_MAKER if fee_role == "maker" else _NOBITEX_TAKER

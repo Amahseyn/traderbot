@@ -263,6 +263,7 @@ _SCALP_DIP_FIELDS = (
     "sell_max_fine_last_5m",
     "min_edge_over_cost",
     "roundtrip_cost_pct",
+    "trend_ema_period",
 )
 
 

@@ -65,3 +65,82 @@ def test_dca_backtest_uses_cash_fraction():
     buys = [trade for trade in result.trades if trade.action == "buy"]
     assert len(buys) == 6
     assert buys[0].cash_before - buys[0].cash_after == 1_000.0
+
+
+def test_fractional_cash_sizing_multi_trade_legacy():
+    from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+
+    class MultiBuyAlgorithm(Algorithm):
+        name = "multi_buy_test"
+
+        def __init__(self):
+            self.bar_index = -1
+
+        def on_bar(self, bar: Bar) -> SignalAction:
+            self.bar_index += 1
+            if self.bar_index in (1, 2, 3, 4, 5):
+                return "buy"
+            if self.bar_index == 8:
+                return "sell"
+            return "hold"
+
+    bars = [
+        {"timestamp": index, "open": 100.0, "high": 100.0, "low": 100.0, "close": 100.0, "volume": 1.0}
+        for index in range(12)
+    ]
+    algo = MultiBuyAlgorithm()
+    result = run_backtest(
+        algo,
+        bars,
+        initial_cash=10_000.0,
+        execution="close",
+        order_cash_fraction=0.25,
+        max_positions=4,
+    )
+    buys = [t for t in result.trades if t.action == "buy"]
+    sells = [t for t in result.trades if t.action == "sell"]
+    # 4 tranches entered (5th buy skipped because max_positions=4)
+    assert len(buys) == 4
+    for b in buys:
+        assert b.cash_before - b.cash_after == 2500.0
+    assert len(sells) == 1
+    assert sells[0].size == sum(b.size for b in buys)
+    assert sells[0].cash_after == 10_000.0
+
+
+def test_fractional_cash_sizing_multi_trade_exact_fill():
+    from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+
+    class MultiBuyAlgorithm(Algorithm):
+        name = "multi_buy_test"
+
+        def __init__(self):
+            self.bar_index = -1
+
+        def on_bar(self, bar: Bar) -> SignalAction:
+            self.bar_index += 1
+            if self.bar_index in (1, 2, 3):
+                return "buy"
+            if self.bar_index == 6:
+                return "sell"
+            return "hold"
+
+    bars = [
+        {"timestamp": index, "open": 100.0, "high": 100.0, "low": 100.0, "close": 100.0, "volume": 1.0}
+        for index in range(10)
+    ]
+    algo = MultiBuyAlgorithm()
+    result = run_backtest(
+        algo,
+        bars,
+        initial_cash=10_000.0,
+        execution="close",
+        allow_short=True,
+        order_cash_fraction=0.3,
+        max_positions=3,
+    )
+    buys = [t for t in result.trades if t.action == "buy"]
+    sells = [t for t in result.trades if t.action == "sell"]
+    assert len(buys) == 3
+    assert len(sells) == 1
+

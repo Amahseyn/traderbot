@@ -455,6 +455,17 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
             compare_out_dir = Path(str(body["out"])) / csv_path.stem
         else:
             compare_out_dir = default_strategy_compare_out(csv_path) / session_timestamp
+        file_run_start = effective_run_start.get(csv_path, body.get("run_start_unix_seconds"))
+        file_run_end = body.get("run_end_unix_seconds")
+        if file_run_start is not None and file_run_end is not None:
+            try:
+                if int(file_run_end) <= int(file_run_start):
+                    file_run_end = None
+            except (ValueError, TypeError):
+                file_run_end = None
+        raw_cash_fraction = body.get("order_cash_fraction")
+        file_cash_fraction = float(raw_cash_fraction) if raw_cash_fraction not in (None, "") else None
+        file_max_positions = int(body.get("max_positions") or 1)
         try:
             payload = run_strategy_compare(
                 StrategyCompareOptions(
@@ -471,13 +482,13 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
                     mode=mode,
                     strategy_ids=strategy_id_set,
                     max_strategies=max_strategies,
-                    run_start_unix_seconds=effective_run_start.get(
-                        csv_path, body.get("run_start_unix_seconds")
-                    ),
-                    run_end_unix_seconds=body.get("run_end_unix_seconds"),
+                    run_start_unix_seconds=file_run_start,
+                    run_end_unix_seconds=file_run_end,
                     use_optimized_strategy_params=use_optimized,
                     apply_sweep_winner=apply_sweep_winner,
                     allow_short=bool(body.get("allow_short")) if body.get("allow_short") is not None else None,
+                    order_cash_fraction=file_cash_fraction,
+                    max_positions=file_max_positions,
                 ),
                 log=log,
             )

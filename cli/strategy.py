@@ -90,7 +90,7 @@ def _add_fill_flags(parser: argparse.ArgumentParser) -> None:
         "--exchange",
         choices=["hyperliquid", "nobitex"],
         default=None,
-        help="Venue fee/slippage defaults (Hyperliquid perp: 0.045%% taker + 0.05%% slippage; "
+        help="Venue fee/slippage defaults (Hyperliquid perp: 0.045%% taker + 0.01%% slippage; "
         "Nobitex: 0.35%% taker + 0.1%%). Default: inferred from CSV name (*IRT → nobitex)",
     )
     parser.add_argument(

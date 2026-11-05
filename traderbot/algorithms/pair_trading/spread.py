@@ -8,6 +8,7 @@ Adapted from Hummingbot ``controllers/generic/stat_arb.py`` (Apache-2.0); see
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 
@@ -18,6 +19,9 @@ class SpreadSnapshot:
     z_score: float
     hedge_beta: float
     hedge_alpha: float
+    spread_mean: float = 0.0
+    spread_std: float = 0.0
+    spread_model: str = "legacy"
 
 
 def _linear_regression(x: np.ndarray, y: np.ndarray) -> tuple[float, float]:
@@ -35,16 +39,94 @@ def _linear_regression(x: np.ndarray, y: np.ndarray) -> tuple[float, float]:
     return alpha, beta
 
 
+def cointegration_spread_z_score_from_closes(
+    dominant_closes: np.ndarray,
+    hedge_closes: np.ndarray,
+    *,
+    lookback_period: int,
+    hedge_ratio: float = 1.0,
+    intercept: float = 0.0,
+    rolling_ols: bool = False,
+) -> SpreadSnapshot | None:
+    """
+    Compute causal rolling cointegration spread and z-score:
+        Spread_t = log(A_t) - intercept - hedge_ratio * log(B_t)
+        Z_t = (Spread_t - mean(Spread)) / std(Spread)
+    over historical window of length `lookback_period` strictly <= t.
+    """
+    if lookback_period < 2:
+        raise ValueError("lookback_period must be >= 2")
+    min_length = min(len(dominant_closes), len(hedge_closes))
+    if min_length < lookback_period:
+        return None
+
+    dom_window = np.asarray(dominant_closes[-lookback_period:], dtype=float)
+    hdg_window = np.asarray(hedge_closes[-lookback_period:], dtype=float)
+
+    if np.any(dom_window <= 0) or np.any(hdg_window <= 0):
+        return None
+
+    log_dom = np.log(dom_window)
+    log_hdg = np.log(hdg_window)
+
+    alpha = intercept
+    beta = hedge_ratio
+
+    if rolling_ols:
+        alpha, beta = _linear_regression(log_hdg, log_dom)
+
+    spread_series = log_dom - alpha - beta * log_hdg
+    mean_spread = float(np.mean(spread_series))
+    std_spread = (
+        float(np.std(spread_series, ddof=1))
+        if len(spread_series) > 1
+        else float(np.std(spread_series))
+    )
+
+    if std_spread <= 1e-12 or not np.isfinite(std_spread):
+        return None
+
+    current_spread = float(spread_series[-1])
+    z_score = (current_spread - mean_spread) / std_spread
+
+    return SpreadSnapshot(
+        spread_pct=current_spread,
+        z_score=z_score,
+        hedge_beta=beta,
+        hedge_alpha=alpha,
+        spread_mean=mean_spread,
+        spread_std=std_spread,
+        spread_model="cointegration",
+    )
+
+
 def spread_z_score_from_closes(
     dominant_closes: np.ndarray,
     hedge_closes: np.ndarray,
     *,
     lookback_period: int,
+    model: Literal["cointegration", "legacy"] = "legacy",
+    hedge_ratio: float = 1.0,
+    intercept: float = 0.0,
+    rolling_ols: bool = False,
 ) -> SpreadSnapshot | None:
     """
-    Compute the latest spread (percent) and z-score using cumulative-return regression,
-    matching Hummingbot's ``StatArb.get_spread_and_z_score`` logic.
+    Compute latest spread and z-score.
+
+    When ``model='cointegration'``, uses the validated econometric specification:
+        Spread = log(dominant) - intercept - hedge_ratio * log(hedge)
+    When ``model='legacy'``, matches Hummingbot cumulative-return regression logic.
     """
+    if model == "cointegration":
+        return cointegration_spread_z_score_from_closes(
+            dominant_closes,
+            hedge_closes,
+            lookback_period=lookback_period,
+            hedge_ratio=hedge_ratio,
+            intercept=intercept,
+            rolling_ols=rolling_ols,
+        )
+
     if lookback_period < 2:
         raise ValueError("lookback_period must be >= 2")
     min_length = min(len(dominant_closes), len(hedge_closes))
@@ -82,6 +164,9 @@ def spread_z_score_from_closes(
         z_score=z_score,
         hedge_beta=beta,
         hedge_alpha=alpha,
+        spread_mean=mean_spread,
+        spread_std=std_spread,
+        spread_model="legacy",
     )
 
 

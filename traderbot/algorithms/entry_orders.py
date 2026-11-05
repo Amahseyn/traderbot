@@ -1,7 +1,7 @@
 """Shared entry execution for the threshold strategies.
 
 Signal-driven strategies default to market entries, which pay the taker fee plus slippage on
-both legs (0.190% per roundtrip on Hyperliquid perp, 0.900% on Nobitex). A post-only limit at
+both legs (0.110% per roundtrip on Hyperliquid perp, 0.900% on Nobitex). A post-only limit at
 ``entry_offset_pct`` below the signal close fills as **maker** (0.015% fee, no slippage) or not
 at all, which is the cheaper side of the same trade. :class:`MakerEntry` keeps that choice in
 one place so ``sma_cross``, ``ema_cross``, ``rsi_threshold``, ``macd_cross`` and

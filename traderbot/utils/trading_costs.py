@@ -13,7 +13,7 @@ from traderbot.markets.execution_costs import (
 
 # Default backtest costs match Hyperliquid perp tier-0 taker (market-style fills).
 _DEFAULT_FEE = HYPERLIQUID_PERP_TAKER_FEE
-# Taker fills cross the spread: 0.05% per fill (docs/live-trading.md). Override with
+# Taker fills cross the spread: 0.01% per fill (docs/live-trading.md). Override with
 # TRADERBOT_DEFAULT_SLIPPAGE_RATE. Nobitex uses its own execution_cost_profile slippage.
 _DEFAULT_SLIPPAGE = HYPERLIQUID_TAKER_SLIPPAGE
 
@@ -70,7 +70,7 @@ def backtest_cost_rates(
     if exchange is None:
         if fee_role == "maker":
             return DEFAULT_MAKER_FEE_RATE, 0.0
-        return DEFAULT_TRADE_FEE_RATE, DEFAULT_SLIPPAGE_RATE
+        return DEFAULT_TRADE_FEE_RATE, _rate_from_env("TRADERBOT_DEFAULT_SLIPPAGE_RATE", DEFAULT_SLIPPAGE_RATE)
     role = "maker" if fee_role == "maker" else "taker"
     kind = "spot" if market_kind == "spot" else "perp"
     profile = execution_cost_profile(exchange, fee_role=role, market_kind=kind)  # type: ignore[arg-type]
@@ -117,7 +117,7 @@ def roundtrip_cost_rate(
 ) -> float:
     """Total friction for one entry + one exit, as a fraction of notional.
 
-    A market roundtrip pays ``(fee + slippage)`` on both legs — 0.190% on Hyperliquid perp
+    A market roundtrip pays ``(fee + slippage)`` on both legs — 0.110% on Hyperliquid perp
     taker and 0.900% on Nobitex spot retail, versus a 0.04–0.08% median 1-minute candle.
     ``maker_entry`` swaps the entry leg for a resting post-only fill: maker fee, no slippage.
     """

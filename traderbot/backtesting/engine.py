@@ -92,10 +92,15 @@ def run_backtest(
     maker_fee_rate: float | None = None,
     allow_short: bool | None = None,
     exchange: str | None = None,
+    order_cash_fraction: float | None = None,
+    max_positions: int = 1,
 ) -> BacktestResult:
     """
     Backtest with mark-to-market each bar. Default: long-only, full cash on buy, full exit
     on sell; algorithms that return an :class:`OrderSize` from ``order_size()`` get partial fills.
+
+    ``order_cash_fraction`` sets the quote cash fraction to spend per buy order (e.g. 0.25 for 25%).
+    ``max_positions`` sets the maximum number of open tranches/trades in multi-trade/pyramiding mode.
 
     ``execution="close"`` fills market orders at the signal bar close (optimistic).
     ``execution="next_open"`` fills them at the next bar open, so the fill price is never
@@ -133,6 +138,8 @@ def run_backtest(
         maker_fee_rate=maker_fee_rate,
         allow_short=allow_short,
         symbol=first_symbol,
+        order_cash_fraction=order_cash_fraction,
+        max_positions=max_positions,
     )
     equity_curve: list[tuple[int, float]] = []
     for bar in normalized:
