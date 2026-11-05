@@ -62,12 +62,39 @@ def record_strategy_backtest(
     symbol, resolution = parse_symbol_resolution_from_csv(csv_path)
     horizon_label = _horizon_label_for_csv(csv_path)
     parameters = build_strategy_parameters(algorithm)
+    optimizer_enabled = bool(
+        extra.get("optimizer_enabled")
+        or extra.get("use_optimized_strategy_params")
+        or extra.get("apply_sweep_winner")
+    )
     data_context = {
         "csv": csv_path,
         "bars": bars,
         "symbol": symbol,
         "resolution": resolution,
+        "optimizer_enabled": optimizer_enabled,
+        "use_optimized_strategy_params": bool(extra.get("use_optimized_strategy_params")),
+        "apply_sweep_winner": bool(extra.get("apply_sweep_winner")),
     }
+    if "optimizer_enabled" not in summary:
+        summary["optimizer_enabled"] = optimizer_enabled
+    if summary.get("win_rate_pct") is None:
+        if backtest_result and backtest_result.trades:
+            from traderbot.backtesting.trade_stats import trade_stats
+            stats = trade_stats(backtest_result)
+            if stats.get("win_rate_pct") is not None:
+                summary["win_rate_pct"] = stats["win_rate_pct"]
+        elif summary.get("trade_logs"):
+            from lab.store.run_analytics import compute_run_analytics
+            analytics = compute_run_analytics(summary)
+            wr = analytics.get("summary", {}).get("win_rate_pct")
+            if wr is not None:
+                summary["win_rate_pct"] = wr
+        elif summary.get("trade_win_rate") is not None:
+            twr = float(summary["trade_win_rate"])
+            summary["win_rate_pct"] = round(twr * 100.0 if twr <= 1.0 else twr, 4)
+        elif isinstance(summary.get("vectorbt"), dict) and summary["vectorbt"].get("win_rate_pct") is not None:
+            summary["win_rate_pct"] = float(summary["vectorbt"]["win_rate_pct"])
     connection = open_database(database_path)
 
     def write(connection) -> str:
@@ -206,8 +233,37 @@ def record_sweep_session(
             best_params=best_params,
             best_metrics={
                 key: best.get(key)
-                for key in ("return_pct", "holdout_return_pct", "trades", "final_equity")
-            },
+                for key in (
+                    "return_pct",
+                    "holdout_return_pct",
+                    "validation_return_pct",
+                    "trades",
+                    "final_equity",
+                )
+                if best.get(key) is not None
+            } | (
+                {
+                    "win_rate_pct": (
+                        best.get("win_rate_pct")
+                        if best.get("win_rate_pct") is not None
+                        else (
+                            best.get("validation_win_rate_pct")
+                            if best.get("validation_win_rate_pct") is not None
+                            else (
+                                round(float(best["trade_win_rate"]) * 100.0, 2)
+                                if best.get("trade_win_rate") is not None
+                                else None
+                            )
+                        )
+                    )
+                }
+                if (
+                    best.get("win_rate_pct") is not None
+                    or best.get("validation_win_rate_pct") is not None
+                    or best.get("trade_win_rate") is not None
+                )
+                else {}
+            ),
             config_id=config_id,
             manifest_path=str(manifest_path) if manifest_path else None,
             optimize_start_utc=sweep_payload.get("optimize_start_utc"),

@@ -33,6 +33,7 @@ def test_resolve_tune_param_names_defaults_to_all_strategy_params() -> None:
         "sell_max_recent_return",
         "buy_min_fine_last_5m",
         "sell_max_fine_last_5m",
+        "target_exposure",
     }
     # Cost/execution plumbing is configured, not swept: a numeric grid over it proposes
     # nonsense (negative cost multiples, a categorical venue, a ``None`` sentinel).
@@ -140,3 +141,84 @@ def test_optuna_holdout_test_uses_test_bars_not_full_bars() -> None:
     # holdout tail separately.  Here we verify the in_sample path still runs.
     assert payload["best_params"]
     assert payload["selection_mode_applied"] == "in_sample"
+
+
+def test_initial_trial_params_contains_valid_choices() -> None:
+    from traderbot.backtesting.tune_search_space import initial_trial_params
+    from traderbot.algorithms.registry import backtest_strategy_ids
+
+    for sid in backtest_strategy_ids():
+        names = resolve_tune_param_names(sid)
+        params = initial_trial_params(sid, names)
+        assert params, f"initial params empty for {sid}"
+        assert set(params.keys()) == set(names)
+
+
+def test_bollinger_mean_reversion_optuna_optimize_succeeds() -> None:
+    """bollinger_mean_reversion with default params must not prune all trials."""
+    pytest.importorskip("optuna")
+    closes = [100.0 + (index % 10) * 0.5 - ((index + 3) % 7) * 0.3 for index in range(120)]
+    payload = run_strategy_optimize(
+        SweepOptions(
+            strategy_id="bollinger_mean_reversion",
+            param_grid={},
+            bars=_bars(closes),
+            min_trades=0,
+        ),
+        default_strategy_namespace(),
+        config=OptimizeSelectConfig(
+            selection_mode="in_sample",
+            optimizer_method="optuna",
+            n_trials=15,
+        ),
+    )
+    assert payload["best_params"]
+    assert payload["strategy_id"] == "bollinger_mean_reversion"
+
+
+def test_optuna_tune_supports_win_rate_and_return_objectives() -> None:
+    pytest.importorskip("optuna")
+    closes = [100.0 + (index % 10) * 0.5 - ((index + 3) % 7) * 0.3 for index in range(120)]
+
+    # Maximize return (default)
+    payload_ret = run_strategy_optimize(
+        SweepOptions(
+            strategy_id="bollinger_mean_reversion",
+            param_grid={},
+            bars=_bars(closes),
+            min_trades=0,
+            rank_by="return_pct",
+        ),
+        default_strategy_namespace(),
+        config=OptimizeSelectConfig(
+            selection_mode="in_sample",
+            optimizer_method="optuna",
+            n_trials=8,
+            rank_by="return_pct",
+        ),
+    )
+    assert payload_ret["best_params"]
+    assert payload_ret["rank_by"] == "return_pct"
+    assert "win_rate_pct" in payload_ret["best"]
+
+    # Maximize win rate
+    payload_wr = run_strategy_optimize(
+        SweepOptions(
+            strategy_id="bollinger_mean_reversion",
+            param_grid={},
+            bars=_bars(closes),
+            min_trades=0,
+            rank_by="win_rate",
+        ),
+        default_strategy_namespace(),
+        config=OptimizeSelectConfig(
+            selection_mode="in_sample",
+            optimizer_method="optuna",
+            n_trials=8,
+            rank_by="win_rate",
+        ),
+    )
+    assert payload_wr["best_params"]
+    assert payload_wr["rank_by"] == "win_rate"
+    assert "win_rate_pct" in payload_wr["best"]
+

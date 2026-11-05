@@ -7,11 +7,15 @@ import {
   formatRelativeTime,
   formatReturnPct,
   formatUtcTimestamp,
+  formatWinRate,
   returnPctClassName,
 } from "@/lib/format";
 import {
+  isRunOptimized,
   runIntervalLabel,
   runListMetrics,
+  runParametersList,
+  runParametersSummary,
   runStrategyLabel,
   shortRunId,
 } from "@/lib/runDisplay";
@@ -19,10 +23,59 @@ import {
 type RunsTableProps = {
   runs: EvaluationRun[];
   variant?: "compact" | "full";
+  sortBy?: string;
+  onSort?: (sortBy: string) => void;
 };
 
-export function RunsTable({ runs, variant = "full" }: RunsTableProps) {
+export function RunsTable({ runs, variant = "full", sortBy, onSort }: RunsTableProps) {
   const isCompact = variant === "compact";
+
+  const renderSortableTh = (
+    label: string,
+    colKey: "return" | "win_rate" | "trades" | "equity" | "created_at",
+    align: "left" | "right" = "left",
+    extraClass = "",
+  ) => {
+    if (!onSort) {
+      return (
+        <th className={`${align === "right" ? "text-right" : ""} ${extraClass}`}>
+          {label}
+        </th>
+      );
+    }
+    const isDesc = sortBy === `${colKey}_desc`;
+    const isAsc = sortBy === `${colKey}_asc`;
+    const isActive = isDesc || isAsc;
+    const nextSort =
+      colKey === "created_at"
+        ? isDesc
+          ? "created_at_asc"
+          : "created_at_desc"
+        : isDesc
+          ? `${colKey}_asc`
+          : `${colKey}_desc`;
+
+    return (
+      <th
+        aria-sort={isDesc ? "descending" : isAsc ? "ascending" : "none"}
+        className={`${align === "right" ? "text-right" : ""} ${extraClass}`}
+      >
+        <button
+          type="button"
+          onClick={() => onSort(nextSort)}
+          className={`inline-flex items-center gap-1 font-medium hover:text-white transition-colors duration-150 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded ${
+            align === "right" ? "ml-auto" : ""
+          } ${isActive ? "text-accent" : "text-muted"}`}
+          title={`Sort by ${label} (${isDesc ? "descending" : isAsc ? "ascending" : "click to sort"})`}
+        >
+          <span>{label}</span>
+          <span className="font-mono text-[10px] select-none" aria-hidden="true">
+            {isDesc ? "↓" : isAsc ? "↑" : "↕"}
+          </span>
+        </button>
+      </th>
+    );
+  };
 
   return (
     <div className="overflow-x-auto rounded-xl border border-border">
@@ -35,18 +88,24 @@ export function RunsTable({ runs, variant = "full" }: RunsTableProps) {
             {!isCompact && <th>Dataset</th>}
             <th>Interval</th>
             <th>Strategy / model</th>
-            <th className="text-right">Return</th>
-            {!isCompact && <th className="text-right">Trades</th>}
+            <th>Optimizer</th>
+            {!isCompact && <th>Parameters</th>}
+            {renderSortableTh("Return", "return", "right")}
+            {renderSortableTh("Win rate", "win_rate", "right")}
+            {!isCompact && renderSortableTh("Trades", "trades", "right")}
             {!isCompact && <th className="text-right">Fees</th>}
-            {!isCompact && <th className="text-right">Final equity</th>}
-            {isCompact && <th className="text-right">Trades</th>}
-            <th>Recorded</th>
+            {!isCompact && renderSortableTh("Final equity", "equity", "right")}
+            {isCompact && renderSortableTh("Trades", "trades", "right")}
+            {renderSortableTh("Recorded", "created_at", "left")}
           </tr>
         </thead>
         <tbody>
           {runs.map((run) => {
             const listed = runListMetrics(run);
             const isStrategy = run.run_kind === "strategy_backtest";
+            const isOptimized = isRunOptimized(run);
+            const paramEntries = runParametersList(run);
+            const paramsSummary = runParametersSummary(run);
             const href = `/runs/${run.id}`;
             const returnLabel = isStrategy
               ? formatReturnPct(listed.returnPct)
@@ -79,8 +138,46 @@ export function RunsTable({ runs, variant = "full" }: RunsTableProps) {
                 <td className="max-w-[10rem] truncate font-medium" title={runStrategyLabel(run)}>
                   {runStrategyLabel(run)}
                 </td>
+                <td>
+                  <span
+                    className={`badge ${
+                      isOptimized
+                        ? "badge-strategy"
+                        : "border border-border bg-surface text-muted"
+                    }`}
+                    title={
+                      isOptimized
+                        ? "Optimizer enabled (tuned parameters applied)"
+                        : "Default parameters (optimizer not applied)"
+                    }
+                  >
+                    {isOptimized ? "Optimized" : "Default"}
+                  </span>
+                </td>
+                {!isCompact && (
+                  <td className="min-w-[16rem] whitespace-normal py-2" title={paramsSummary}>
+                    {paramEntries.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {paramEntries.map(({ key, value }) => (
+                          <span
+                            key={key}
+                            className="inline-flex items-center gap-1 rounded border border-border/80 bg-surface/80 px-1.5 py-0.5 font-mono text-[11px] text-white"
+                          >
+                            <span className="text-muted">{key}:</span>
+                            <span className="font-medium text-white">{String(value)}</span>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="font-mono text-xs text-muted">—</span>
+                    )}
+                  </td>
+                )}
                 <td className={`text-right font-mono text-sm tabular-nums ${returnClass}`}>
                   {returnLabel}
+                </td>
+                <td className="text-right font-mono text-xs tabular-nums text-white">
+                  {formatWinRate(listed.winRatePct)}
                 </td>
                 {!isCompact && (
                   <td className="text-right tabular-nums">{listed.trades ?? "—"}</td>

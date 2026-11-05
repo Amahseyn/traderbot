@@ -6,7 +6,8 @@ import math
 from collections import deque
 from typing import Protocol
 
-from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+from traderbot.algorithms.base import Algorithm, Bar, OrderSize, SignalAction
+from traderbot.algorithms.position_sizing import EntryTranches
 from traderbot.algorithms.price_context import signal_clears_cost
 from traderbot.algorithms.validators import validate_cost_edge
 
@@ -81,6 +82,9 @@ class MomentumShockAlgorithm(Algorithm):
         event_source: EventSignalSource | None = None,
         min_edge_over_cost: float | None = None,
         roundtrip_cost_pct: float | None = None,
+        target_exposure: float = 1.0,
+        max_tranches: int = 1,
+        tranche_gap_bars: int = 0,
     ):
         if lookback_bars < 3:
             raise ValueError("lookback_bars must be >= 3")
@@ -91,6 +95,14 @@ class MomentumShockAlgorithm(Algorithm):
         if not 0 <= trailing_stop_pct < 1:
             raise ValueError("trailing_stop_pct must be in [0, 1)")
         validate_cost_edge(min_edge_over_cost, roundtrip_cost_pct)
+        self._entries = EntryTranches(
+            target_exposure=target_exposure,
+            max_tranches=max_tranches,
+            tranche_gap_bars=tranche_gap_bars,
+        )
+        self.target_exposure = self._entries.target_exposure
+        if self._entries.partial:
+            self.uses_position_sizing = True
         self.shock_hold_bars = shock_hold_bars
         self.trailing_stop_pct = trailing_stop_pct
         self.min_edge_over_cost = 0.0 if min_edge_over_cost is None else float(min_edge_over_cost)
@@ -108,13 +120,20 @@ class MomentumShockAlgorithm(Algorithm):
         self._in_position = False
         self._peak_close = 0.0
         self._prev_close: float | None = None
+        self._size: OrderSize | None = None
+        self._entries.reset()
+
+    def order_size(self) -> OrderSize | None:
+        return self._size
 
     def sync_open_position(self, in_position: bool) -> None:
         if not in_position:
             self._in_position = False
+            self._entries.reset()
 
     def on_bar(self, bar: Bar) -> SignalAction:
         close = float(bar["close"])
+        self._entries.tick()
         score = self.event_source.score_bar(bar)
         prev = self._prev_close
         self._prev_close = close
@@ -124,7 +143,17 @@ class MomentumShockAlgorithm(Algorithm):
             trailing = self.trailing_stop_pct > 0 and close <= self._peak_close * (1 - self.trailing_stop_pct)
             if self._bars_held >= self.shock_hold_bars or score < 0 or trailing:
                 self._in_position = False
+                self._size = self._entries.note_exit()
                 return "sell"
+            if score > 0 and self._entries.allows_entry():
+                move = (close / prev - 1.0) if prev and prev > 0 else 0.0
+                if signal_clears_cost(
+                    move,
+                    min_edge_over_cost=self.min_edge_over_cost,
+                    roundtrip_cost_pct=self.roundtrip_cost_pct,
+                ):
+                    self._size = self._entries.note_entry()
+                    return "buy"
             return "hold"
         if score > 0:
             move = (close / prev - 1.0) if prev and prev > 0 else 0.0
@@ -137,5 +166,6 @@ class MomentumShockAlgorithm(Algorithm):
             self._in_position = True
             self._bars_held = 0
             self._peak_close = close
+            self._size = self._entries.note_entry()
             return "buy"
         return "hold"

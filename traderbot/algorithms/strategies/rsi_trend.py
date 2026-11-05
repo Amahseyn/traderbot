@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+from traderbot.algorithms.base import Algorithm, Bar, OrderSize, SignalAction
+from traderbot.algorithms.position_sizing import EntryTranches
 from traderbot.algorithms.price_context import (
     recent_cumulative_return,
     trend_signal_clears_cost,
@@ -26,6 +27,9 @@ class RsiTrendAlgorithm(Algorithm):
         trend_filter_period = 50,
         min_edge_over_cost: float | None = None,
         roundtrip_cost_pct: float | None = None,
+        target_exposure: float = 1.0,
+        max_tranches: int = 1,
+        tranche_gap_bars: int = 0,
     ):
         if period < 2:
             raise ValueError("period must be >= 2")
@@ -34,6 +38,14 @@ class RsiTrendAlgorithm(Algorithm):
         if trend_filter_period < 1:
             raise ValueError("trend_filter_period must be >= 1")
         validate_cost_edge(min_edge_over_cost, roundtrip_cost_pct)
+        self._entries = EntryTranches(
+            target_exposure=target_exposure,
+            max_tranches=max_tranches,
+            tranche_gap_bars=tranche_gap_bars,
+        )
+        self.target_exposure = self._entries.target_exposure
+        if self._entries.partial:
+            self.uses_position_sizing = True
         self.period = period
         self.rsi_trend_entry = rsi_trend_entry
         self.rsi_trend_exit = rsi_trend_exit
@@ -46,6 +58,7 @@ class RsiTrendAlgorithm(Algorithm):
         self._prev_rsi: float | None = None
         self._in_position = False
         self._closes: list[float] = []
+        self._size: OrderSize | None = None
 
     def reset(self) -> None:
         rsi_reset(self._rsi)
@@ -54,12 +67,20 @@ class RsiTrendAlgorithm(Algorithm):
         self._prev_rsi = None
         self._in_position = False
         self._closes.clear()
+        self._size = None
+        self._entries.reset()
+
+    def order_size(self) -> OrderSize | None:
+        return self._size
 
     def sync_open_position(self, in_position: bool) -> None:
         self._in_position = in_position
+        if not in_position:
+            self._entries.reset()
 
     def on_bar(self, bar: Bar) -> SignalAction:
         close = float(bar["close"])
+        self._entries.tick()
         self._closes.append(close)
         self._bar_count += 1
         current_rsi = rsi_update(self._rsi, close)
@@ -68,12 +89,17 @@ class RsiTrendAlgorithm(Algorithm):
         self._prev_rsi = current_rsi
         if current_rsi is None or prev_rsi is None or self._bar_count < self.trend_filter_period:
             return "hold"
+        crossed_up = prev_rsi < self.rsi_trend_entry <= current_rsi and close > trend
         if self._in_position:
             if (prev_rsi >= self.rsi_trend_exit > current_rsi) or close < trend:
                 self._in_position = False
+                self._size = self._entries.note_exit()
                 return "sell"
+            if crossed_up and self._entries.allows_entry():
+                self._size = self._entries.note_entry()
+                return "buy"
             return "hold"
-        if prev_rsi < self.rsi_trend_entry <= current_rsi and close > trend:
+        if crossed_up:
             move_pct = recent_cumulative_return(self._closes, self.period)
             if not trend_signal_clears_cost(
                 "buy",
@@ -83,5 +109,6 @@ class RsiTrendAlgorithm(Algorithm):
             ):
                 return "hold"
             self._in_position = True
+            self._size = self._entries.note_entry()
             return "buy"
         return "hold"

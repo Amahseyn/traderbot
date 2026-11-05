@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   compareByAvgThenBestReturn,
+  filterPerformanceRows,
   formatStrategyPerformanceLabel,
   isCompleteCatalogStats,
   isCompleteLivePreview,
   isModelDrivenStrategy,
   pickBestMatchByAvgAndMax,
+  sortPerformanceRows,
+  type PerformanceRow,
 } from "@/lib/strategyPerformance";
 
 describe("isModelDrivenStrategy", () => {
@@ -64,5 +67,128 @@ describe("catalog completeness and best match", () => {
     expect(isCompleteLivePreview(null)).toBe(false);
     expect(isCompleteLivePreview(Number.NaN)).toBe(false);
     expect(isCompleteLivePreview(0.25)).toBe(true);
+  });
+
+  const sampleRows: PerformanceRow[] = [
+    {
+      id: "sma_cross",
+      name: "SMA Trend Cross",
+      style: "trend",
+      summary: "Moving average crossover",
+      catalogRuns: 10,
+      catalogAvg: 3.5,
+      catalogBest: 8.0,
+      catalogWinRate: 65.0,
+      previewReturn: 2.1,
+      previewDrawdown: 4.0,
+      previewTrades: 12,
+      previewWinRate: 58.0,
+      sweepReturn: 5.0,
+      sweepHoldout: 3.0,
+      rank: 1,
+    },
+    {
+      id: "rsi_threshold",
+      name: "RSI Mean Reversion",
+      style: "mean_reversion",
+      summary: "Oversold buy / overbought sell",
+      catalogRuns: 5,
+      catalogAvg: -1.2,
+      catalogBest: 2.0,
+      catalogWinRate: 42.0,
+      previewReturn: -0.5,
+      previewDrawdown: 6.5,
+      previewTrades: 8,
+      previewWinRate: 40.0,
+      sweepReturn: 1.0,
+      sweepHoldout: -0.5,
+      rank: 2,
+    },
+    {
+      id: "online_logistic",
+      name: "Online Logistic ML",
+      style: "ml",
+      summary: "Adaptive classifier",
+      catalogRuns: 0,
+      catalogAvg: null,
+      catalogBest: null,
+      catalogWinRate: null,
+      previewReturn: null,
+      previewDrawdown: null,
+      previewTrades: null,
+      previewWinRate: null,
+      sweepReturn: null,
+      sweepHoldout: null,
+      rank: null,
+    },
+  ];
+
+  it("filters strategies by query search", () => {
+    const res = filterPerformanceRows(sampleRows, { query: "RSI" });
+    expect(res).toHaveLength(1);
+    expect(res[0].id).toBe("rsi_threshold");
+  });
+
+  it("filters strategies by style", () => {
+    const res = filterPerformanceRows(sampleRows, { style: "trend" });
+    expect(res).toHaveLength(1);
+    expect(res[0].id).toBe("sma_cross");
+  });
+
+  it("filters strategies by outcome", () => {
+    const profitable = filterPerformanceRows(sampleRows, { outcome: "profitable" });
+    expect(profitable).toHaveLength(1);
+    expect(profitable[0].id).toBe("sma_cross");
+
+    const loss = filterPerformanceRows(sampleRows, { outcome: "loss" });
+    expect(loss).toHaveLength(1);
+    expect(loss[0].id).toBe("rsi_threshold");
+  });
+
+  it("filters strategies by win rate", () => {
+    const high = filterPerformanceRows(sampleRows, { winRate: "high" });
+    expect(high).toHaveLength(1);
+    expect(high[0].id).toBe("sma_cross");
+
+    const low = filterPerformanceRows(sampleRows, { winRate: "low" });
+    expect(low).toHaveLength(1);
+    expect(low[0].id).toBe("rsi_threshold");
+
+    const numeric55 = filterPerformanceRows(sampleRows, { winRate: "55" });
+    expect(numeric55).toHaveLength(1);
+    expect(numeric55[0].id).toBe("sma_cross");
+
+    const numeric70 = filterPerformanceRows(sampleRows, { winRate: "70" });
+    expect(numeric70).toHaveLength(0);
+  });
+
+  it("filters strategies by detailed outcome", () => {
+    const posCat = filterPerformanceRows(sampleRows, { outcome: "positive_catalog" });
+    expect(posCat).toHaveLength(1);
+    expect(posCat[0].id).toBe("sma_cross");
+
+    const posPreview = filterPerformanceRows(sampleRows, { outcome: "positive_preview" });
+    expect(posPreview).toHaveLength(1);
+    expect(posPreview[0].id).toBe("sma_cross");
+  });
+
+  it("filters strategies by activity (complete only)", () => {
+    const complete = filterPerformanceRows(sampleRows, { activity: "complete_only" });
+    expect(complete).toHaveLength(2);
+    expect(complete.map((r) => r.id)).toEqual(["sma_cross", "rsi_threshold"]);
+  });
+
+  it("sorts strategies by win rate and name", () => {
+    const sortedWr = sortPerformanceRows(sampleRows, "catalog_win_rate_desc");
+    expect(sortedWr[0].id).toBe("sma_cross");
+
+    const sortedCombinedWr = sortPerformanceRows(sampleRows, "win_rate_desc");
+    expect(sortedCombinedWr[0].id).toBe("sma_cross");
+
+    const sortedAvgAsc = sortPerformanceRows(sampleRows, "catalog_avg_asc");
+    expect(sortedAvgAsc[0].id).toBe("rsi_threshold");
+
+    const sortedName = sortPerformanceRows(sampleRows, "name_asc");
+    expect(sortedName[0].id).toBe("online_logistic");
   });
 });

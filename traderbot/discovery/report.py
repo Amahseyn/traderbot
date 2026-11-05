@@ -22,6 +22,15 @@ def evaluation_to_row(evaluation: CandidateEvaluation) -> dict[str, Any]:
         "sharpe_ratio": metrics.get("sharpe_ratio"),
         "max_drawdown_pct": metrics.get("max_drawdown_pct"),
         "trade_count": metrics.get("trade_count"),
+        "win_rate_pct": (
+            metrics.get("win_rate_pct")
+            if metrics.get("win_rate_pct") is not None
+            else (
+                round(float(metrics["trade_win_rate"]) * 100.0, 2)
+                if metrics.get("trade_win_rate") is not None
+                else None
+            )
+        ),
         "mean_quote_volume": metrics.get("mean_quote_volume"),
         "volume_percentile": metrics.get("volume_percentile"),
         "return_1bar_pct": metrics.get("return_1bar_pct"),

@@ -95,7 +95,7 @@ export function DiscoverySummaryStats({ summary }: { summary: OpportunityDiscove
       </div>
       <div className="rounded-lg border border-border/70 bg-surface/50 px-3 py-2">
         <dt className="text-xs text-muted">In shortlist</dt>
-        <dd className="font-semibold text-emerald-200">{summary.candidates_eligible ?? "—"}</dd>
+        <dd className="font-semibold text-positive">{summary.candidates_eligible ?? "—"}</dd>
       </div>
       <div className="rounded-lg border border-border/70 bg-surface/50 px-3 py-2">
         <dt className="text-xs text-muted">Filtered out</dt>

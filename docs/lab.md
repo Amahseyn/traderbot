@@ -108,7 +108,7 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 
 | Method | Path | Notes |
 |--------|------|--------|
-| GET | `/api/stats` (run counters + backtest leaderboards: strategies, markets, intervals), `/api/runs`, `/api/runs/{id}`, `/api/runs/{id}/analytics` (trade-level metrics + equity/drawdown curves from `trade_logs`), `/api/configurations`, `/api/experiments`, `/api/compare-sessions`, `/api/sweeps`, `/api/sweeps/best` (optional `horizon_label`; sweeps resolve per horizon folder, then unlabeled rows), `/api/pipelines` | Catalog |
+| GET | `/api/stats` (run counters + backtest leaderboards: strategies, markets, intervals), `/api/runs` (filters: `run_kind`, `symbol`, `strategy_id`, `model_id`, `horizon_label`, `resolution`, `outcome`, `optimizer`, `trades`, `date_range`, `query`, `sort_by`, `limit`, `offset`), `/api/runs/{id}`, `/api/runs/{id}/analytics` (trade-level metrics + equity/drawdown curves from `trade_logs`), `/api/configurations`, `/api/experiments`, `/api/compare-sessions`, `/api/sweeps`, `/api/sweeps/best` (optional `horizon_label`; sweeps resolve per horizon folder, then unlabeled rows), `/api/pipelines` | Catalog |
 | POST | `/api/experiments/sync` | Register `config/experiment*.json` in SQLite (no pipeline run) |
 | GET | `/api/datasets` | Catalog OHLC datasets. `label` includes horizon (when the file is under `horizons/<label>/`) and the CSV start and end dates. |
 | GET | `/api/datasets/{id}/download` | Download a catalog dataset file |

@@ -9,7 +9,7 @@ from traderbot.algorithms.cli_args import default_strategy_namespace, merge_stra
 from traderbot.algorithms.registry import algorithm_for_id, strategy_kwargs_from_namespace
 from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_backtest
 from traderbot.backtesting.holdout_window import return_pct_over_equity_tail
-from traderbot.backtesting.trade_stats import DEFAULT_MIN_TRADES
+from traderbot.backtesting.trade_stats import DEFAULT_MIN_TRADES, effective_min_trades
 from traderbot.data.intrahour import enrich_bars_for_csv
 from traderbot.utils.trading_costs import (
     ResolvesCostRates,
@@ -24,7 +24,7 @@ DEFAULT_LIVE_TUNE_HOLDOUT_BARS = 20
 
 #: Default ranking: net average per round trip, significant (t >= 2) combos first.
 DEFAULT_RANK_BY = "edge"
-RANK_BY_CHOICES = ("edge", "return_pct", "avg_trade_net_pct")
+RANK_BY_CHOICES = ("edge", "return_pct", "win_rate", "win_rate_pct", "avg_trade_net_pct")
 
 
 def sweep_rank_key(row: dict[str, Any], *, rank_by: str = "return_pct") -> tuple:
@@ -33,15 +33,32 @@ def sweep_rank_key(row: dict[str, Any], *, rank_by: str = "return_pct") -> tuple
     ``holdout_return_pct`` is reported for inspection but deliberately excluded
     from the sort key so holdout data never influences parameter selection.
     ``rank_by="edge"`` sorts by significance tier, then net average per trade, then return.
+    ``rank_by="return_pct"`` maximizes return, using win rate as secondary tie-breaker.
+    ``rank_by="win_rate"`` maximizes win percentage, using return as secondary tie-breaker.
     """
     if rank_by == "edge":
         from traderbot.backtesting.trade_stats import edge_rank_key
 
         return edge_rank_key(row)
+    eligible = 1 if row.get("eligible") else 0
+    if rank_by in ("win_rate", "win_rate_pct"):
+        wr = row.get("win_rate_pct")
+        if wr is None and row.get("trade_win_rate") is not None:
+            wr = float(row["trade_win_rate"]) * 100.0
+        ret = row.get("return_pct")
+        return (
+            eligible,
+            float(wr) if wr is not None else float("-inf"),
+            float(ret) if ret is not None else float("-inf"),
+        )
     primary = row.get(rank_by)
+    wr = row.get("win_rate_pct")
+    if wr is None and row.get("trade_win_rate") is not None:
+        wr = float(row["trade_win_rate"]) * 100.0
     return (
-        1 if row.get("eligible") else 0,
+        eligible,
         float(primary) if primary is not None else float("-inf"),
+        float(wr) if wr is not None else float("-inf"),
     )
 
 
@@ -201,7 +218,8 @@ def run_strategy_sweep(options: SweepOptions, base_namespace: Any | None = None)
             extra={"strategy_id": options.strategy_id, "params": params},
         )
         row["holdout_return_pct"] = holdout_return
-        row["eligible"] = row["trades"] >= options.min_trades
+        effective_min = effective_min_trades(options.min_trades, len(train_bars))
+        row["eligible"] = row["trades"] >= effective_min
         rows.append(row)
     if not rows:
         reason = skipped[0]["error"] if skipped else "no combinations"

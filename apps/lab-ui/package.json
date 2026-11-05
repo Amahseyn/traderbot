@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:ui": "bash ../../scripts/verify-financial-ui.sh src"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.62.0",

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import threading
+import time
 import uuid
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -61,14 +63,22 @@ def _utc_now() -> str:
 
 def _insert_job(connection, job_type: str, payload: dict[str, Any]) -> str:
     job_id = uuid.uuid4().hex
-    connection.execute(
-        """
-        INSERT INTO jobs (id, job_type, status, payload_json, log_text, created_at_utc)
-        VALUES (?, ?, ?, ?, '', ?)
-        """,
-        (job_id, job_type, JOB_STATUS_QUEUED, json.dumps(payload), _utc_now()),
-    )
-    connection.commit()
+    for attempt in range(5):
+        try:
+            connection.execute(
+                """
+                INSERT INTO jobs (id, job_type, status, payload_json, log_text, created_at_utc)
+                VALUES (?, ?, ?, ?, '', ?)
+                """,
+                (job_id, job_type, JOB_STATUS_QUEUED, json.dumps(payload), _utc_now()),
+            )
+            connection.commit()
+            return job_id
+        except sqlite3.OperationalError as exc:
+            if "locked" in str(exc).lower() and attempt < 4:
+                time.sleep(0.1 * (2 ** attempt))
+                continue
+            raise
     return job_id
 
 
@@ -80,28 +90,36 @@ def _update_job(
     log_text: str | None = None,
     finished: bool = False,
 ) -> None:
-    if finished and status in (JOB_STATUS_COMPLETED, JOB_STATUS_FAILED):
-        connection.execute(
-            """
-            UPDATE jobs SET status = ?, log_text = COALESCE(?, log_text), finished_at_utc = ?
-            WHERE id = ? AND status != ?
-            """,
-            (status, log_text, _utc_now(), job_id, JOB_STATUS_CANCELLED),
-        )
-    elif finished:
-        connection.execute(
-            """
-            UPDATE jobs SET status = ?, log_text = COALESCE(?, log_text), finished_at_utc = ?
-            WHERE id = ?
-            """,
-            (status, log_text, _utc_now(), job_id),
-        )
-    else:
-        connection.execute(
-            "UPDATE jobs SET status = ?, log_text = COALESCE(?, log_text) WHERE id = ?",
-            (status, log_text, job_id),
-        )
-    connection.commit()
+    for attempt in range(5):
+        try:
+            if finished and status in (JOB_STATUS_COMPLETED, JOB_STATUS_FAILED):
+                connection.execute(
+                    """
+                    UPDATE jobs SET status = ?, log_text = COALESCE(?, log_text), finished_at_utc = ?
+                    WHERE id = ? AND status != ?
+                    """,
+                    (status, log_text, _utc_now(), job_id, JOB_STATUS_CANCELLED),
+                )
+            elif finished:
+                connection.execute(
+                    """
+                    UPDATE jobs SET status = ?, log_text = COALESCE(?, log_text), finished_at_utc = ?
+                    WHERE id = ?
+                    """,
+                    (status, log_text, _utc_now(), job_id),
+                )
+            else:
+                connection.execute(
+                    "UPDATE jobs SET status = ?, log_text = COALESCE(?, log_text) WHERE id = ?",
+                    (status, log_text, job_id),
+                )
+            connection.commit()
+            return
+        except sqlite3.OperationalError as exc:
+            if "locked" in str(exc).lower() and attempt < 4:
+                time.sleep(0.1 * (2 ** attempt))
+                continue
+            raise
 
 
 def list_jobs(connection, limit: int = 50) -> list[dict[str, Any]]:

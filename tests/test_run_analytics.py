@@ -40,6 +40,11 @@ def test_compute_run_analytics_round_trips_and_drawdown():
     assert summary["sharpe_per_trade"] is not None
     assert result["by_side"][0]["side"] == "long"
     assert len(result["equity_curve"]) == 7
+    assert len(result["win_rate_curve"]) == 3
+    # Trip 1: win (100%), Trip 2: loss (50%), Trip 3: win (66.67%)
+    assert result["win_rate_curve"][0]["win_rate_pct"] == 100.0
+    assert result["win_rate_curve"][1]["win_rate_pct"] == 50.0
+    assert result["win_rate_curve"][2]["win_rate_pct"] == 66.67
 
 
 def test_compute_run_analytics_without_logs():
@@ -47,3 +52,4 @@ def test_compute_run_analytics_without_logs():
     assert result["summary"]["round_trips"] == 0
     assert result["summary"]["win_rate_pct"] is None
     assert result["equity_curve"] == []
+    assert result["win_rate_curve"] == []

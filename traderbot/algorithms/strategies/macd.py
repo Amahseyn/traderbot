@@ -1,5 +1,6 @@
-from traderbot.algorithms.base import Algorithm, Bar, OrderSpec, SignalAction
+from traderbot.algorithms.base import Algorithm, Bar, OrderSize, OrderSpec, SignalAction
 from traderbot.algorithms.entry_orders import MakerEntry
+from traderbot.algorithms.position_sizing import ALL_IN_EXPOSURE, entry_order_size, validate_target_exposure
 from traderbot.algorithms.price_context import (
     apply_mean_reversion_context,
     recent_cumulative_return,
@@ -39,10 +40,14 @@ class MacdCrossAlgorithm(Algorithm):
         entry_ttl_bars: int = 2,
         stop_loss_pct: float | None = None,
         take_profit_pct: float | None = None,
+        target_exposure: float = 1.0,
     ):
         validate_macd(fast, slow, signal)
         validate_price_context(context_bars, buy_min_recent_return, sell_max_recent_return)
         validate_cost_edge(min_edge_over_cost, roundtrip_cost_pct)
+        self.target_exposure = validate_target_exposure(target_exposure)
+        if self.target_exposure < ALL_IN_EXPOSURE:
+            self.uses_position_sizing = True
         self.fast = fast
         self.slow = slow
         self.signal = signal
@@ -67,6 +72,7 @@ class MacdCrossAlgorithm(Algorithm):
         self._prev_line: float | None = None
         self._prev_sig: float | None = None
         self._spec: OrderSpec | None = None
+        self._size: OrderSize | None = None
 
     @property
     def entry_order_mode(self) -> str:
@@ -79,12 +85,16 @@ class MacdCrossAlgorithm(Algorithm):
     def order_spec(self) -> OrderSpec | None:
         return self._spec
 
+    def order_size(self) -> OrderSize | None:
+        return self._size
+
     def reset(self) -> None:
         self._closes.clear()
         macd_reset(self._macd)
         self._prev_line = None
         self._prev_sig = None
         self._spec = None
+        self._size = None
 
     def on_bar(self, bar: Bar) -> SignalAction:
         close = float(bar["close"])
@@ -115,5 +125,6 @@ class MacdCrossAlgorithm(Algorithm):
             sell_max_fine_last_5m=self.sell_max_fine_last_5m,
         )
         if action != "hold":
+            self._size = entry_order_size(self.target_exposure, action)
             self._spec = self._entry.spec_for(action, close)
         return action

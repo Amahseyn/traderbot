@@ -388,7 +388,7 @@ export function LiveTradingChart({
           {changePct != null && (
             <p
               className={`text-xs font-medium tabular-nums ${
-                changePct > 0 ? "text-emerald-400" : changePct < 0 ? "text-red-400" : "text-muted"
+                changePct > 0 ? "text-positive" : changePct < 0 ? "text-negative" : "text-muted"
               }`}
             >
               {changePct > 0 ? "+" : ""}
@@ -432,7 +432,7 @@ export function LiveTradingChart({
             <p className="text-muted">Session return</p>
             <p
               className={`font-semibold tabular-nums ${
-                (sessionMetrics.sessionReturnPct ?? 0) >= 0 ? "text-emerald-300" : "text-red-300"
+                (sessionMetrics.sessionReturnPct ?? 0) >= 0 ? "text-positive" : "text-negative"
               }`}
             >
               {formatSignedPct(sessionMetrics.sessionReturnPct)}
@@ -446,7 +446,7 @@ export function LiveTradingChart({
           </div>
           <div>
             <p className="text-muted">Equity</p>
-            <p className="font-medium tabular-nums text-emerald-300">
+            <p className="font-medium tabular-nums text-slate-100">
               {sessionMetrics.currentEquity != null
                 ? `${formatMoney(sessionMetrics.currentEquity)} ${quoteCurrency}`
                 : "—"}
@@ -513,7 +513,7 @@ export function LiveTradingChart({
           </div>
           <div>
             <p className="text-muted">Equity</p>
-            <p className="font-medium text-emerald-300">{formatMoney(summary.paperWallet.equity)}</p>
+            <p className="font-medium text-slate-100">{formatMoney(summary.paperWallet.equity)}</p>
           </div>
           <div>
             <p className="text-muted">Mark (last closed bar)</p>
@@ -771,7 +771,7 @@ export function LiveTradingChart({
             <span className="text-violet-300/80">Session line at first activity</span>
           )}
           {refreshActive && (
-            <span className="text-emerald-400/90">Refreshing while session runs</span>
+            <span className="text-positive/90">Refreshing while session runs</span>
           )}
           {ohlcQuery.dataUpdatedAt > 0 && (
             <span>

@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+from traderbot.algorithms.base import Algorithm, Bar, OrderSize, SignalAction
+from traderbot.algorithms.position_sizing import ALL_IN_EXPOSURE, entry_order_size, validate_target_exposure
 
 
 def _default_member_factory(strategy_id: str, **kwargs: Any) -> Algorithm:
@@ -106,6 +107,7 @@ class EnsembleAlgorithm(Algorithm):
         ensemble_exit_rule: str = "any",
         ensemble_filter_mode: str = "signal",
         member_factory: Callable[[str, dict[str, Any]], Algorithm] | None = None,
+        target_exposure: float = 1.0,
     ):
         if ensemble_entry_rule not in ENSEMBLE_ENTRY_RULES:
             raise ValueError(f"ensemble_entry_rule must be one of {ENSEMBLE_ENTRY_RULES}")
@@ -113,6 +115,9 @@ class EnsembleAlgorithm(Algorithm):
             raise ValueError(f"ensemble_exit_rule must be one of {ENSEMBLE_EXIT_RULES}")
         if ensemble_filter_mode not in ENSEMBLE_FILTER_MODES:
             raise ValueError(f"ensemble_filter_mode must be one of {ENSEMBLE_FILTER_MODES}")
+        self.target_exposure = validate_target_exposure(target_exposure)
+        if self.target_exposure < ALL_IN_EXPOSURE:
+            self.uses_position_sizing = True
         self.ensemble_filter_mode = ensemble_filter_mode
         self.ensemble_preset = ensemble_preset
         self.ensemble_entry_rule = ensemble_entry_rule
@@ -125,6 +130,10 @@ class EnsembleAlgorithm(Algorithm):
         self._in_position = False
         self.last_child_signals: dict[str, SignalAction] = {}
         self._filter_long: list[bool] = [False] * len(self._members)
+        self._size: OrderSize | None = None
+
+    def order_size(self) -> OrderSize | None:
+        return self._size
 
     @property
     def child_ids(self) -> list[str]:
@@ -136,6 +145,7 @@ class EnsembleAlgorithm(Algorithm):
         self._filter_long = [False] * len(self._members)
         for _, child in self._members:
             child.reset()
+        self._size = None
 
     def _synced_members(self) -> list[Algorithm]:
         """Children whose position state follows the ensemble's."""
@@ -203,11 +213,13 @@ class EnsembleAlgorithm(Algorithm):
             if self._should_exit(signals):
                 self._in_position = False
                 self.sync_open_position(False)
+                self._size = entry_order_size(self.target_exposure, "sell")
                 return "sell"
             return "hold"
         if self._should_enter(signals):
             self._in_position = True
             self.sync_open_position(True)
+            self._size = entry_order_size(self.target_exposure, "buy")
             return "buy"
         # Still flat: undo any child's belief that its outvoted buy was filled.
         self.sync_open_position(False)

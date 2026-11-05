@@ -23,6 +23,9 @@
   --accent-dim: 37 99 235;
   --on-accent: 255 255 255;
   --muted: 161 161 170;
+  --positive: 52 211 153;
+  --negative: 251 113 133;
+  --warning: 251 191 36;
   --header-height: 3.5rem;
 }
 
@@ -121,6 +124,23 @@ table.data.runs-table tbody tr:hover {
 
 .badge-strategy {
   @apply bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/25;
+}
+
+.badge-buy {
+  @apply bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30;
+}
+
+.badge-sell {
+  @apply bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/30;
+}
+
+/* Streaming tick-flash animation (CSS-only for zero JS runtime thrash) */
+[data-flash="up"] {
+  @apply bg-emerald-500/20 text-emerald-200 transition-colors duration-300;
+}
+
+[data-flash="down"] {
+  @apply bg-rose-500/20 text-rose-200 transition-colors duration-300;
 }
 
 .badge-model {

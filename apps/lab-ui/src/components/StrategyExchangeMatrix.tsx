@@ -47,7 +47,7 @@ export function StrategyExchangeMatrix({ catalog }: StrategyExchangeMatrixProps)
                 return (
                   <td key={exchange} className="text-center text-muted">
                     {on ? (
-                      <span className="text-emerald-400" title="Supported">Yes</span>
+                      <span className="text-positive font-medium" title="Supported">Yes</span>
                     ) : (
                       <span title="Not supported">—</span>
                     )}

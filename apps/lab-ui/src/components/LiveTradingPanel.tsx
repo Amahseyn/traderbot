@@ -585,13 +585,13 @@ export function LiveTradingPanel({ onJobsStarted, onSessionChange }: LiveTrading
           <ul className="space-y-2 text-sm">
             <li className="flex items-center justify-between gap-2">
               <span className="text-muted">Hyperliquid wallet</span>
-              <span className={hyperliquidReady ? "text-emerald-300" : "text-amber-200"}>
+              <span className={hyperliquidReady ? "text-positive" : "text-warning"}>
                 {hyperliquidReady ? "Ready" : "Not set"}
               </span>
             </li>
             <li className="flex items-center justify-between gap-2">
               <span className="text-muted">Nobitex API keys</span>
-              <span className={nobitexKeysReady ? "text-emerald-300" : "text-amber-200"}>
+              <span className={nobitexKeysReady ? "text-positive" : "text-warning"}>
                 {nobitexKeysReady ? "Ready" : "Not set"}
               </span>
             </li>

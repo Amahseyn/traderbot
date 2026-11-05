@@ -28,6 +28,7 @@ export function OptimizerBatchPanel({ onJob }: { onJob: (jobId: string) => void 
   const [feePct, setFeePct] = useState("0.045");
   const [cash, setCash] = useState("10000");
   const [selectionMode, setSelectionMode] = useState<"validation" | "in_sample">("validation");
+  const [rankBy, setRankBy] = useState("return_pct");
   const [visualize, setVisualize] = useState(true);
 
   useEffect(() => {
@@ -55,6 +56,7 @@ export function OptimizerBatchPanel({ onJob }: { onJob: (jobId: string) => void 
         optimize_n_trials: Number(trials),
         full_grid: fullGrid,
         optimize_selection_mode: selectionMode,
+        optimize_rank_by: rankBy,
         use_optimized_strategy_params: true,
         apply_sweep_winner: true,
         strategy_ids: [...enabledStrategyIds],
@@ -123,6 +125,16 @@ export function OptimizerBatchPanel({ onJob }: { onJob: (jobId: string) => void 
         </Field>
         <Field label="Fee per side (%)">
           <TextInput type="number" min={0} step="any" value={feePct} onChange={(event) => setFeePct(event.target.value)} />
+        </Field>
+        <Field label="Optimization objective">
+          <SelectInput
+            value={rankBy}
+            onChange={(event) => setRankBy(event.target.value)}
+          >
+            <option value="return_pct">Maximize return (win rate tie-breaker)</option>
+            <option value="win_rate">Maximize win rate (return tie-breaker)</option>
+            <option value="edge">Maximize edge (expectancy)</option>
+          </SelectInput>
         </Field>
         <Field label="Selection mode">
           <SelectInput

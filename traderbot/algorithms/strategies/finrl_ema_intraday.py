@@ -1,6 +1,7 @@
 """FinRL-Trading intraday preset: EMA 12/48 (Hyperliquid 1m/5m research default)."""
 
-from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+from traderbot.algorithms.base import Algorithm, Bar, OrderSize, SignalAction
+from traderbot.algorithms.position_sizing import ALL_IN_EXPOSURE, entry_order_size, validate_target_exposure
 from traderbot.algorithms.price_context import (
     apply_intrahour_context,
     recent_cumulative_return,
@@ -38,10 +39,14 @@ class FinrlEmaIntradayAlgorithm(Algorithm):
         sell_max_fine_last_5m: float | None = None,
         min_edge_over_cost: float | None = None,
         roundtrip_cost_pct: float | None = None,
+        target_exposure: float = 1.0,
     ):
         validate_fast_slow(fast, slow)
         validate_price_context(context_bars, buy_min_recent_return, sell_max_recent_return)
         validate_cost_edge(min_edge_over_cost, roundtrip_cost_pct)
+        self.target_exposure = validate_target_exposure(target_exposure)
+        if self.target_exposure < ALL_IN_EXPOSURE:
+            self.uses_position_sizing = True
         if signal_style not in ("level_lag", "cross"):
             raise ValueError("signal_style must be 'level_lag' or 'cross'")
         self.fast = fast
@@ -62,6 +67,7 @@ class FinrlEmaIntradayAlgorithm(Algorithm):
         self._prev_want_long: bool | None = None
         self._held_long = False
         self._closes: list[float] = []
+        self._size: OrderSize | None = None
 
     def reset(self) -> None:
         ema_reset(self._fast)
@@ -71,6 +77,10 @@ class FinrlEmaIntradayAlgorithm(Algorithm):
         self._prev_want_long = None
         self._held_long = False
         self._closes.clear()
+        self._size = None
+
+    def order_size(self) -> OrderSize | None:
+        return self._size
 
     def sync_open_position(self, in_position: bool) -> None:
         self._held_long = in_position
@@ -107,7 +117,10 @@ class FinrlEmaIntradayAlgorithm(Algorithm):
             action = self._on_bar_cross(bar)
         else:
             action = self._on_bar_level_lag(bar)
-        return self._gate_signal(action, bar)
+        action = self._gate_signal(action, bar)
+        if action != "hold":
+            self._size = entry_order_size(self.target_exposure, action)
+        return action
 
     def _on_bar_cross(self, bar: Bar) -> SignalAction:
         close = float(bar["close"])

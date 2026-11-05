@@ -39,16 +39,23 @@ def content_hash_for_configuration(
 
 
 _SYMBOL_RESOLUTION_RE = re.compile(r"^([A-Z0-9]+)_(.+)$", re.IGNORECASE)
+_RESOLUTION_PREFIX_RE = re.compile(r"^(\d+|[0-9]*[DWM])(_.*)?$", re.IGNORECASE)
 
 
 def parse_symbol_resolution_from_csv(csv_path: Path | str | None) -> tuple[str | None, str | None]:
     if not csv_path:
         return None, None
+    raw_str = str(csv_path)
+    if "://" in raw_str:
+        return None, None
     stem = Path(csv_path).stem
     match = _SYMBOL_RESOLUTION_RE.match(stem)
     if not match:
         return None, None
-    return match.group(1).upper(), match.group(2)
+    candidate_resolution = match.group(2)
+    if not _RESOLUTION_PREFIX_RE.match(candidate_resolution):
+        return None, None
+    return match.group(1).upper(), candidate_resolution
 
 
 def build_strategy_parameters(algorithm: Algorithm) -> dict[str, Any]:

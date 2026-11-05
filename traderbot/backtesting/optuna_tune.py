@@ -9,7 +9,12 @@ from traderbot.algorithms.registry import algorithm_for_id, strategy_kwargs_from
 from traderbot.backtesting import backtest_summary_dict, load_bars_csv, run_backtest
 from traderbot.backtesting.metrics import buy_and_hold_return_pct, max_drawdown_pct, split_chronological
 from traderbot.backtesting.sweep import SweepOptions, sweep_rank_key
-from traderbot.backtesting.tune_search_space import resolve_tune_param_names, suggest_strategy_params
+from traderbot.backtesting.trade_stats import effective_min_trades
+from traderbot.backtesting.tune_search_space import (
+    initial_trial_params,
+    resolve_tune_param_names,
+    suggest_strategy_params,
+)
 from traderbot.data.intrahour import enrich_bars_for_csv
 
 logger = logging.getLogger(__name__)
@@ -26,6 +31,7 @@ def _require_optuna() -> Any:
             "Optuna is required for optimize_method=optuna. "
             'Install with: pip install -e ".[ui]" or pip install optuna>=3.6'
         ) from exc
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
     return optuna
 
 
@@ -113,26 +119,38 @@ def _evaluate_params(
         )
         validation_return = float(validation_summary["return_pct"])
         validation_trades = int(validation_summary["trades"])
+    val_source = validation_summary or train_summary
+    val_wr = val_source.get("win_rate_pct")
+    if val_wr is None and val_source.get("trade_win_rate") is not None:
+        val_wr = round(float(val_source["trade_win_rate"]) * 100.0, 2)
+    effective_min = effective_min_trades(options.min_trades, len(train_bars))
     eligible = (
-        int(train_summary["trades"]) >= options.min_trades
-        and validation_trades >= options.min_trades
+        int(train_summary["trades"]) >= effective_min
+        and validation_trades >= effective_min
     )
     return {
         "params": dict(params),
         "train": train_summary,
-        "validation": validation_summary or train_summary,
+        "validation": val_source,
         "eligible": eligible,
         "validation_return_pct": validation_return,
         "validation_trades": validation_trades,
+        "validation_win_rate_pct": val_wr,
+        "win_rate_pct": val_wr,
     }
 
 
-def _selection_key(row: dict[str, Any]) -> tuple[int, float, float]:
-    return (
-        1 if row.get("eligible") else 0,
-        float(row.get("validation_return_pct") or float("-inf")),
-        float(row["train"]["return_pct"]),
-    )
+def _selection_key(row: dict[str, Any], *, rank_by: str = "return_pct") -> tuple:
+    eligible = 1 if row.get("eligible") else 0
+    val_wr = row.get("validation_win_rate_pct")
+    if val_wr is None:
+        val_wr = row.get("train", {}).get("win_rate_pct")
+    val_wr_f = float(val_wr) if val_wr is not None else float("-inf")
+    val_ret = float(row.get("validation_return_pct") or float("-inf"))
+    train_ret = float(row.get("train", {}).get("return_pct") or float("-inf"))
+    if rank_by in ("win_rate", "win_rate_pct"):
+        return (eligible, val_wr_f, val_ret, train_ret)
+    return (eligible, val_ret, val_wr_f, train_ret)
 
 
 def run_strategy_optuna_tune(
@@ -174,6 +192,8 @@ def run_strategy_optuna_tune(
 
     trial_rows: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
+    effective_min = effective_min_trades(options.min_trades, len(train_bars))
+    rank_by = str(options.rank_by or "return_pct").strip().lower()
 
     def objective(trial: Any) -> float:
         try:
@@ -203,10 +223,20 @@ def run_strategy_optuna_tune(
         trial.set_user_attr("params", params)
         trial.set_user_attr("eligible", row["eligible"])
         trial_rows.append(row)
-        # Penalise ineligible candidates so the TPE sampler does not concentrate
-        # exploration around inactive / zero-trade parameter regions.
+        # Penalise ineligible candidates gracefully so TPE sampler learns active regions.
         if not row["eligible"]:
-            return float("-inf")
+            train_trades = int(row["train"]["trades"])
+            val_trades = int(row.get("validation_trades", train_trades))
+            avg_trades = (train_trades + val_trades) / 2.0
+            trade_ratio = min(1.0, avg_trades / effective_min) if effective_min > 0 else 0.0
+            penalty = -100.0 + 50.0 * trade_ratio
+            if rank_by in ("win_rate", "win_rate_pct"):
+                val_wr = float(row.get("validation_win_rate_pct") or 0.0)
+                return penalty + val_wr * 0.1
+            return penalty + min(0.0, float(row["validation_return_pct"]))
+        if rank_by in ("win_rate", "win_rate_pct"):
+            val_wr = row.get("validation_win_rate_pct")
+            return float(val_wr if val_wr is not None else 0.0)
         return float(row["validation_return_pct"])
 
     sampler: Any
@@ -216,6 +246,16 @@ def run_strategy_optuna_tune(
         sampler = optuna.samplers.TPESampler(multivariate=True)
 
     study = optuna.create_study(direction="maximize", sampler=sampler)
+    initial_params = initial_trial_params(
+        options.strategy_id,
+        param_names,
+        full_grid_hints=tune_config.full_grid_hints,
+    )
+    if initial_params:
+        try:
+            study.enqueue_trial(initial_params)
+        except Exception:
+            pass
     study.optimize(
         objective,
         n_trials=max(1, tune_config.n_trials),
@@ -227,7 +267,7 @@ def run_strategy_optuna_tune(
         reason = skipped[0]["error"] if skipped else "no completed trials"
         raise ValueError(f"optuna found no valid trials: {reason}")
 
-    trial_rows.sort(key=_selection_key, reverse=True)
+    trial_rows.sort(key=lambda row: _selection_key(row, rank_by=rank_by), reverse=True)
     winner = trial_rows[0]
     winner_params = dict(winner["params"])
     winner_namespace = merge_strategy_namespace(base)
@@ -324,11 +364,16 @@ def run_strategy_optuna_in_sample(
     train_bars = bars
     if holdout_bars is not None:
         if len(bars) <= holdout_bars:
-            raise ValueError(f"holdout_tail_bars={holdout_bars} needs more bars (got {len(bars)})")
-        train_bars = bars[:-holdout_bars]
+            holdout_bars = max(1, int(len(bars) * 0.2)) if len(bars) > 10 else None
+        if holdout_bars is not None and len(bars) > holdout_bars:
+            train_bars = bars[:-holdout_bars]
+        else:
+            train_bars = bars
 
     rows: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
+    effective_min = effective_min_trades(options.min_trades, len(train_bars))
+    rank_by = str(options.rank_by or "return_pct").strip().lower()
 
     def objective(trial: Any) -> float:
         try:
@@ -368,10 +413,18 @@ def run_strategy_optuna_in_sample(
             extra={"strategy_id": options.strategy_id},
         )
         summary["params"] = dict(params)
-        summary["eligible"] = summary["trades"] >= options.min_trades
+        summary["eligible"] = summary["trades"] >= effective_min
         rows.append(summary)
         if not summary["eligible"]:
-            return float("-inf")
+            trades = int(summary["trades"])
+            trade_ratio = min(1.0, trades / effective_min) if effective_min > 0 else 0.0
+            penalty = -100.0 + 50.0 * trade_ratio
+            if rank_by in ("win_rate", "win_rate_pct"):
+                wr = float(summary.get("win_rate_pct") or 0.0)
+                return penalty + wr * 0.1
+            return penalty + min(0.0, float(summary["return_pct"]))
+        if rank_by in ("win_rate", "win_rate_pct"):
+            return float(summary.get("win_rate_pct") or 0.0)
         return float(summary["return_pct"])
 
     sampler = (
@@ -380,6 +433,16 @@ def run_strategy_optuna_in_sample(
         else optuna.samplers.TPESampler(multivariate=True)
     )
     study = optuna.create_study(direction="maximize", sampler=sampler)
+    initial_params = initial_trial_params(
+        options.strategy_id,
+        param_names,
+        full_grid_hints=tune_config.full_grid_hints,
+    )
+    if initial_params:
+        try:
+            study.enqueue_trial(initial_params)
+        except Exception:
+            pass
     study.optimize(
         objective,
         n_trials=max(1, tune_config.n_trials),
@@ -389,7 +452,7 @@ def run_strategy_optuna_in_sample(
     )
     if not rows:
         raise ValueError("optuna in_sample found no valid trials")
-    rows.sort(key=lambda row: sweep_rank_key(row, rank_by="return_pct"), reverse=True)
+    rows.sort(key=lambda row: sweep_rank_key(row, rank_by=rank_by), reverse=True)
     best = rows[0]
     best_params = dict(best.get("params") or {})
     payload: dict[str, Any] = {
@@ -402,7 +465,7 @@ def run_strategy_optuna_in_sample(
         "execution": options.execution,
         "holdout_tail_bars": holdout_bars,
         "min_trades": options.min_trades,
-        "rank_by": "return_pct",
+        "rank_by": rank_by,
         "selection_mode": "in_sample",
         "param_grid": {name: ["optuna"] for name in param_names},
         "combinations": len(study.trials),

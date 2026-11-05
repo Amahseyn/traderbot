@@ -324,6 +324,7 @@ export default function StrategiesDashboardPage() {
               zScoreCurve={pairResult.z_score_curve}
               returnPct={pairResult.return_pct}
               maxDrawdownPct={pairResult.max_drawdown_pct}
+              winRatePct={pairResult.win_rate_pct}
             />
             {pairResult.trades.length > 0 ? (
               <div className="overflow-x-auto rounded-xl border border-border">

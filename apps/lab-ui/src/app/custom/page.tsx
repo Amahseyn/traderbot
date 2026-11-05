@@ -72,9 +72,11 @@ export default function CustomPipelinePage() {
   const [runEndLocal, setRunEndLocal] = useState("");
   const [useOptimizedStrategyParams, setUseOptimizedStrategyParams] = useState(true);
   const [optimizeBeforeCompare, setOptimizeBeforeCompare] = useState(false);
+  const [optimizeMethod, setOptimizeMethod] = useState<"optuna" | "grid">("optuna");
   const [optimizeSelectionMode, setOptimizeSelectionMode] = useState<"validation" | "in_sample">(
     "validation",
   );
+  const [optimizeRankBy, setOptimizeRankBy] = useState<string>("return_pct");
   const [optimizeHoldoutBars, setOptimizeHoldoutBars] = useState("");
   const [strategyManualParams, setStrategyManualParams] = useState<Record<string, unknown>>({});
   /** Run window was turned on only because grid-search was enabled — clear it when grid-search is off. */
@@ -139,7 +141,13 @@ export default function CustomPipelinePage() {
       setRunEndLocal(draft.runEndLocal);
       setUseOptimizedStrategyParams(draft.useOptimizedStrategyParams);
       setOptimizeBeforeCompare(draft.optimizeBeforeCompare);
+      if (draft.optimizeMethod) {
+        setOptimizeMethod(draft.optimizeMethod);
+      }
       setOptimizeSelectionMode(draft.optimizeSelectionMode);
+      if (draft.optimizeRankBy) {
+        setOptimizeRankBy(draft.optimizeRankBy);
+      }
       setOptimizeHoldoutBars(draft.optimizeHoldoutBars);
       setStrategyManualParams(draft.strategyManualParams);
       setDraftRestored(true);
@@ -171,8 +179,10 @@ export default function CustomPipelinePage() {
         runEndLocal,
         useOptimizedStrategyParams,
         optimizeBeforeCompare,
+        optimizeMethod,
         optimizeSelectionMode,
         optimizeHoldoutBars,
+        optimizeRankBy,
         strategyManualParams,
       });
     }, 400);
@@ -195,8 +205,10 @@ export default function CustomPipelinePage() {
     runEndLocal,
     useOptimizedStrategyParams,
     optimizeBeforeCompare,
+    optimizeMethod,
     optimizeSelectionMode,
     optimizeHoldoutBars,
+    optimizeRankBy,
     strategyManualParams,
   ]);
 
@@ -349,7 +361,9 @@ export default function CustomPipelinePage() {
         allow_short: allowShort,
         use_optimized_strategy_params: useOptimizedStrategyParams,
         optimize_before_compare: optimizeBeforeCompare,
+        optimize_method: optimizeMethod,
         optimize_selection_mode: optimizeSelectionMode,
+        optimize_rank_by: optimizeRankBy,
       };
       if (optimizeHoldoutBars.trim() !== "") {
         body.optimize_holdout_tail_bars = Number(optimizeHoldoutBars);
@@ -639,20 +653,49 @@ export default function CustomPipelinePage() {
                   </p>
                 )}
                 {optimizeBeforeCompare && (
-                  <Field
-                    label="Optimizer selection"
-                    hint="Validation is recommended; in-sample uses holdout reporting only when data is short."
-                  >
-                    <SelectInput
-                      value={optimizeSelectionMode}
-                      onChange={(event) =>
-                        setOptimizeSelectionMode(event.target.value as "validation" | "in_sample")
-                      }
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <Field
+                      label="Optimizer method"
+                      hint="Optuna tunes all strategy parameters; Grid sweeps 1–2 key parameters."
                     >
-                      <option value="validation">Train / validation / test</option>
-                      <option value="in_sample">In-sample (legacy)</option>
-                    </SelectInput>
-                  </Field>
+                      <SelectInput
+                        value={optimizeMethod}
+                        onChange={(event) =>
+                          setOptimizeMethod(event.target.value as "optuna" | "grid")
+                        }
+                      >
+                        <option value="optuna">Optuna (Bayesian / TPE)</option>
+                        <option value="grid">Grid search</option>
+                      </SelectInput>
+                    </Field>
+                    <Field
+                      label="Optimizer objective"
+                      hint="Maximize return (win rate tie-breaker) or target win rate directly."
+                    >
+                      <SelectInput
+                        value={optimizeRankBy}
+                        onChange={(event) => setOptimizeRankBy(event.target.value)}
+                      >
+                        <option value="return_pct">Maximize return (win rate tie-breaker)</option>
+                        <option value="win_rate">Maximize win rate (return tie-breaker)</option>
+                        <option value="edge">Maximize edge (expectancy &amp; t-stat)</option>
+                      </SelectInput>
+                    </Field>
+                    <Field
+                      label="Optimizer selection"
+                      hint="Validation is recommended; in-sample uses holdout reporting only when data is short."
+                    >
+                      <SelectInput
+                        value={optimizeSelectionMode}
+                        onChange={(event) =>
+                          setOptimizeSelectionMode(event.target.value as "validation" | "in_sample")
+                        }
+                      >
+                        <option value="validation">Train / validation / test</option>
+                        <option value="in_sample">In-sample (legacy)</option>
+                      </SelectInput>
+                    </Field>
+                  </div>
                 )}
                 {optimizeBeforeCompare && optimizeSelectionMode === "in_sample" && (
                   <Field

@@ -1,5 +1,7 @@
 "use client";
 
+import { PercentCell } from "@/components/ui/PercentCell";
+
 type SeriesPoint = [number, number];
 
 type StrategyDashboardChartsProps = {
@@ -8,6 +10,7 @@ type StrategyDashboardChartsProps = {
   zScoreCurve: SeriesPoint[];
   returnPct: number;
   maxDrawdownPct: number;
+  winRatePct?: number | null;
 };
 
 const HEIGHT = 220;
@@ -91,20 +94,25 @@ export function StrategyDashboardCharts({
   zScoreCurve,
   returnPct,
   maxDrawdownPct,
+  winRatePct,
 }: StrategyDashboardChartsProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4 text-sm">
         <div>
           <span className="text-muted">Return </span>
-          <span className={returnPct >= 0 ? "text-emerald-400" : "text-red-400"}>
-            {returnPct.toFixed(2)}%
-          </span>
+          <PercentCell value={returnPct} showArrow={false} />
         </div>
         <div>
           <span className="text-muted">Max drawdown </span>
           <span>{maxDrawdownPct.toFixed(2)}%</span>
         </div>
+        {winRatePct != null && (
+          <div>
+            <span className="text-muted">Win rate </span>
+            <span className="font-mono tabular-nums text-white">{winRatePct.toFixed(1)}%</span>
+          </div>
+        )}
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
         <MiniChart title="Equity" points={equityCurve} stroke="#38bdf8" />
@@ -133,9 +141,7 @@ export function FundingBacktestCharts({
       <div className="flex flex-wrap gap-4 text-sm">
         <div>
           <span className="text-muted">Return </span>
-          <span className={returnPct >= 0 ? "text-emerald-400" : "text-red-400"}>
-            {returnPct.toFixed(2)}%
-          </span>
+          <PercentCell value={returnPct} showArrow={false} />
         </div>
         <div>
           <span className="text-muted">Max drawdown </span>

@@ -11,9 +11,19 @@ JOB_LOG_FLUSH_SECONDS = 0.25
 JOB_LOG_MAX_CHARS = 400_000
 
 
+def _truncate_log(text: str) -> str:
+    if len(text) <= JOB_LOG_MAX_CHARS:
+        return text
+    tail = text[-JOB_LOG_MAX_CHARS:]
+    newline_pos = tail.find("\n")
+    if newline_pos != -1 and newline_pos < 1000:
+        tail = tail[newline_pos + 1 :]
+    return f"[... logs truncated to last {JOB_LOG_MAX_CHARS // 1000}k chars ...]\n{tail}"
+
+
 def _set_job_log(connection, job_id: str, log_text: str) -> None:
     if len(log_text) > JOB_LOG_MAX_CHARS:
-        log_text = log_text[-JOB_LOG_MAX_CHARS:]
+        log_text = _truncate_log(log_text)
     connection.execute(
         "UPDATE jobs SET log_text = ? WHERE id = ?",
         (log_text, job_id),
@@ -36,7 +46,7 @@ class JobLogWriter(io.TextIOBase):
         self._parts.append(text)
         if len("".join(self._parts)) > JOB_LOG_MAX_CHARS:
             joined = "".join(self._parts)
-            self._parts = [joined[-JOB_LOG_MAX_CHARS:]]
+            self._parts = [_truncate_log(joined)]
         now = time.monotonic()
         if now - self._last_flush >= JOB_LOG_FLUSH_SECONDS:
             self._flush_db()

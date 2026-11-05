@@ -7,9 +7,15 @@ import {
   formatResolutionLabel,
   formatReturnPct,
   formatUtcTimestamp,
+  formatWinRate,
   returnPctClassName,
 } from "@/lib/format";
-import { runListMetrics } from "@/lib/runDisplay";
+import {
+  isRunOptimized,
+  runIntervalLabel,
+  runListMetrics,
+  runParametersList,
+} from "@/lib/runDisplay";
 import { parseVectorbtMetrics, vectorbtMetricRows } from "@/lib/vectorbtMetrics";
 
 type RunDetailOverviewProps = {
@@ -24,6 +30,14 @@ export function RunDetailOverview({ run }: RunDetailOverviewProps) {
   const feeRate = run.metrics.fee_rate;
   const slippageRate = run.metrics.slippage_rate;
   const execution = run.metrics.execution;
+  const isOptimized = isRunOptimized(run);
+  const parameterEntries = runParametersList(run);
+  const initialCash =
+    typeof run.metrics.initial_cash === "number"
+      ? run.metrics.initial_cash
+      : typeof (run.metrics.cash_flow as Record<string, unknown> | undefined)?.initial_cash === "number"
+        ? Number((run.metrics.cash_flow as Record<string, unknown>).initial_cash)
+        : null;
   const vectorbt = isStrategy ? parseVectorbtMetrics(run.metrics) : null;
   const vectorbtRows = vectorbt ? vectorbtMetricRows(vectorbt) : [];
 
@@ -38,9 +52,9 @@ export function RunDetailOverview({ run }: RunDetailOverviewProps) {
     listed.netPnl == null
       ? "text-white"
       : listed.netPnl > 0
-        ? "text-emerald-400"
+        ? "text-positive"
         : listed.netPnl < 0
-          ? "text-red-400"
+          ? "text-negative"
           : "text-muted";
 
   return (
@@ -62,8 +76,11 @@ export function RunDetailOverview({ run }: RunDetailOverviewProps) {
           {isStrategy && listed.trades != null && (
             <MetricTile label="Trades" value={String(listed.trades)} />
           )}
-          {typeof run.metrics.initial_cash === "number" && (
-            <MetricTile label="Initial cash" value={formatMoney(run.metrics.initial_cash)} />
+          {isStrategy && listed.winRatePct != null && (
+            <MetricTile label="Win rate" value={formatWinRate(listed.winRatePct)} />
+          )}
+          {initialCash != null && (
+            <MetricTile label="Initial cash" value={formatMoney(initialCash)} />
           )}
           {listed.finalEquity != null && (
             <MetricTile label="Final equity" value={formatMoney(listed.finalEquity)} />
@@ -88,7 +105,7 @@ export function RunDetailOverview({ run }: RunDetailOverviewProps) {
         <dl className="grid gap-3 text-sm">
           <DetailRow label="Run ID" value={run.id} mono />
           <DetailRow label="Symbol" value={run.symbol ?? "—"} />
-          <DetailRow label="Interval" value={formatResolutionLabel(run.resolution)} />
+          <DetailRow label="Interval" value={runIntervalLabel(run)} />
           <DetailRow label="Strategy" value={run.strategy_id ?? "—"} />
           <DetailRow label="Model" value={run.model_id ?? "—"} />
           <DetailRow label="Horizon" value={run.horizon_label ?? "—"} />
@@ -102,9 +119,32 @@ export function RunDetailOverview({ run }: RunDetailOverviewProps) {
           {isStrategy && typeof execution === "string" && (
             <DetailRow label="Execution" value={execution} />
           )}
+          <DetailRow
+            label="Optimizer"
+            value={isOptimized ? "Enabled (Optimized params)" : "Disabled (Default params)"}
+          />
           <DetailRow label="Recorded" value={formatUtcTimestamp(run.created_at_utc)} />
         </dl>
       </Card>
+
+      {parameterEntries.length > 0 && (
+        <Card
+          className="lg:col-span-2"
+          title="Strategy parameters"
+          description="Parameters applied to this run."
+        >
+          <dl className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 text-sm">
+            {parameterEntries.map(({ key, value }) => (
+              <div key={key} className="rounded-lg border border-border/80 bg-surface/60 px-3 py-2">
+                <dt className="text-muted text-xs font-mono">{key}</dt>
+                <dd className="mt-0.5 font-medium text-white font-mono text-sm tabular-nums">
+                  {typeof value === "boolean" ? (value ? "true" : "false") : String(value)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </Card>
+      )}
 
       {vectorbtRows.length > 0 && (
         <Card

@@ -5,36 +5,17 @@ import Link from "next/link";
 import { MarketCapCoin } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { SparklineChart } from "@/components/marketcap/SparklineChart";
+import { PercentCell } from "@/components/ui/PercentCell";
+import { formatCompact, formatCryptoPrice, formatPct } from "@/lib/format";
 
 interface CoinDetailDrawerProps {
   coin: MarketCapCoin | null;
   onClose: () => void;
 }
 
-function formatPrice(price: number | null | undefined): string {
-  if (price === null || price === undefined) return "—";
-  if (price >= 1) {
-    return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
-  if (price >= 0.01) {
-    return `$${price.toFixed(4)}`;
-  }
-  return `$${price.toFixed(6)}`;
-}
-
-function formatCompact(val: number | null | undefined): string {
-  if (val === null || val === undefined) return "—";
-  if (val >= 1e12) return `$${(val / 1e12).toFixed(2)}T`;
-  if (val >= 1e9) return `$${(val / 1e9).toFixed(2)}B`;
-  if (val >= 1e6) return `$${(val / 1e6).toFixed(2)}M`;
-  return `$${val.toLocaleString()}`;
-}
-
 function formatTokens(val: number | null | undefined, symbol: string): string {
   if (val === null || val === undefined) return "—";
-  if (val >= 1e9) return `${(val / 1e9).toFixed(2)}B ${symbol}`;
-  if (val >= 1e6) return `${(val / 1e6).toFixed(2)}M ${symbol}`;
-  return `${val.toLocaleString()} ${symbol}`;
+  return `${formatCompact(val, "")} ${symbol}`;
 }
 
 export function CoinDetailDrawer({ coin, onClose }: CoinDetailDrawerProps) {
@@ -104,16 +85,9 @@ export function CoinDetailDrawer({ coin, onClose }: CoinDetailDrawerProps) {
               </div>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-2xl font-bold tracking-tight text-white tabular-nums">
-                  {formatPrice(coin.current_price)}
+                  {formatCryptoPrice(coin.current_price)}
                 </span>
-                <span
-                  className={`inline-flex items-center text-xs font-semibold tabular-nums ${
-                    isPos24h ? "text-emerald-400" : "text-rose-400"
-                  }`}
-                >
-                  {isPos24h ? "+" : ""}
-                  {change24h.toFixed(2)}% (24h)
-                </span>
+                <PercentCell value={change24h} className="text-xs" />
               </div>
             </div>
           </div>
@@ -139,14 +113,7 @@ export function CoinDetailDrawer({ coin, onClose }: CoinDetailDrawerProps) {
               </span>
               <span className="tabular-nums">
                 {coin.price_change_percentage_7d !== null && coin.price_change_percentage_7d !== undefined ? (
-                  <span
-                    className={
-                      coin.price_change_percentage_7d >= 0 ? "text-emerald-400" : "text-rose-400"
-                    }
-                  >
-                    {coin.price_change_percentage_7d >= 0 ? "+" : ""}
-                    {coin.price_change_percentage_7d.toFixed(2)}% (7d)
-                  </span>
+                  <PercentCell value={coin.price_change_percentage_7d} className="text-xs" />
                 ) : null}
               </span>
             </div>
@@ -241,23 +208,19 @@ export function CoinDetailDrawer({ coin, onClose }: CoinDetailDrawerProps) {
             <div className="rounded border border-border bg-panel p-3">
               <div className="text-[11px] text-muted">All-Time High (ATH)</div>
               <div className="mt-1 font-semibold tabular-nums text-white">
-                {formatPrice(coin.ath)}
+                {formatCryptoPrice(coin.ath)}
               </div>
-              <div className="mt-0.5 text-xs font-medium tabular-nums text-rose-400">
-                {coin.ath_change_percentage !== null && coin.ath_change_percentage !== undefined
-                  ? `${coin.ath_change_percentage.toFixed(2)}%`
-                  : "—"}
+              <div className="mt-0.5 text-xs font-medium tabular-nums text-negative">
+                {formatPct(coin.ath_change_percentage)}
               </div>
             </div>
             <div className="rounded border border-border bg-panel p-3">
               <div className="text-[11px] text-muted">All-Time Low (ATL)</div>
               <div className="mt-1 font-semibold tabular-nums text-white">
-                {formatPrice(coin.atl)}
+                {formatCryptoPrice(coin.atl)}
               </div>
-              <div className="mt-0.5 text-xs font-medium tabular-nums text-emerald-400">
-                {coin.atl_change_percentage !== null && coin.atl_change_percentage !== undefined
-                  ? `+${coin.atl_change_percentage.toFixed(2)}%`
-                  : "—"}
+              <div className="mt-0.5 text-xs font-medium tabular-nums text-positive">
+                {formatPct(coin.atl_change_percentage)}
               </div>
             </div>
           </div>

@@ -45,7 +45,7 @@ export function CoinBeaconStatusCard() {
       <dl className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <dt className="text-xs text-muted">API keys</dt>
-          <dd className="font-medium text-emerald-200">{data.key_count ?? 1} configured</dd>
+          <dd className="font-medium text-positive">{data.key_count ?? 1} configured</dd>
         </div>
         <div>
           <dt className="text-xs text-muted">Daily credits</dt>

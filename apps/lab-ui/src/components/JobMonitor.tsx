@@ -418,7 +418,7 @@ export function JobMonitor({
     displayJob && isActiveJob(displayJob) ? (
       <span className="inline-flex items-center gap-2">
         {fullLog ? "Full session log" : "Job log"}
-        <span className="rounded bg-emerald-900/50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-200">
+        <span className="rounded bg-positive/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-positive border border-positive/25">
           Streaming
         </span>
       </span>
@@ -491,7 +491,7 @@ export function JobMonitor({
                   <ErrorState title="Could not restart this job" error={restartMutation.error} />
                 )}
                 {displayJob?.status === "completed" && displayJob.job_type === "strategy-test" && (
-                  <p className="text-sm text-emerald-300/90">
+                  <p className="text-sm text-positive/90">
                     Strategy test finished — open{" "}
                     <a href="/runs" className="text-accent hover:underline">
                       Runs
@@ -500,7 +500,7 @@ export function JobMonitor({
                   </p>
                 )}
                 {displayJob?.status === "completed" && displayJob.job_type === "strategy-compare" && (
-                  <p className="text-sm text-emerald-300/90">
+                  <p className="text-sm text-positive/90">
                     Compare finished — open{" "}
                     <a href="/runs" className="text-accent hover:underline">
                       Runs
@@ -509,7 +509,7 @@ export function JobMonitor({
                   </p>
                 )}
                 {displayJob?.status === "completed" && displayJob.job_type === "strategy-sweep" && (
-                  <p className="text-sm text-emerald-300/90">
+                  <p className="text-sm text-positive/90">
                     Sweep finished — open{" "}
                     <a href="/runs" className="text-accent hover:underline">
                       Runs
@@ -522,7 +522,7 @@ export function JobMonitor({
                   (displayJob.job_type === "terminal-once" ||
                     displayJob.job_type === "terminal-live" ||
                     displayJob.job_type === "terminal-replay") && (
-                  <p className="text-sm text-emerald-300/90">
+                  <p className="text-sm text-positive/90">
                     Terminal job finished — signal JSON is in the log above. For another run, adjust
                     settings in{" "}
                     <a href="/live" className="text-accent hover:underline">Live trading</a>.
@@ -664,8 +664,8 @@ export function JobMonitor({
                             isLiveOrder
                               ? "text-muted"
                               : (metrics?.sessionReturnPct ?? 0) >= 0
-                                ? "text-emerald-300"
-                                : "text-red-300"
+                                ? "text-positive"
+                                : "text-negative"
                           }`}
                         >
                           {isLiveOrder

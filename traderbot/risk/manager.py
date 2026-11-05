@@ -46,19 +46,58 @@ class RiskManager:
     last_equity: float | None = None
     halted: bool = False
     halt_reason: str = ""
+    audit_log: list[dict[str, Any]] = field(default_factory=list)
     _atr: Any = field(default=None)
 
     def __post_init__(self) -> None:
         if self._atr is None:
             self._atr = atr_init(self.limits.atr_lookback)
 
-    def reset_session(self, equity: float) -> None:
+    def trigger_kill_switch(self, *, operator: str = "system", reason: str = "manual_kill_switch") -> None:
+        """Trigger an emergency halt with audited operator attribution."""
+        self.halted = True
+        self.halt_reason = reason
+        self.limits.kill_switch = True
+        entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "action": "halt",
+            "operator": operator,
+            "reason": reason,
+        }
+        self.audit_log.append(entry)
+        logger.warning("Emergency kill switch triggered by operator '%s': %s", operator, reason)
+
+    def unhalt(self, *, operator: str, reason: str) -> None:
+        """Clear a latching risk halt with audited operator attribution.
+
+        Conforms to SEC Rule 15c3-5 and MiFID II RTS 6 audit requirements:
+        clearing an automated circuit breaker requires an authenticated operator and a recorded rationale.
+        """
+        if not self.halted and not self.limits.kill_switch:
+            return
+        entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "action": "unhalt",
+            "operator": operator,
+            "reason": reason,
+            "previous_halt_reason": self.halt_reason,
+        }
+        self.audit_log.append(entry)
+        self.halted = False
+        self.halt_reason = ""
+        self.limits.kill_switch = False
+        logger.info("Risk halt cleared by operator '%s': %s", operator, reason)
+
+    def reset_session(self, equity: float, *, operator: str = "system", reason: str = "session_reset") -> None:
         self.session_date = utc_today()
         self.day_start_equity = equity
         self.peak_equity = equity
         self.last_equity = equity
-        self.halted = False
-        self.halt_reason = ""
+        if self.halted or self.limits.kill_switch:
+            self.unhalt(operator=operator, reason=reason)
+        else:
+            self.halted = False
+            self.halt_reason = ""
 
     def _roll_session_if_new_day(self, equity: float) -> None:
         today = utc_today()
@@ -128,6 +167,7 @@ class RiskManager:
             "session_date": self.session_date.isoformat(),
             "halted": self.halted,
             "halt_reason": self.halt_reason,
+            "audit_log": list(self.audit_log),
             "day_start_equity": self.day_start_equity,
             "peak_equity": self.peak_equity,
             "last_equity": self.last_equity,
@@ -153,6 +193,7 @@ class RiskManager:
         self.last_equity = data.get("last_equity")
         self.halted = bool(data.get("halted", False))
         self.halt_reason = str(data.get("halt_reason") or "")
+        self.audit_log = list(data.get("audit_log", []))
 
         if self.last_equity is not None:
             self._roll_session_if_new_day(self.last_equity)

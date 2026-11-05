@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
-import traceback
 from pathlib import Path
+import traceback
 from typing import Any
 
 from traderbot.backtesting.compare_session import (
@@ -19,12 +20,17 @@ from traderbot.backtesting.robust_defaults import DEFAULT_HOLDOUT_FRACTION
 from traderbot.data.crypto_store import resolve_crypto_1h_csv_paths
 from traderbot.data.export import run_export
 from traderbot.markets.market_data import market_symbol as build_market_symbol
+from traderbot.results.layout import default_strategy_compare_out
 from traderbot.utils.bars import filter_bars_by_unix_range
 from traderbot.utils.resolution import resolution_from_csv_path, resolution_minutes
 from traderbot.utils.trading_costs import (
     DEFAULT_BACKTEST_EXECUTION,
     optional_rate,
 )
+
+
+def _run_timestamp() -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
 
 
 def _bar_minutes_for_csv(csv_path: Path, body: dict[str, Any]) -> int:
@@ -55,13 +61,17 @@ def _slice_bars_for_run_window(
 
 
 def _optimize_holdout_tail_bars(bar_count: int, body: dict[str, Any]) -> int | None:
+    if bar_count <= 10:
+        return None
     raw = body.get("optimize_holdout_tail_bars")
     if raw in (None, ""):
         raw = body.get("holdout_tail_bars")
     if raw not in (None, ""):
         holdout = int(raw)
-        return holdout if holdout >= 1 else None
-    if bar_count <= 10:
+        if holdout >= 1:
+            if holdout < bar_count - 1:
+                return holdout
+            return max(1, int(bar_count * DEFAULT_HOLDOUT_FRACTION))
         return None
     return max(1, int(bar_count * DEFAULT_HOLDOUT_FRACTION))
 
@@ -120,6 +130,7 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
     export_days, dataset_ids, use_all_hourly_files,
     compare_strategies, max_strategies, strategy_ids, ...
     """
+    session_timestamp = _run_timestamp()
     summary: dict[str, Any] = {"steps": []}
 
     export_paths: list[Path] = []
@@ -284,8 +295,17 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
                     **body,
                     "strategy_id": strategy_id,
                     "holdout_tail_bars": holdout_tail_bars,
+                    "optimize_holdout_tail_bars": holdout_tail_bars,
                     "run_start_unix_seconds": windows.run_start_unix_seconds,
                 }
+                if not sweep_body.get("out"):
+                    sweep_body["out"] = (
+                        Path("results")
+                        / "strategies"
+                        / "sweep"
+                        / f"{csv_path.stem}_{strategy_id}"
+                        / session_timestamp
+                    )
                 try:
                     payload = run_recorded_strategy_sweep(
                         sweep_body,
@@ -294,11 +314,54 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
                         log=log,
                     )
                 except Exception as exc:
-                    if holdout_tail_bars is not None and isinstance(exc, ValueError):
-                        sweep_body["holdout_tail_bars"] = None
+                    method_str = str(sweep_body.get("optimize_method") or "").lower()
+                    if method_str == "optuna":
+                        log(
+                            f"custom: optuna failed for {strategy_id} on {csv_path.name} ({exc}); "
+                            "retrying with grid sweep",
+                            flush=True,
+                        )
+                        fallback_body = {**sweep_body, "optimize_method": "grid"}
                         try:
                             payload = run_recorded_strategy_sweep(
-                                sweep_body,
+                                fallback_body,
+                                csv_path,
+                                bars=train_bars,
+                                log=log,
+                            )
+                        except Exception as grid_exc:
+                            exc = grid_exc
+                        else:
+                            test_summary = payload.get("test") if isinstance(payload.get("test"), dict) else None
+                            sweep_results.append(
+                                {
+                                    "csv": str(csv_path),
+                                    "symbol": windows.symbol,
+                                    "resolution": windows.resolution,
+                                    "strategy_id": strategy_id,
+                                    "train_bars": len(train_bars),
+                                    "eval_bars": len(windows.eval_bars),
+                                    "run_start_unix_seconds": windows.run_start_unix_seconds,
+                                    "auto_split": windows.auto_split,
+                                    "best_params": payload.get("best_params"),
+                                    "rank_by": payload.get("rank_by"),
+                                    "selection_mode": payload.get("selection_mode_applied")
+                                    or payload.get("selection_mode"),
+                                    "test_return_pct": test_summary.get("return_pct") if test_summary else None,
+                                }
+                            )
+                            continue
+                    if holdout_tail_bars is not None and isinstance(exc, ValueError):
+                        retry_body = {
+                            **sweep_body,
+                            "holdout_tail_bars": None,
+                            "optimize_holdout_tail_bars": None,
+                        }
+                        if method_str == "optuna":
+                            retry_body["optimize_method"] = "grid"
+                        try:
+                            payload = run_recorded_strategy_sweep(
+                                retry_body,
                                 csv_path,
                                 bars=train_bars,
                                 log=log,
@@ -316,6 +379,26 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
                                     "strategy_id": strategy_id,
                                     "skipped": True,
                                     "reason": str(retry_exc),
+                                }
+                            )
+                            continue
+                        else:
+                            test_summary = payload.get("test") if isinstance(payload.get("test"), dict) else None
+                            sweep_results.append(
+                                {
+                                    "csv": str(csv_path),
+                                    "symbol": windows.symbol,
+                                    "resolution": windows.resolution,
+                                    "strategy_id": strategy_id,
+                                    "train_bars": len(train_bars),
+                                    "eval_bars": len(windows.eval_bars),
+                                    "run_start_unix_seconds": windows.run_start_unix_seconds,
+                                    "auto_split": windows.auto_split,
+                                    "best_params": payload.get("best_params"),
+                                    "rank_by": payload.get("rank_by"),
+                                    "selection_mode": payload.get("selection_mode_applied")
+                                    or payload.get("selection_mode"),
+                                    "test_return_pct": test_summary.get("return_pct") if test_summary else None,
                                 }
                             )
                             continue
@@ -368,10 +451,15 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
     compare_results: list[dict[str, Any]] = []
     for index, csv_path in enumerate(csv_paths, start=1):
         log(f"custom: compare [{index}/{len(csv_paths)}] {csv_path.name}", flush=True)
+        if body.get("out"):
+            compare_out_dir = Path(str(body["out"])) / csv_path.stem
+        else:
+            compare_out_dir = default_strategy_compare_out(csv_path) / session_timestamp
         try:
             payload = run_strategy_compare(
                 StrategyCompareOptions(
                     csv_path=csv_path,
+                    out_dir=compare_out_dir,
                     visualize=bool(body.get("visualize", True)),
                     cash=float(body.get("cash") or 10_000.0),
                     fee=optional_rate(body.get("fee")),
@@ -415,7 +503,8 @@ def run_custom_research(body: dict[str, Any], *, log: Any = print) -> dict[str, 
                 excess = row.get("excess_vs_buy_hold_pct")
                 if excess is None:
                     excess = float(row.get("return_pct", 0)) - float(buy_and_hold)
-                if float(excess) > 0:
+                trades = int(row.get("trades") or 0)
+                if float(excess) > 0 and trades > 0:
                     beat_buy_hold += 1
         best_return = None
         if strategies and isinstance(strategies[0], dict):

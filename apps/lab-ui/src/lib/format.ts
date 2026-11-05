@@ -10,10 +10,10 @@ export function formatBytes(sizeBytes: number): string {
 
 const DAY_MINUTES = 24 * 60;
 
-/** Nobitex resolution token (`60`, `D`, `2D`) → minutes per candle. */
+/** Nobitex resolution token (`60`, `D`, `2D`, or compound like `60_last24h`) → minutes per candle. */
 export function minutesFromResolution(resolution: string | null | undefined): number | null {
   if (!resolution) return null;
-  const token = resolution.trim().toUpperCase();
+  const token = resolution.trim().toUpperCase().split("_")[0];
   if (/^\d+$/.test(token)) {
     const minutes = Number(token);
     return minutes >= 1 ? minutes : null;
@@ -82,7 +82,9 @@ export function formatRelativeTime(iso: string): string {
 
 export function parseReturnPct(metrics: Record<string, unknown> | undefined): number | null {
   if (!metrics) return null;
-  const raw = metrics.return_pct;
+  const raw =
+    metrics.return_pct ??
+    (metrics.cash_flow as Record<string, unknown> | undefined)?.return_pct;
   if (typeof raw === "number" && Number.isFinite(raw)) return raw;
   if (typeof raw === "string" && raw.trim()) {
     const parsed = Number(raw);
@@ -97,22 +99,91 @@ export function formatReturnPct(value: number | null, digits = 2): string {
   return `${sign}${value.toFixed(digits)}%`;
 }
 
+export function formatWinRate(value: number | null | undefined, digits = 1): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return `${value.toFixed(digits)}%`;
+}
+
 export function returnPctClassName(value: number | null): string {
   if (value == null) return "text-muted";
-  if (value > 0) return "text-emerald-400";
-  if (value < 0) return "text-red-400";
+  if (value > 0) return "text-positive";
+  if (value < 0) return "text-negative";
   return "text-muted";
+}
+
+/**
+ * Magnitude-aware crypto price formatting (from financial-ui-patterns).
+ * Prevents naive toFixed(2) truncating sub-dollar / altcoin assets, while
+ * properly grouping thousands on major assets (BTC, ETH).
+ */
+export function formatCryptoPrice(price: number | null | undefined, currencyPrefix = "$"): string {
+  if (price === null || price === undefined || !Number.isFinite(price)) return "—";
+  if (price >= 1000) {
+    return `${currencyPrefix}${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  if (price >= 1) {
+    return `${currencyPrefix}${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  }
+  if (price >= 0.01) {
+    return `${currencyPrefix}${price.toFixed(4)}`;
+  }
+  if (price >= 0.0001) {
+    return `${currencyPrefix}${price.toFixed(6)}`;
+  }
+  if (price >= 0.00000001) {
+    return `${currencyPrefix}${price.toFixed(8)}`;
+  }
+  return `${currencyPrefix}${price.toExponential(2)}`;
+}
+
+/**
+ * Compact unit formatting for market cap, volume, and total liquidity.
+ */
+export function formatCompact(val: number | null | undefined, prefix = "$"): string {
+  if (val === null || val === undefined || !Number.isFinite(val)) return "—";
+  if (val >= 1e12) return `${prefix}${(val / 1e12).toFixed(2)}T`;
+  if (val >= 1e9) return `${prefix}${(val / 1e9).toFixed(2)}B`;
+  if (val >= 1e6) return `${prefix}${(val / 1e6).toFixed(2)}M`;
+  if (val >= 1e3) return `${prefix}${(val / 1e3).toFixed(1)}K`;
+  return `${prefix}${val.toLocaleString("en-US")}`;
+}
+
+/**
+ * Basis points formatting for spreads, fee rates, and funding carry.
+ */
+export function formatBps(bps: number | null | undefined): string {
+  if (bps === null || bps === undefined || !Number.isFinite(bps)) return "—";
+  if (Math.abs(bps) < 100) return `${bps.toFixed(1)} bps`;
+  return `${(bps / 100).toFixed(2)}%`;
+}
+
+/**
+ * Standard percentage formatting with explicit sign.
+ */
+export function formatPct(value: number | null | undefined, digits = 2, showPlus = true): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  const sign = value > 0 && showPlus ? "+" : "";
+  return `${sign}${value.toFixed(digits)}%`;
 }
 
 export function formatResolutionLabel(resolution: string | null | undefined): string {
   if (!resolution?.trim()) return "—";
-  const minutes = minutesFromResolution(resolution);
-  if (minutes == null) return resolution;
+  const trimmed = resolution.trim();
+  const minutes = minutesFromResolution(trimmed);
+  if (minutes == null) return trimmed;
+  let baseLabel: string;
   if (minutes >= DAY_MINUTES && minutes % DAY_MINUTES === 0) {
     const days = minutes / DAY_MINUTES;
-    return days === 1 ? "1 day" : `${days} day candles`;
+    baseLabel = days === 1 ? "1 day" : `${days} day candles`;
+  } else {
+    baseLabel = `${formatDurationMinutes(minutes)} candles`;
   }
-  return `${formatDurationMinutes(minutes)} candles`;
+  const underscoreIndex = trimmed.indexOf("_");
+  if (underscoreIndex >= 0) {
+    const suffix = trimmed.slice(underscoreIndex + 1);
+    return `${baseLabel} (${suffix})`;
+  }
+  return baseLabel;
 }
 
 export function formatMoney(value: unknown): string {

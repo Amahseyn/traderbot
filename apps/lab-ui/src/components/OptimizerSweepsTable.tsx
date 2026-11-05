@@ -6,7 +6,8 @@ import { useMemo, useState } from "react";
 import { Field, TextInput } from "@/components/ui/Field";
 import { api, type SweepSession } from "@/lib/api";
 import { ErrorState, TableSkeleton } from "@/components/ui/States";
-import { formatUtcTimestamp } from "@/lib/format";
+import { formatUtcTimestamp, formatWinRate } from "@/lib/format";
+import { extractWinRatePct } from "@/lib/runDisplay";
 
 function metricPct(metrics: Record<string, unknown>, key: string): string {
   const raw = metrics[key];
@@ -83,8 +84,9 @@ export function OptimizerSweepsTable({ limit = 25 }: { limit?: number }) {
             <th>When</th>
             <th>Strategy</th>
             <th>Market</th>
-            <th>Validation</th>
-            <th>Holdout</th>
+            <th className="text-right">Win rate</th>
+            <th className="text-right">Validation</th>
+            <th className="text-right">Holdout</th>
             <th>Best params</th>
           </tr>
         </thead>
@@ -109,8 +111,11 @@ export function OptimizerSweepsTable({ limit = 25 }: { limit?: number }) {
                   </Link>
                 </td>
                 <td className="font-mono text-xs">{label || "—"}</td>
-                <td>{metricPct(metrics, "return_pct")}</td>
-                <td>{metricPct(metrics, "holdout_return_pct")}</td>
+                <td className="text-right font-mono text-xs tabular-nums text-white">
+                  {formatWinRate(extractWinRatePct(metrics))}
+                </td>
+                <td className="text-right font-mono text-xs tabular-nums">{metricPct(metrics, "return_pct")}</td>
+                <td className="text-right font-mono text-xs tabular-nums">{metricPct(metrics, "holdout_return_pct")}</td>
                 <td className="max-w-[14rem] truncate font-mono text-xs text-muted" title={paramPreview(row.best_params, 20)}>
                   {paramPreview(row.best_params)}
                 </td>

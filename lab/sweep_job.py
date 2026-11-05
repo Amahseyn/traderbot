@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 from typing import Any
@@ -42,6 +43,15 @@ def run_recorded_strategy_sweep(
     holdout_raw = body.get("holdout_tail_bars")
     if holdout_raw in (None, "") and body.get("optimize_holdout_tail_bars") not in (None, ""):
         holdout_raw = body.get("optimize_holdout_tail_bars")
+    holdout_tail_bars: int | None = None
+    if holdout_raw not in (None, ""):
+        try:
+            val = int(holdout_raw)
+            if bars and len(bars) > 0 and val >= len(bars) - 1:
+                val = max(1, int(len(bars) * 0.2)) if len(bars) > 10 else None
+            holdout_tail_bars = val
+        except (ValueError, TypeError):
+            holdout_tail_bars = None
     min_trades_raw = body.get("min_trades")
     if min_trades_raw in (None, "") and body.get("optimize_min_trades") not in (None, ""):
         min_trades_raw = body.get("optimize_min_trades")
@@ -68,13 +78,33 @@ def run_recorded_strategy_sweep(
             slippage=optional_rate(body.get("slippage")),
             exchange=(str(body.get("exchange")).strip().lower() or None) if body.get("exchange") else None,
             execution=str(body.get("execution") or DEFAULT_BACKTEST_EXECUTION),
-            holdout_tail_bars=None if holdout_raw in (None, "") else int(holdout_raw),
+            holdout_tail_bars=holdout_tail_bars,
             min_trades=DEFAULT_MIN_TRADES if min_trades_raw in (None, "") else int(min_trades_raw),
             max_combos=int(max_combos_raw or 64),
         ),
         _strategy_namespace_from_body(body),
         config=optimize_config,
     )
+    best_row = payload.get("best") if isinstance(payload.get("best"), dict) else {}
+    best_ret = best_row.get("return_pct")
+    best_trades = best_row.get("trades")
+    val_ret = best_row.get("validation_return_pct")
+    val_wr = best_row.get("validation_win_rate_pct") or best_row.get("win_rate_pct")
+    wr_part = f", win rate {float(val_wr):.1f}%" if val_wr is not None else ""
+    if val_ret is not None and best_ret is not None:
+        log(
+            f"sweep {method}: {strategy_id} on {csv.name} completed — "
+            f"train {float(best_ret):+.2f}%, val {float(val_ret):+.2f}%{wr_part} ({best_trades} trades)",
+            flush=True,
+        )
+    elif best_ret is not None:
+        log(
+            f"sweep {method}: {strategy_id} on {csv.name} completed — "
+            f"return {float(best_ret):+.2f}%{wr_part} ({best_trades} trades)",
+            flush=True,
+        )
+    else:
+        log(f"sweep {method}: {strategy_id} on {csv.name} completed", flush=True)
     def _unix_opt(raw: Any) -> int | None:
         if raw in (None, ""):
             return None
@@ -88,7 +118,11 @@ def run_recorded_strategy_sweep(
         payload["compare_start_utc"] = compare_start
         payload["compare_end_utc"] = compare_end
     out = body.get("out")
-    out_dir = Path(str(out)) if out else Path("results") / "strategies" / "sweep" / f"{csv.stem}_{strategy_id}"
+    if out:
+        out_dir = Path(str(out))
+    else:
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+        out_dir = Path("results") / "strategies" / "sweep" / f"{csv.stem}_{strategy_id}" / timestamp
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = out_dir / "sweep_manifest.json"
     manifest_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")

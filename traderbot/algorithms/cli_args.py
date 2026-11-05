@@ -6,6 +6,9 @@ from typing import Any
 
 # (name, type, default, help) for strategies added after the original flag set.
 EXTRA_STRATEGY_PARAMS: tuple[tuple[str, type, object, str], ...] = (
+    ("target_exposure", float, 1.0, "Buy size as a fraction of equity for signal strategies (1.0 = all-in)"),
+    ("max_tranches", int, 1, "rsi_threshold/bollinger/breakout_atr/rsi_trend/rsi_divergence/chart_patterns/momentum_shock/online_logistic: extra tranches added on fresh entry signals (1=off)"),
+    ("tranche_gap_bars", int, 0, "Minimum bars between tranches of the same position"),
     ("trend_fast_period", int, 50, "ma_trend fast moving average period"),
     ("trend_slow_period", int, 200, "ma_trend slow moving average period"),
     ("ma_kind", str, "sma", "ma_trend average type: sma or ema"),

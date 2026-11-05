@@ -53,6 +53,29 @@ def test_lab_api_smoke(tmp_path: Path):
     runs = client.get("/api/runs").json()
     assert len(runs) == 1 and runs[0]["run_kind"] == "strategy_backtest"
 
+    res_runs = client.get("/api/runs?resolution=60").json()
+    assert len(res_runs) == 1
+    assert client.get("/api/runs?resolution=15").json() == []
+
+    profitable_runs = client.get("/api/runs?outcome=profitable").json()
+    assert len(profitable_runs) == 1
+    assert client.get("/api/runs?outcome=loss").json() == []
+
+    opt_runs = client.get("/api/runs?optimizer=optimized").json()
+    assert len(opt_runs) == 0
+    def_runs = client.get("/api/runs?optimizer=default").json()
+    assert len(def_runs) == 1
+
+    query_runs = client.get("/api/runs?query=SSV").json()
+    assert len(query_runs) == 1
+    assert client.get("/api/runs?query=NONEXISTENT").json() == []
+
+    sorted_runs = client.get("/api/runs?sort_by=return_desc").json()
+    assert len(sorted_runs) == 1
+    asc_runs = client.get("/api/runs?sort_by=equity_asc").json()
+    assert len(asc_runs) == 1
+    assert runs[0]["dataset_label"] is not None
+
     assert client.get("/api/runs/missing-id").status_code == 404
 
     stats = client.get("/api/stats").json()

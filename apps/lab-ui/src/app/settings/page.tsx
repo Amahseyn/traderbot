@@ -132,7 +132,7 @@ export default function SettingsPage() {
               API auth required:{" "}
               <span
                 className={
-                  statusQuery.data.lab_api_auth_enabled !== false ? "text-amber-200" : "text-emerald-300"
+                  statusQuery.data.lab_api_auth_enabled !== false ? "text-warning" : "text-positive"
                 }
               >
                 {statusQuery.data.lab_api_auth_enabled === false ? "no (dev only)" : "yes"}
@@ -142,7 +142,7 @@ export default function SettingsPage() {
               <code className="text-xs">LAB_API_TOKEN</code> on API host:{" "}
               <span
                 className={
-                  statusQuery.data.lab_api_token_configured ? "text-emerald-300" : "text-muted"
+                  statusQuery.data.lab_api_token_configured ? "text-positive" : "text-muted"
                 }
               >
                 {statusQuery.data.lab_api_token_configured ? "set" : "not set (ephemeral token may be logged at API startup)"}
@@ -150,7 +150,7 @@ export default function SettingsPage() {
             </li>
             <li>
               <code className="text-xs">NEXT_PUBLIC_LAB_API_TOKEN</code> in UI build:{" "}
-              <span className={labUiTokenConfigured ? "text-emerald-300" : "text-muted"}>
+              <span className={labUiTokenConfigured ? "text-positive" : "text-muted"}>
                 {labUiTokenConfigured ? "set" : "not set"}
               </span>
             </li>
@@ -158,7 +158,7 @@ export default function SettingsPage() {
               CoinBeacon keys in repo <code className="text-xs">.env</code>:{" "}
               <span
                 className={
-                  statusQuery.data.coinbeacon_configured ? "text-emerald-300" : "text-muted"
+                  statusQuery.data.coinbeacon_configured ? "text-positive" : "text-muted"
                 }
               >
                 {statusQuery.data.coinbeacon_configured
@@ -191,13 +191,13 @@ export default function SettingsPage() {
           <ul className="text-sm space-y-1 text-slate-200">
             <li>
               API keys in .env:{" "}
-              <span className={statusQuery.data.api_keys_configured ? "text-emerald-300" : "text-muted"}>
+              <span className={statusQuery.data.api_keys_configured ? "text-positive" : "text-muted"}>
                 {statusQuery.data.api_keys_configured ? "yes" : "no"}
               </span>
             </li>
             <li>
               Session token in .env:{" "}
-              <span className={statusQuery.data.auth_token_configured ? "text-emerald-300" : "text-muted"}>
+              <span className={statusQuery.data.auth_token_configured ? "text-positive" : "text-muted"}>
                 {statusQuery.data.auth_token_configured ? "yes" : "no"}
               </span>
             </li>
@@ -205,7 +205,7 @@ export default function SettingsPage() {
               Hyperliquid wallet:{" "}
               <span
                 className={
-                  statusQuery.data.hyperliquid_wallet_configured ? "text-emerald-300" : "text-muted"
+                  statusQuery.data.hyperliquid_wallet_configured ? "text-positive" : "text-muted"
                 }
               >
                 {statusQuery.data.hyperliquid_wallet_configured ? "yes" : "no"}
@@ -215,7 +215,7 @@ export default function SettingsPage() {
               Hyperliquid trading key:{" "}
               <span
                 className={
-                  statusQuery.data.hyperliquid_trading_configured ? "text-emerald-300" : "text-muted"
+                  statusQuery.data.hyperliquid_trading_configured ? "text-positive" : "text-muted"
                 }
               >
                 {statusQuery.data.hyperliquid_trading_configured ? "yes" : "no"}
@@ -256,7 +256,7 @@ export default function SettingsPage() {
           </Field>
           {saveCoinbeaconMutation.isError && <JobErrorAlert error={saveCoinbeaconMutation.error} />}
           {saveCoinbeaconMutation.isSuccess && (
-            <p className="text-sm text-emerald-300/90">Saved to .env. Discovery can use keys immediately.</p>
+            <p className="text-sm text-positive/90">Saved to .env. Discovery can use keys immediately.</p>
           )}
           <Button type="submit" variant="secondary" disabled={saveCoinbeaconMutation.isPending}>
             Save CoinBeacon keys
@@ -294,7 +294,7 @@ export default function SettingsPage() {
           </Field>
           {saveHyperliquidMutation.isError && <JobErrorAlert error={saveHyperliquidMutation.error} />}
           {saveHyperliquidMutation.isSuccess && (
-            <p className="text-sm text-emerald-300/90">Saved to .env on the Lab API host.</p>
+            <p className="text-sm text-positive/90">Saved to .env on the Lab API host.</p>
           )}
           <Button type="submit" disabled={saveHyperliquidMutation.isPending || !hlWallet.trim()}>
             Save Hyperliquid credentials
@@ -336,7 +336,7 @@ export default function SettingsPage() {
           </Field>
           {loginMutation.isError && <JobErrorAlert error={loginMutation.error} />}
           {loginMutation.isSuccess && (
-            <p className="text-sm text-emerald-300/90">Login submitted — check status above.</p>
+            <p className="text-sm text-positive/90">Login submitted — check status above.</p>
           )}
           <Button type="submit" disabled={loginMutation.isPending || !username || !password}>
             Login & save token

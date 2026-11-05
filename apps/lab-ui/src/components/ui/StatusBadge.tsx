@@ -4,21 +4,21 @@ type StatusBadgeProps = {
 
 export function StatusBadge({ status }: StatusBadgeProps) {
   const normalized = status.toLowerCase();
-  let className = "bg-zinc-500/10 text-zinc-400 border border-zinc-500/25";
-  let dotClass = "bg-zinc-400";
+  let className = "bg-panel-elevated text-muted border border-border";
+  let dotClass = "bg-muted";
 
   if (normalized === "completed") {
-    className = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/25";
-    dotClass = "bg-emerald-400";
+    className = "bg-positive/10 text-positive border border-positive/25";
+    dotClass = "bg-positive";
   } else if (normalized === "running" || normalized === "queued") {
-    className = "bg-amber-500/10 text-amber-400 border border-amber-500/25";
-    dotClass = "bg-amber-400 animate-pulse";
+    className = "bg-warning/10 text-warning border border-warning/25";
+    dotClass = "bg-warning animate-pulse";
   } else if (normalized === "failed") {
-    className = "bg-rose-500/10 text-rose-400 border border-rose-500/25";
-    dotClass = "bg-rose-400";
+    className = "bg-negative/10 text-negative border border-negative/25";
+    dotClass = "bg-negative";
   } else if (normalized === "cancelled") {
-    className = "bg-zinc-500/10 text-zinc-400 border border-zinc-500/25";
-    dotClass = "bg-zinc-500";
+    className = "bg-panel-elevated text-muted border border-border";
+    dotClass = "bg-muted";
   }
 
   return (

@@ -130,3 +130,75 @@ def test_custom_research_optimize_without_run_start_auto_splits(tmp_path: Path, 
         connection.close()
     assert best is not None
     assert best.get("best_params")
+
+
+def test_custom_research_optimize_holdout_exceeding_bars(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "lab.db"
+    monkeypatch.setenv("TRADERBOT_DB", str(db_path))
+    connection = open_database(db_path)
+    init_database(connection)
+    connection.close()
+
+    csv_path = tmp_path / "ARBUSDT_1.csv"
+    closes = [100.0 + (index % 12) * 2.5 for index in range(100)]
+    _write_csv(csv_path, closes, start_ts=1_700_000_000, step_seconds=60)
+
+    logs: list[str] = []
+    summary = run_custom_research(
+        {
+            "compare_strategies": True,
+            "optimize_before_compare": True,
+            "optimize_selection_mode": "in_sample",
+            "optimize_holdout_tail_bars": 200,
+            "strategy_ids": ["bollinger_mean_reversion"],
+            "visualize": False,
+            "cash": 10_000.0,
+            "fee": 0.0,
+            "execution": "close",
+            "dataset_rows": [{"repo_path": str(csv_path)}],
+        },
+        log=lambda message, **_kwargs: logs.append(str(message)),
+    )
+
+    optimize_rows = summary.get("optimize") or []
+    assert optimize_rows and optimize_rows[0]["auto_split"] is True
+    assert optimize_rows[0]["best_params"] is not None
+    assert summary.get("compare")
+
+
+def test_custom_research_grid_search_holdout_exceeding_bars(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "lab.db"
+    monkeypatch.setenv("TRADERBOT_DB", str(db_path))
+    connection = open_database(db_path)
+    init_database(connection)
+    connection.close()
+
+    csv_path = tmp_path / "ARBUSDT_1.csv"
+    closes = [100.0 + (index % 12) * 2.5 for index in range(100)]
+    _write_csv(csv_path, closes, start_ts=1_700_000_000, step_seconds=60)
+
+    logs: list[str] = []
+    summary = run_custom_research(
+        {
+            "compare_strategies": True,
+            "optimize_before_compare": True,
+            "optimize_method": "grid",
+            "optimize_selection_mode": "in_sample",
+            "optimize_holdout_tail_bars": 200,
+            "strategy_ids": ["bollinger_mean_reversion"],
+            "visualize": False,
+            "cash": 10_000.0,
+            "fee": 0.0,
+            "execution": "close",
+            "dataset_rows": [{"repo_path": str(csv_path)}],
+        },
+        log=lambda message, **_kwargs: logs.append(str(message)),
+    )
+
+    optimize_rows = summary.get("optimize") or []
+    assert optimize_rows and optimize_rows[0]["auto_split"] is True
+    assert optimize_rows[0]["best_params"] is not None
+    assert summary.get("compare")
+    assert any("sweep grid" in line for line in logs)
+
+

@@ -28,7 +28,7 @@ export function RiskStatePanel() {
       {riskQuery.isError && <ErrorState title="Could not load risk state" error={riskQuery.error} />}
       {riskQuery.data && (
         <div className="space-y-3 text-sm">
-          <p className={halted ? "text-red-300" : "text-emerald-200"}>
+          <p className={halted ? "text-negative font-medium" : "text-positive font-medium"}>
             {halted ? `Halted: ${String(riskQuery.data.halt_reason ?? "unknown")}` : "Trading allowed"}
           </p>
           <ul className="grid gap-1 text-muted sm:grid-cols-2">

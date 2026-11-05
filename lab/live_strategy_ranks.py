@@ -88,6 +88,7 @@ def rank_strategies_on_live_bars(
             {
                 "strategy_id": strategy_id,
                 "return_pct": row.get("return_pct"),
+                "win_rate_pct": row.get("win_rate_pct"),
                 "max_drawdown_pct": row.get("max_drawdown_pct"),
                 "trade_count": row.get("trade_count"),
                 "final_equity": row.get("final_equity"),

@@ -18,7 +18,7 @@ function signedMoney(value: number | null | undefined): string {
 
 function toneClass(value: number | null | undefined): string {
   if (typeof value !== "number" || value === 0) return "text-white";
-  return value > 0 ? "text-emerald-400" : "text-red-400";
+  return value > 0 ? "text-positive" : "text-negative";
 }
 
 type Tile = { label: string; value: string; hint?: string; className?: string };
@@ -30,11 +30,11 @@ function buildTiles(summary: RunAnalytics["summary"]): Tile[] {
     { label: "Round trips", value: String(summary.round_trips), hint: `${summary.fills} fills${summary.open_position ? " · position open" : ""}` },
     { label: "Win rate", value: fixed(summary.win_rate_pct, 1, "%"), hint: `${summary.wins}W / ${summary.losses}L` },
     { label: "Profit factor", value: fixed(summary.profit_factor, 2), hint: "Gross profit ÷ gross loss" },
-    { label: "Max drawdown", value: fixed(summary.max_drawdown_pct, 2, "%"), hint: formatMoney(summary.max_drawdown_abs ?? undefined), className: "text-red-400" },
+    { label: "Max drawdown", value: fixed(summary.max_drawdown_pct, 2, "%"), hint: formatMoney(summary.max_drawdown_abs ?? undefined), className: "text-negative" },
     { label: "Sharpe (per trade)", value: fixed(summary.sharpe_per_trade, 2), hint: "Round-trip returns" },
     { label: "Sortino (per trade)", value: fixed(summary.sortino_per_trade, 2), hint: "Downside deviation only" },
-    { label: "Avg win", value: formatMoney(summary.avg_win ?? undefined), className: "text-emerald-400" },
-    { label: "Avg loss", value: formatMoney(summary.avg_loss ?? undefined), className: "text-red-400" },
+    { label: "Avg win", value: formatMoney(summary.avg_win ?? undefined), className: "text-positive" },
+    { label: "Avg loss", value: formatMoney(summary.avg_loss ?? undefined), className: "text-negative" },
     { label: "Payoff ratio", value: fixed(summary.payoff_ratio, 2), hint: "Avg win ÷ |avg loss|" },
     { label: "Expectancy", value: signedMoney(summary.expectancy), hint: "Mean PnL per trip", className: toneClass(summary.expectancy) },
     { label: "Best / worst trade", value: `${signedMoney(summary.best_trade)} / ${signedMoney(summary.worst_trade)}` },
@@ -191,11 +191,12 @@ export function RunAnalyticsPanel({ runId }: { runId: string }) {
   );
 }
 
-type ChartTab = "equity" | "drawdown" | "trips";
+type ChartTab = "equity" | "drawdown" | "win_rate" | "trips";
 
 const CHART_TABS: { id: ChartTab; label: string; description: string }[] = [
   { id: "equity", label: "Equity", description: "Portfolio equity after each fill (dashed line = starting cash)." },
   { id: "drawdown", label: "Drawdown", description: "Percent below the running equity peak." },
+  { id: "win_rate", label: "Win rate", description: "Running cumulative win percentage across closed round trips (dashed line = 50%)." },
   { id: "trips", label: "Trip PnL", description: "PnL of each closed round trip, in order." },
 ];
 
@@ -242,6 +243,15 @@ function PerformanceChartCard({ data, pnls }: { data: RunAnalytics; pnls: number
           fill="rgba(248,113,113,0.15)"
           format={(value) => `${value.toFixed(2)}%`}
           baseline={0}
+        />
+      )}
+      {tab === "win_rate" && (
+        <LineChart
+          values={(data.win_rate_curve ?? []).map((point) => point.win_rate_pct ?? 0)}
+          stroke="rgb(52 211 153)"
+          fill="rgba(52,211,153,0.12)"
+          format={(value) => `${value.toFixed(1)}%`}
+          baseline={50}
         />
       )}
       {tab === "trips" && <TradePnlBars pnls={pnls} />}

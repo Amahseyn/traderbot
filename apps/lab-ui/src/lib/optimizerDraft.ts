@@ -19,6 +19,7 @@ export type OptimizerSweepDraft = {
   sweepFullGrid: boolean;
   sweepOptimizeMethod: "grid" | "optuna";
   sweepOptunaTrials: string;
+  sweepRankBy?: string;
 };
 
 export function loadOptimizerSweepDraft(): OptimizerSweepDraft | null {

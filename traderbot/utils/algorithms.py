@@ -40,3 +40,11 @@ def entry_execution_kwargs_from_namespace(args: Any) -> dict[str, Any]:
         "entry_offset_pct": getattr(args, "entry_offset_pct", 0.0002),
         "entry_ttl_bars": getattr(args, "entry_ttl_bars", 2),
     }
+
+
+def tranche_kwargs_from_namespace(args: Any) -> dict[str, Any]:
+    """Multi-tranche re-entry kwargs shared by the tranche-capable strategies."""
+    return {
+        "max_tranches": getattr(args, "max_tranches", 1),
+        "tranche_gap_bars": getattr(args, "tranche_gap_bars", 0),
+    }

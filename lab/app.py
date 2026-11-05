@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -87,6 +88,13 @@ def create_app(database_path: Path | None = None):
 
     attach_lab_security(app)
 
+    @app.exception_handler(sqlite3.OperationalError)
+    def _sqlite_operational_error_handler(request, exc: sqlite3.OperationalError):
+        return JSONResponse(
+            status_code=503,
+            content={"error": "database_error", "detail": f"Database temporarily unavailable: {exc}"},
+        )
+
     def get_connection():
         return open_database(database_path or default_database_path())
 
@@ -127,6 +135,13 @@ def create_app(database_path: Path | None = None):
         strategy_id: str | None = None,
         model_id: str | None = None,
         horizon_label: str | None = None,
+        resolution: str | None = None,
+        outcome: str | None = None,
+        optimizer: str | None = None,
+        trades: str | None = None,
+        date_range: str | None = None,
+        query: str | None = None,
+        sort_by: str | None = None,
         limit: int = Query(default=25, ge=1, le=500),
         offset: int = Query(default=0, ge=0),
     ):
@@ -139,6 +154,12 @@ def create_app(database_path: Path | None = None):
                 strategy_id=strategy_id,
                 model_id=model_id,
                 horizon_label=horizon_label,
+                resolution=resolution,
+                outcome=outcome,
+                optimizer=optimizer,
+                trades=trades,
+                date_range=date_range,
+                query=query,
             )
             rows = list_evaluation_runs(
                 connection,
@@ -147,6 +168,13 @@ def create_app(database_path: Path | None = None):
                 strategy_id=strategy_id,
                 model_id=model_id,
                 horizon_label=horizon_label,
+                resolution=resolution,
+                outcome=outcome,
+                optimizer=optimizer,
+                trades=trades,
+                date_range=date_range,
+                query=query,
+                sort_by=sort_by,
                 limit=limit,
                 offset=offset,
             )
@@ -540,14 +568,34 @@ def _sanitize_data_context(data_context: dict[str, Any]) -> dict[str, Any]:
 def _dataset_fields_for_csv(connection, csv_path: str | None) -> dict[str, Any]:
     if not csv_path:
         return {"dataset_id": None, "dataset_label": None}
-    row = fetch_dataset_by_repo_path(connection, str(csv_path))
-    if row is None:
-        return {"dataset_id": None, "dataset_label": None}
-    return {"dataset_id": row["id"], "dataset_label": row["label"]}
+    from lab.store.catalog import canonical_dataset_repo_path
+
+    canonical = canonical_dataset_repo_path(str(csv_path))
+    row = fetch_dataset_by_repo_path(connection, canonical) or fetch_dataset_by_repo_path(
+        connection, str(csv_path)
+    )
+    if row is not None:
+        return {"dataset_id": row["id"], "dataset_label": row["label"]}
+    stem = Path(csv_path).stem
+    if stem and stem != ".":
+        return {"dataset_id": None, "dataset_label": stem}
+    return {"dataset_id": None, "dataset_label": None}
 
 
 def _run_to_api(connection, row) -> dict[str, Any]:
     dataset_fields = _dataset_fields_for_csv(connection, row.data_context.get("csv"))
+    optimizer_enabled = bool(
+        row.data_context.get("optimizer_enabled")
+        or row.data_context.get("use_optimized_strategy_params")
+        or row.data_context.get("apply_sweep_winner")
+        or row.data_context.get("optimized")
+        or (isinstance(row.metrics, dict) and (
+            row.metrics.get("optimizer_enabled")
+            or row.metrics.get("use_optimized_strategy_params")
+            or row.metrics.get("apply_sweep_winner")
+            or row.metrics.get("optimized")
+        ))
+    )
     return {
         "id": row.id,
         "run_kind": row.run_kind,
@@ -558,6 +606,7 @@ def _run_to_api(connection, row) -> dict[str, Any]:
         "resolution": row.resolution,
         "horizon_label": row.horizon_label,
         "parameters": row.parameters,
+        "optimizer_enabled": optimizer_enabled,
         "data_context": _sanitize_data_context(row.data_context),
         "metrics": row.metrics,
         "created_at_utc": row.created_at_utc,

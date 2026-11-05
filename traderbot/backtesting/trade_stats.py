@@ -38,7 +38,13 @@ def trade_stats(result: Any) -> dict[str, Any]:
     returns = round_trip_returns(result)
     n = len(returns)
     if n == 0:
-        return {"round_trips": 0, "avg_trade_net_pct": None, "trade_t_stat": None, "trade_win_rate": None}
+        return {
+            "round_trips": 0,
+            "avg_trade_net_pct": None,
+            "trade_t_stat": None,
+            "trade_win_rate": None,
+            "win_rate_pct": None,
+        }
     mean = sum(returns) / n
     if n > 1:
         variance = sum((r - mean) ** 2 for r in returns) / (n - 1)
@@ -46,11 +52,13 @@ def trade_stats(result: Any) -> dict[str, Any]:
         t_stat = mean / (std / math.sqrt(n)) if std > 0 else (math.inf if mean > 0 else -math.inf if mean < 0 else 0.0)
     else:
         t_stat = None
+    win_rate = sum(1 for r in returns if r > 0) / n
     return {
         "round_trips": n,
         "avg_trade_net_pct": round(mean * 100.0, 6),
         "trade_t_stat": None if t_stat is None or math.isinf(t_stat) else round(t_stat, 4),
-        "trade_win_rate": round(sum(1 for r in returns if r > 0) / n, 6),
+        "trade_win_rate": round(win_rate, 6),
+        "win_rate_pct": round(win_rate * 100.0, 4),
     }
 
 
@@ -65,3 +73,14 @@ def edge_rank_key(row: dict[str, Any]) -> tuple[int, int, float, float]:
         float(avg) if avg is not None else float("-inf"),
         float(row.get("return_pct") or float("-inf")),
     )
+
+
+def effective_min_trades(requested_min: int, bars_count: int) -> int:
+    """Scale requested minimum trades down when the bar window is short."""
+    if requested_min <= 0 or bars_count <= 0:
+        return 0
+    # On short windows, cap required trades at 1 trade per 40 bars (at least 1 trade).
+    # Windows with >= 1200 bars use the full requested_min (e.g. DEFAULT_MIN_TRADES = 30).
+    window_cap = max(1, bars_count // 40)
+    return min(requested_min, window_cap)
+

@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { MarketCapCoin } from "@/lib/api";
 import { SparklineChart } from "@/components/marketcap/SparklineChart";
+import { PriceCell } from "@/components/ui/PriceCell";
+import { PercentCell } from "@/components/ui/PercentCell";
+import { formatCompact } from "@/lib/format";
 
 interface MarketCapTableProps {
   coins: MarketCapCoin[];
@@ -14,52 +17,9 @@ interface MarketCapTableProps {
   isLoading: boolean;
 }
 
-function formatPrice(price: number | null | undefined): string {
-  if (price === null || price === undefined) return "—";
-  if (price >= 1000) {
-    return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
-  if (price >= 1) {
-    return `$${price.toFixed(2)}`;
-  }
-  if (price >= 0.01) {
-    return `$${price.toFixed(4)}`;
-  }
-  return `$${price.toFixed(6)}`;
-}
-
-function formatCompact(val: number | null | undefined): string {
-  if (val === null || val === undefined) return "—";
-  if (val >= 1e12) return `$${(val / 1e12).toFixed(2)}T`;
-  if (val >= 1e9) return `$${(val / 1e9).toFixed(2)}B`;
-  if (val >= 1e6) return `$${(val / 1e6).toFixed(2)}M`;
-  return `$${val.toLocaleString()}`;
-}
-
 function formatSupply(val: number | null | undefined, symbol: string): string {
   if (val === null || val === undefined) return "—";
-  if (val >= 1e9) return `${(val / 1e9).toFixed(2)}B ${symbol}`;
-  if (val >= 1e6) return `${(val / 1e6).toFixed(2)}M ${symbol}`;
-  return `${val.toLocaleString()} ${symbol}`;
-}
-
-function PercentChangeCell({ value }: { value: number | null | undefined }) {
-  if (value === null || value === undefined) {
-    return <span className="text-muted">—</span>;
-  }
-  const isPos = value >= 0;
-  return (
-    <span
-      className={`inline-flex items-center gap-0.5 font-semibold tabular-nums text-xs ${
-        isPos ? "text-emerald-400" : "text-rose-400"
-      }`}
-    >
-      <span aria-hidden="true">{isPos ? "▲" : "▼"}</span>
-      <span>
-        {Math.abs(value).toFixed(2)}%
-      </span>
-    </span>
-  );
+  return `${formatCompact(val, "")} ${symbol}`;
 }
 
 export function MarketCapTable({
@@ -201,23 +161,23 @@ export function MarketCapTable({
                 </td>
 
                 {/* Price */}
-                <td className="py-3.5 px-3 text-right font-mono font-medium text-white tabular-nums whitespace-nowrap">
-                  {formatPrice(coin.current_price)}
+                <td className="py-3.5 px-3 text-right whitespace-nowrap">
+                  <PriceCell value={coin.current_price} />
                 </td>
 
                 {/* 1h % */}
                 <td className="py-3.5 px-3 text-right whitespace-nowrap">
-                  <PercentChangeCell value={coin.price_change_percentage_1h} />
+                  <PercentCell value={coin.price_change_percentage_1h} />
                 </td>
 
                 {/* 24h % */}
                 <td className="py-3.5 px-3 text-right whitespace-nowrap">
-                  <PercentChangeCell value={coin.price_change_percentage_24h} />
+                  <PercentCell value={coin.price_change_percentage_24h} />
                 </td>
 
                 {/* 7d % */}
                 <td className="py-3.5 px-3 text-right whitespace-nowrap">
-                  <PercentChangeCell value={coin.price_change_percentage_7d} />
+                  <PercentCell value={coin.price_change_percentage_7d} />
                 </td>
 
                 {/* 24h Volume */}
@@ -236,7 +196,7 @@ export function MarketCapTable({
                   {supplyPct !== null && (
                     <div className="mt-1 ml-auto h-1 w-20 rounded-full bg-panel-elevated">
                       <div
-                        className="h-1 rounded-full bg-emerald-500"
+                        className="h-1 rounded-full bg-positive"
                         style={{ width: `${supplyPct}%` }}
                       />
                     </div>

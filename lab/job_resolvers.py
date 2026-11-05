@@ -48,6 +48,10 @@ def _apply_optimize_selection_fields(prepared: dict[str, Any], body: dict[str, A
         raise JobPayloadError("train_fraction and validation_fraction must be positive and sum to < 1")
     prepared["train_fraction"] = train_fraction
     prepared["validation_fraction"] = validation_fraction
+    rank_by = str(body.get("rank_by") or body.get("optimize_rank_by") or "return_pct").strip().lower()
+    if rank_by in ("return_pct", "win_rate", "win_rate_pct", "edge", "avg_trade_net_pct"):
+        prepared["rank_by"] = rank_by
+        prepared["optimize_rank_by"] = rank_by
 
 
 _CSV_SUFFIXES = {".csv"}

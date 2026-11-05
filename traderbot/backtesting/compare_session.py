@@ -252,11 +252,19 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
                     "strategy_id": strategy_id,
                     "csv": str(csv_path),
                     "compare_session_id": compare_session_id,
+                    "use_optimized_strategy_params": options.use_optimized_strategy_params,
+                    "apply_sweep_winner": options.apply_sweep_winner,
+                    "optimizer_enabled": bool(options.use_optimized_strategy_params or options.apply_sweep_winner),
                     **_vectorbt_extra(algo, bars, options),
                 },
             )
 
-    ranked.sort(key=lambda row: row["return_pct"], reverse=True)
+    def _compare_rank_key(row: dict[str, Any]) -> tuple:
+        trades = int(row.get("trades") or 0)
+        has_trades = 1 if trades > 0 else 0
+        return (has_trades, float(row.get("return_pct") or 0.0), trades)
+
+    ranked.sort(key=_compare_rank_key, reverse=True)
     best = ranked[0] if ranked else None
     payload: dict[str, Any] = {
         "csv": str(csv_path),
@@ -293,7 +301,15 @@ def run_strategy_compare(options: StrategyCompareOptions, *, log: LogFn | None =
 
         try_record("compare_session", compare_payload=payload)
 
-    _log(log, json.dumps(payload, indent=2))
+    logged_payload = {
+        **payload,
+        "strategies": [
+            {k: v for k, v in s.items() if k != "trade_logs"}
+            for s in payload.get("strategies", [])
+            if isinstance(s, dict)
+        ],
+    }
+    _log(log, json.dumps(logged_payload, indent=2))
     return payload
 
 
@@ -312,6 +328,8 @@ class StrategyTestOptions(ResolvesCostRates):
     strategy_namespace: Any | None = None
     mode: str = "strategies"
     allow_short: bool | None = None
+    use_optimized_strategy_params: bool = True
+    apply_sweep_winner: bool = False
 
 
 def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None) -> dict[str, Any]:
@@ -331,6 +349,8 @@ def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None)
         strategy_namespace=options.strategy_namespace,
         mode=mode,
         allow_short=options.allow_short,
+        use_optimized_strategy_params=options.use_optimized_strategy_params,
+        apply_sweep_winner=options.apply_sweep_winner,
     )
     csv_path = options.csv_path.resolve()
     bars = enrich_bars_for_csv(load_bars_csv(csv_path), csv_path, options.strategy_namespace)
@@ -379,6 +399,9 @@ def run_strategy_test(options: StrategyTestOptions, *, log: LogFn | None = None)
             "strategy_id": options.strategy_id,
             "csv": str(csv_path),
             "mode": mode,
+            "use_optimized_strategy_params": compare_options.use_optimized_strategy_params,
+            "apply_sweep_winner": compare_options.apply_sweep_winner,
+            "optimizer_enabled": bool(compare_options.use_optimized_strategy_params or compare_options.apply_sweep_winner),
             **_vectorbt_extra(algo, bars, compare_options),
         },
     )

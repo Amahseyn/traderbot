@@ -63,13 +63,13 @@ export function SparklineChart({
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
-      className={`shrink-0 overflow-visible ${className}`}
+      className={`shrink-0 overflow-visible ${isPositive ? "text-positive" : "text-negative"} ${className}`}
       aria-hidden="true"
     >
       <path
         d={pathD}
         fill="none"
-        stroke={isPositive ? "#10b981" : "#f43f5e"}
+        stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"

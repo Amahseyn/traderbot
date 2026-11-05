@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLogStream } from "@/hooks/useLogStream";
 import { useLogs } from "@/hooks/useLogs";
+import { ConnectionPill } from "@/components/ui/ConnectionPill";
 
 export function LogViewer() {
   const { logs, connected, error, paused, setPaused, clear, downloadLogs } =
@@ -92,13 +93,9 @@ export function LogViewer() {
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Logs</h2>
-            <div className="text-xs text-gray-600 mt-1">
-              {connected ? (
-                <span className="text-green-600">● Live streaming</span>
-              ) : (
-                <span className="text-red-600">● Disconnected</span>
-              )}
-              {error && <span className="text-red-600 ml-2">{error}</span>}
+            <div className="mt-1 flex items-center gap-2">
+              <ConnectionPill status={connected ? "live" : "disconnected"} />
+              {error && <span className="text-negative text-xs">{error}</span>}
             </div>
           </div>
           <div className="text-right">

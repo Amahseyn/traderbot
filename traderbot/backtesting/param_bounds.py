@@ -6,6 +6,7 @@ from typing import Any
 
 #: Fractions of equity / probabilities / skews: must stay inside [low, high].
 _UNIT_INTERVAL: dict[str, tuple[float, float]] = {
+    "target_exposure": (0.05, 1.0),
     "scalp_position_fraction": (0.05, 1.0),
     "mm_order_fraction": (0.05, 1.0),
     "mm_inventory_skew": (0.0, 1.0),

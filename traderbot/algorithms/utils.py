@@ -7,6 +7,7 @@ from traderbot.utils.algorithms import (
     load_bars_csv,
     normalize_bar,
     price_context_kwargs_from_namespace,
+    tranche_kwargs_from_namespace,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "load_bars_csv",
     "normalize_bar",
     "price_context_kwargs_from_namespace",
+    "tranche_kwargs_from_namespace",
 ]

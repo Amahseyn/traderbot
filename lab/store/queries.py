@@ -54,7 +54,23 @@ _STRATEGY_BACKTEST_FROM = """
     WHERE r.run_kind = 'strategy_backtest'
 """
 
-_RETURN_PCT_SQL = "CAST(json_extract(r.metrics_json, '$.return_pct') AS REAL)"
+_RETURN_PCT_SQL = (
+    "COALESCE("
+    "CAST(json_extract(r.metrics_json, '$.return_pct') AS REAL), "
+    "CAST(json_extract(r.metrics_json, '$.cash_flow.return_pct') AS REAL)"
+    ")"
+)
+_WIN_RATE_SQL = (
+    "COALESCE("
+    "CAST(json_extract(r.metrics_json, '$.win_rate_pct') AS REAL), "
+    "CAST(json_extract(r.metrics_json, '$.vbt_win_rate_pct') AS REAL), "
+    "CAST(json_extract(r.metrics_json, '$.vectorbt.win_rate_pct') AS REAL), "
+    "CAST(json_extract(r.metrics_json, '$.trade_win_rate') AS REAL) * "
+    "(CASE WHEN CAST(json_extract(r.metrics_json, '$.trade_win_rate') AS REAL) <= 1.0 THEN 100.0 ELSE 1.0 END), "
+    "CAST(json_extract(r.metrics_json, '$.win_rate') AS REAL) * "
+    "(CASE WHEN CAST(json_extract(r.metrics_json, '$.win_rate') AS REAL) <= 1.0 THEN 100.0 ELSE 1.0 END)"
+    ")"
+)
 
 
 def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
@@ -67,7 +83,8 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
         f"""
         SELECT c.strategy_id, COUNT(*) AS n,
                MAX({_RETURN_PCT_SQL}) AS best_return,
-               AVG({_RETURN_PCT_SQL}) AS avg_return
+               AVG({_RETURN_PCT_SQL}) AS avg_return,
+               AVG({_WIN_RATE_SQL}) AS avg_win_rate
         {_STRATEGY_BACKTEST_FROM}
           AND c.strategy_id IS NOT NULL
         GROUP BY c.strategy_id
@@ -83,7 +100,8 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
             MAX({_RETURN_PCT_SQL}) AS best_return,
             MIN({_RETURN_PCT_SQL}) AS worst_return,
             SUM(CASE WHEN {_RETURN_PCT_SQL} > 0 THEN 1 ELSE 0 END) AS positive_n,
-            SUM(CASE WHEN {_RETURN_PCT_SQL} IS NOT NULL THEN 1 ELSE 0 END) AS with_return_n
+            SUM(CASE WHEN {_RETURN_PCT_SQL} IS NOT NULL THEN 1 ELSE 0 END) AS with_return_n,
+            AVG({_WIN_RATE_SQL}) AS avg_win_rate
         {_STRATEGY_BACKTEST_FROM}
         """
     ).fetchone()
@@ -95,15 +113,17 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
         "best_return": backtest_row["best_return"],
         "worst_return": backtest_row["worst_return"],
         "positive_pct": positive_n / with_return_n * 100 if with_return_n else None,
+        "avg_win_rate": backtest_row["avg_win_rate"],
     }
     top_markets = connection.execute(
         f"""
-        SELECT c.symbol, COUNT(*) AS n,
+        SELECT UPPER(c.symbol) AS symbol, COUNT(*) AS n,
                MAX({_RETURN_PCT_SQL}) AS best_return,
-               AVG({_RETURN_PCT_SQL}) AS avg_return
+               AVG({_RETURN_PCT_SQL}) AS avg_return,
+               AVG({_WIN_RATE_SQL}) AS avg_win_rate
         {_STRATEGY_BACKTEST_FROM}
           AND c.symbol IS NOT NULL AND TRIM(c.symbol) != ''
-        GROUP BY c.symbol
+        GROUP BY UPPER(c.symbol)
         ORDER BY avg_return DESC NULLS LAST, best_return DESC NULLS LAST
         LIMIT 8
         """
@@ -113,7 +133,8 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
         SELECT COALESCE(NULLIF(TRIM(c.horizon_label), ''), c.resolution) AS interval_label,
                COUNT(*) AS n,
                MAX({_RETURN_PCT_SQL}) AS best_return,
-               AVG({_RETURN_PCT_SQL}) AS avg_return
+               AVG({_RETURN_PCT_SQL}) AS avg_return,
+               AVG({_WIN_RATE_SQL}) AS avg_win_rate
         {_STRATEGY_BACKTEST_FROM}
           AND COALESCE(NULLIF(TRIM(c.horizon_label), ''), c.resolution) IS NOT NULL
         GROUP BY interval_label
@@ -125,7 +146,8 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
         f"""
         SELECT c.strategy_id, COUNT(*) AS n,
                MAX({_RETURN_PCT_SQL}) AS best_return,
-               AVG({_RETURN_PCT_SQL}) AS avg_return
+               AVG({_RETURN_PCT_SQL}) AS avg_return,
+               AVG({_WIN_RATE_SQL}) AS avg_win_rate
         {_STRATEGY_BACKTEST_FROM}
           AND c.strategy_id IS NOT NULL
         GROUP BY c.strategy_id
@@ -148,6 +170,52 @@ def fetch_dashboard_stats(connection: sqlite3.Connection) -> dict[str, Any]:
 
 def _like_literal(value: str) -> str:
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+_OPTIMIZER_CONDITION_SQL = (
+    "(COALESCE(json_extract(c.data_context_json, '$.optimizer_enabled'), 0) = 1 "
+    "OR COALESCE(json_extract(c.data_context_json, '$.use_optimized_strategy_params'), 0) = 1 "
+    "OR COALESCE(json_extract(c.data_context_json, '$.apply_sweep_winner'), 0) = 1 "
+    "OR COALESCE(json_extract(c.data_context_json, '$.optimized'), 0) = 1 "
+    "OR COALESCE(json_extract(r.metrics_json, '$.optimizer_enabled'), 0) = 1 "
+    "OR COALESCE(json_extract(r.metrics_json, '$.use_optimized_strategy_params'), 0) = 1 "
+    "OR COALESCE(json_extract(r.metrics_json, '$.apply_sweep_winner'), 0) = 1 "
+    "OR COALESCE(json_extract(r.metrics_json, '$.optimized'), 0) = 1)"
+)
+
+_TRADES_COUNT_SQL = (
+    "COALESCE(CAST(json_extract(r.metrics_json, '$.trades') AS INTEGER), "
+    "CAST(json_extract(r.metrics_json, '$.cash_flow.trades') AS INTEGER), 0)"
+)
+
+
+def _resolution_match_clause(resolution: str) -> tuple[str, list[Any]]:
+    token = resolution.strip()
+    alias_map = {
+        "1m": "1",
+        "5m": "5",
+        "15m": "15",
+        "30m": "30",
+        "1h": "60",
+        "2h": "120",
+        "4h": "240",
+        "1d": "D",
+    }
+    candidates = {token}
+    lower = token.lower()
+    if lower in alias_map:
+        candidates.add(alias_map[lower])
+    for k, v in alias_map.items():
+        if lower == v.lower():
+            candidates.add(k)
+    parts: list[str] = []
+    params: list[Any] = []
+    for cand in sorted(candidates):
+        parts.append("c.resolution = ?")
+        params.append(cand)
+        parts.append("c.resolution LIKE ? ESCAPE '\\'")
+        params.append(f"{_like_literal(cand)}\\_%")
+    return "(" + " OR ".join(parts) + ")", params
 
 
 def _horizon_match_clause(label: str) -> tuple[str, list[Any]]:
@@ -180,11 +248,17 @@ def _horizon_match_clause(label: str) -> tuple[str, list[Any]]:
 
 def _build_run_filters(
     *,
-    run_kind: str | None,
-    strategy_id: str | None,
-    model_id: str | None,
-    symbol: str | None,
-    horizon_label: str | None,
+    run_kind: str | None = None,
+    strategy_id: str | None = None,
+    model_id: str | None = None,
+    symbol: str | None = None,
+    horizon_label: str | None = None,
+    resolution: str | None = None,
+    outcome: str | None = None,
+    optimizer: str | None = None,
+    trades: str | None = None,
+    date_range: str | None = None,
+    query: str | None = None,
 ) -> tuple[list[str], list[Any]]:
     clauses = ["1=1"]
     params: list[Any] = []
@@ -204,6 +278,54 @@ def _build_run_filters(
         clause, horizon_params = _horizon_match_clause(horizon_label)
         clauses.append(clause)
         params.extend(horizon_params)
+    if resolution:
+        res_clause, res_params = _resolution_match_clause(resolution)
+        clauses.append(res_clause)
+        params.extend(res_params)
+    if outcome:
+        out_lower = outcome.lower()
+        if out_lower == "profitable":
+            clauses.append(f"{_RETURN_PCT_SQL} > 0")
+        elif out_lower == "loss":
+            clauses.append(f"{_RETURN_PCT_SQL} < 0")
+        elif out_lower == "breakeven":
+            clauses.append(f"{_RETURN_PCT_SQL} = 0")
+        elif out_lower == "high_return":
+            clauses.append(f"{_RETURN_PCT_SQL} >= 5.0")
+    if optimizer:
+        opt_lower = optimizer.lower()
+        if opt_lower in ("optimized", "1", "true"):
+            clauses.append(_OPTIMIZER_CONDITION_SQL)
+        elif opt_lower in ("default", "unoptimized", "0", "false"):
+            clauses.append(f"NOT {_OPTIMIZER_CONDITION_SQL}")
+    if trades:
+        tr_lower = trades.lower()
+        if tr_lower in ("with_trades", "has_trades", "active"):
+            clauses.append(f"{_TRADES_COUNT_SQL} > 0")
+        elif tr_lower in ("no_trades", "zero", "zero_trades"):
+            clauses.append(f"{_TRADES_COUNT_SQL} = 0")
+    if date_range:
+        dr_lower = date_range.lower()
+        if dr_lower in ("24h", "1d"):
+            clauses.append("datetime(r.created_at_utc) >= datetime('now', '-1 day')")
+        elif dr_lower in ("7d", "1w"):
+            clauses.append("datetime(r.created_at_utc) >= datetime('now', '-7 days')")
+        elif dr_lower in ("30d", "1m"):
+            clauses.append("datetime(r.created_at_utc) >= datetime('now', '-30 days')")
+    if query and query.strip():
+        like_pat = f"%{_like_literal(query.strip())}%"
+        clauses.append(
+            """(
+                r.id LIKE ? ESCAPE '\\'
+                OR r.run_kind LIKE ? ESCAPE '\\'
+                OR c.symbol LIKE ? ESCAPE '\\'
+                OR c.strategy_id LIKE ? ESCAPE '\\'
+                OR c.model_id LIKE ? ESCAPE '\\'
+                OR c.parameters_json LIKE ? ESCAPE '\\'
+                OR json_extract(c.data_context_json, '$.csv') LIKE ? ESCAPE '\\'
+            )"""
+        )
+        params.extend([like_pat, like_pat, like_pat, like_pat, like_pat, like_pat, like_pat])
     return clauses, params
 
 
@@ -215,6 +337,12 @@ def count_evaluation_runs(
     model_id: str | None = None,
     symbol: str | None = None,
     horizon_label: str | None = None,
+    resolution: str | None = None,
+    outcome: str | None = None,
+    optimizer: str | None = None,
+    trades: str | None = None,
+    date_range: str | None = None,
+    query: str | None = None,
 ) -> int:
     clauses, params = _build_run_filters(
         run_kind=run_kind,
@@ -222,14 +350,20 @@ def count_evaluation_runs(
         model_id=model_id,
         symbol=symbol,
         horizon_label=horizon_label,
+        resolution=resolution,
+        outcome=outcome,
+        optimizer=optimizer,
+        trades=trades,
+        date_range=date_range,
+        query=query,
     )
-    query = f"""
+    query_sql = f"""
         SELECT COUNT(*) AS cnt
         FROM evaluation_runs r
         JOIN configurations c ON c.id = r.config_id
         WHERE {' AND '.join(clauses)}
     """
-    row = connection.execute(query, params).fetchone()
+    row = connection.execute(query_sql, params).fetchone()
     return int(row["cnt"]) if row else 0
 
 
@@ -241,6 +375,13 @@ def list_evaluation_runs(
     model_id: str | None = None,
     symbol: str | None = None,
     horizon_label: str | None = None,
+    resolution: str | None = None,
+    outcome: str | None = None,
+    optimizer: str | None = None,
+    trades: str | None = None,
+    date_range: str | None = None,
+    query: str | None = None,
+    sort_by: str | None = None,
     limit: int = 200,
     offset: int = 0,
 ) -> list[RunRow]:
@@ -250,20 +391,48 @@ def list_evaluation_runs(
         model_id=model_id,
         symbol=symbol,
         horizon_label=horizon_label,
+        resolution=resolution,
+        outcome=outcome,
+        optimizer=optimizer,
+        trades=trades,
+        date_range=date_range,
+        query=query,
     )
+    sort_map = {
+        "created_at_desc": "r.created_at_utc DESC",
+        "created_at_asc": "r.created_at_utc ASC",
+        "return_desc": f"{_RETURN_PCT_SQL} DESC NULLS LAST, r.created_at_utc DESC",
+        "return_asc": f"{_RETURN_PCT_SQL} ASC NULLS LAST, r.created_at_utc DESC",
+        "win_rate_desc": f"{_WIN_RATE_SQL} DESC NULLS LAST, r.created_at_utc DESC",
+        "win_rate_asc": f"{_WIN_RATE_SQL} ASC NULLS LAST, r.created_at_utc DESC",
+        "trades_desc": f"{_TRADES_COUNT_SQL} DESC, r.created_at_utc DESC",
+        "trades_asc": f"{_TRADES_COUNT_SQL} ASC, r.created_at_utc DESC",
+        "equity_desc": (
+            "COALESCE(CAST(json_extract(r.metrics_json, '$.final_equity') AS REAL), "
+            "CAST(json_extract(r.metrics_json, '$.cash_flow.final_equity') AS REAL), 0) DESC, "
+            "r.created_at_utc DESC"
+        ),
+        "equity_asc": (
+            "COALESCE(CAST(json_extract(r.metrics_json, '$.final_equity') AS REAL), "
+            "CAST(json_extract(r.metrics_json, '$.cash_flow.final_equity') AS REAL), 0) ASC, "
+            "r.created_at_utc DESC"
+        ),
+    }
+    order_clause = sort_map.get(sort_by or "", "r.created_at_utc DESC")
     params.append(limit)
     params.append(max(offset, 0))
-    query = f"""
+    query_sql = f"""
         SELECT r.*, c.strategy_id, c.model_id, c.symbol, c.resolution, c.horizon_label,
                c.parameters_json, c.data_context_json
         FROM evaluation_runs r
         JOIN configurations c ON c.id = r.config_id
         WHERE {' AND '.join(clauses)}
-        ORDER BY r.created_at_utc DESC
+        ORDER BY {order_clause}
         LIMIT ? OFFSET ?
     """
-    rows = connection.execute(query, params).fetchall()
+    rows = connection.execute(query_sql, params).fetchall()
     return [_row_to_run(row) for row in rows]
+
 
 
 def fetch_evaluation_run(connection: sqlite3.Connection, run_id: str) -> RunRow | None:

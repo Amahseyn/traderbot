@@ -4,6 +4,7 @@ import csv
 import hashlib
 import json
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,15 @@ CATALOG_SCOPE_DEFAULT_JOBS = "default_jobs"
 CATALOG_SCOPE_NOBITEX_ALL = "nobitex_all"
 CATALOG_SCOPE_HYPERLIQUID_ALL = "hyperliquid_all"
 
+#: Serializes catalog backfills in-process: overlapping ``GET /api/datasets`` poll
+#: requests must not stack long write transactions on the same database (the sqlite
+#: ``database is locked`` storm). A request that arrives while another thread is
+#: refreshing serves the stored rows instead.
+_BACKFILL_LOCK = threading.Lock()
+
+#: Inputs fingerprint per (database file, data root) of the last completed backfill.
+_BACKFILL_STATE: dict[str, Any] = {}
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -28,8 +38,10 @@ def dataset_id_for_repo_path(repo_path: str) -> str:
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:32]
 
 
-def canonical_dataset_repo_path(repo_path: str) -> str:
+def canonical_dataset_repo_path(repo_path: str, data_root: Path | None = None) -> str:
     raw = Path(repo_path)
+    if data_root is not None and not raw.is_absolute() and (Path(data_root) / raw).is_file():
+        raw = Path(data_root) / raw
     absolute = raw.resolve() if raw.is_absolute() else (REPO_ROOT / raw).resolve()
     try:
         return absolute.relative_to(REPO_ROOT.resolve()).as_posix()
@@ -37,9 +49,12 @@ def canonical_dataset_repo_path(repo_path: str) -> str:
         return absolute.as_posix()
 
 
-def resolve_dataset_csv(repo_path: str) -> Path | None:
+def resolve_dataset_csv(repo_path: str, data_root: Path | None = None) -> Path | None:
     raw = Path(repo_path)
-    candidates = [raw] if raw.is_absolute() else [REPO_ROOT / raw, raw]
+    candidates: list[Path] = [raw] if raw.is_absolute() else []
+    if data_root is not None:
+        candidates.append(Path(data_root) / raw)
+    candidates.extend([REPO_ROOT / raw, REPO_ROOT / "data" / raw, raw])
     for candidate in candidates:
         if candidate.is_file():
             return candidate.resolve()
@@ -141,25 +156,40 @@ def build_dataset_label(
     return " · ".join(parts)
 
 
+def _load_dataset_rows(connection: sqlite3.Connection) -> list[sqlite3.Row]:
+    return connection.execute(
+        "SELECT id, repo_path, source, registered_at_utc FROM datasets",
+    ).fetchall()
+
+
+def _dataset_rows_by_path(
+    dataset_rows: list[sqlite3.Row],
+    data_root: Path | None = None,
+) -> dict[str, list[sqlite3.Row]]:
+    """Canonical repo-relative path -> rows. Alias paths (absolute/relative, ``..``)
+    collapse onto the same key without any per-row filesystem access."""
+    index: dict[str, list[sqlite3.Row]] = {}
+    for row in dataset_rows:
+        index.setdefault(canonical_dataset_repo_path(str(row["repo_path"]), data_root=data_root), []).append(row)
+    return index
+
+
 def _dataset_rows_for_file(
     connection: sqlite3.Connection,
     stored_path: str,
     resolved: Path | None,
+    *,
+    dataset_rows_by_path: dict[str, list[sqlite3.Row]] | None = None,
+    data_root: Path | None = None,
 ) -> list[sqlite3.Row]:
-    rows = connection.execute(
-        "SELECT id, repo_path, source, registered_at_utc FROM datasets",
-    ).fetchall()
-    matches: list[sqlite3.Row] = []
-    for row in rows:
-        if row["repo_path"] == stored_path:
-            matches.append(row)
-            continue
-        if resolved is None:
-            continue
-        other = resolve_dataset_csv(str(row["repo_path"]))
-        if other is not None and other == resolved:
-            matches.append(row)
-    return matches
+    if dataset_rows_by_path is not None:
+        return dataset_rows_by_path.get(stored_path, [])
+    rows = _load_dataset_rows(connection)
+    return [
+        row
+        for row in rows
+        if canonical_dataset_repo_path(str(row["repo_path"]), data_root=data_root) == stored_path
+    ]
 
 
 def upsert_dataset(
@@ -169,13 +199,15 @@ def upsert_dataset(
     source: str,
     symbol: str | None = None,
     resolution: str | None = None,
+    dataset_rows_by_path: dict[str, list[Any]] | None = None,
+    data_root: Path | None = None,
 ) -> str:
     ensure_dataset_columns(connection)
-    stored_path = canonical_dataset_repo_path(repo_path)
+    stored_path = canonical_dataset_repo_path(repo_path, data_root=data_root)
     parsed_symbol, parsed_resolution = parse_symbol_resolution_from_csv(stored_path)
     symbol = (symbol or parsed_symbol or "").upper() or None
     resolution = resolution or parsed_resolution
-    resolved = resolve_dataset_csv(stored_path)
+    resolved = resolve_dataset_csv(stored_path, data_root=data_root)
     horizon_label = horizon_label_from_csv_dir(resolved.parent) if resolved is not None else None
     range_start_utc, range_end_utc = (
         load_csv_calendar_bounds(resolved) if resolved is not None else (None, None)
@@ -190,7 +222,13 @@ def upsert_dataset(
     )
     now = _utc_now()
     dataset_id = dataset_id_for_repo_path(stored_path)
-    matches = _dataset_rows_for_file(connection, stored_path, resolved)
+    matches = _dataset_rows_for_file(
+        connection,
+        stored_path,
+        resolved,
+        dataset_rows_by_path=dataset_rows_by_path,
+        data_root=data_root,
+    )
     if matches:
         keeper = next((row for row in matches if row["repo_path"] == stored_path), None)
         if keeper is None:
@@ -248,54 +286,168 @@ def upsert_dataset(
             now,
         ),
     )
+    if dataset_rows_by_path is not None:
+        dataset_rows_by_path.setdefault(stored_path, []).append(
+            {"id": dataset_id, "repo_path": stored_path, "source": source, "registered_at_utc": now}
+        )
     return dataset_id
 
 
-def register_data_csv_files(connection: sqlite3.Connection, data_root: Path | None = None) -> int:
+def register_data_csv_files(
+    connection: sqlite3.Connection,
+    data_root: Path | None = None,
+    *,
+    dataset_rows_by_path: dict[str, list[Any]] | None = None,
+) -> int:
     """Register every OHLC CSV under ``data/`` so catalog names stay in sync with disk."""
     root = data_root if data_root is not None else REPO_ROOT / "data"
     if not root.is_dir():
         return 0
+    if dataset_rows_by_path is None:
+        existing_rows = _load_dataset_rows(connection)
+        dataset_rows_by_path = _dataset_rows_by_path(existing_rows, data_root=data_root)
     registered = 0
     for csv_path in sorted(root.rglob("*.csv")):
         if not csv_path.is_file():
             continue
-        upsert_dataset(connection, repo_path=str(csv_path.resolve()), source="data_file")
+        stored_path = canonical_dataset_repo_path(str(csv_path.resolve()), data_root=data_root)
+        if stored_path in dataset_rows_by_path:
+            continue
+        upsert_dataset(
+            connection,
+            repo_path=str(csv_path.resolve()),
+            source="data_file",
+            dataset_rows_by_path=dataset_rows_by_path,
+            data_root=data_root,
+        )
         registered += 1
     return registered
 
 
-def _path_is_in_repo(repo_path: str) -> bool:
+def _path_is_in_repo(repo_path: str, data_root: Path | None = None) -> bool:
     raw = Path(repo_path)
     absolute = raw.resolve() if raw.is_absolute() else (REPO_ROOT / raw).resolve()
     try:
         absolute.relative_to(REPO_ROOT.resolve())
+        return True
     except ValueError:
-        return False
-    return True
+        pass
+    if data_root is not None:
+        try:
+            absolute.relative_to(Path(data_root).resolve())
+            return True
+        except ValueError:
+            pass
+    return False
 
 
-def drop_missing_datasets(connection: sqlite3.Connection) -> int:
+def drop_missing_datasets(
+    connection: sqlite3.Connection,
+    data_root: Path | None = None,
+) -> int:
     """Remove catalog rows that point outside the repo at a file that is gone."""
     removed = 0
     rows = connection.execute("SELECT id, repo_path FROM datasets").fetchall()
     for row in rows:
         repo_path = str(row["repo_path"])
-        if resolve_dataset_csv(repo_path) is not None or _path_is_in_repo(repo_path):
+        if resolve_dataset_csv(repo_path, data_root=data_root) is not None or _path_is_in_repo(
+            repo_path, data_root=data_root
+        ):
             continue
         connection.execute("DELETE FROM datasets WHERE id = ?", (row["id"],))
         removed += 1
     return removed
 
 
-def backfill_datasets(connection: sqlite3.Connection) -> int:
+def _database_key(connection: sqlite3.Connection) -> str:
+    try:
+        for row in connection.execute("PRAGMA database_list").fetchall():
+            if row[1] == "main" and row[2]:
+                return str(Path(row[2]).resolve())
+    except Exception:
+        pass
+    return str(id(connection))
+
+
+def _backfill_fingerprint(
+    connection: sqlite3.Connection,
+    root: Path,
+) -> tuple[Any, ...]:
+    csv_files: list[tuple[str, int, int]] = []
+    if root.is_dir():
+        for p in sorted(root.rglob("*.csv")):
+            if p.is_file():
+                try:
+                    st = p.stat()
+                    csv_files.append((p.name, st.st_mtime_ns, st.st_size))
+                except OSError:
+                    continue
+    cfg_stats = (0, 0)
+    cmp_stats = (0, 0)
+    try:
+        row = connection.execute(
+            "SELECT COUNT(*), COALESCE(MAX(rowid), 0) FROM configurations",
+        ).fetchone()
+        if row:
+            cfg_stats = (int(row[0]), int(row[1]))
+    except Exception:
+        pass
+    try:
+        row = connection.execute(
+            "SELECT COUNT(*), COALESCE(MAX(rowid), 0) FROM compare_sessions",
+        ).fetchone()
+        if row:
+            cmp_stats = (int(row[0]), int(row[1]))
+    except Exception:
+        pass
+    return (tuple(csv_files), cfg_stats, cmp_stats)
+
+
+def backfill_datasets(
+    connection: sqlite3.Connection,
+    data_root: Path | None = None,
+) -> int:
+    if not _BACKFILL_LOCK.acquire(blocking=False):
+        return 0
+    try:
+        return _backfill_datasets_locked(connection, data_root=data_root)
+    finally:
+        _BACKFILL_LOCK.release()
+
+
+def _backfill_datasets_locked(
+    connection: sqlite3.Connection,
+    data_root: Path | None = None,
+) -> int:
+    root = data_root if data_root is not None else REPO_ROOT / "data"
+    root_path = root.resolve() if root.exists() else root
+    state_key = (_database_key(connection), str(root_path))
+    fingerprint = _backfill_fingerprint(connection, root)
+    if _BACKFILL_STATE.get(state_key) == fingerprint:
+        return 0
+
     ensure_dataset_columns(connection)
+    existing_rows = _load_dataset_rows(connection)
+    dataset_rows_by_path = _dataset_rows_by_path(existing_rows, data_root=data_root)
+
     inserted = 0
-    config_rows = connection.execute("SELECT data_context_json FROM configurations").fetchall()
+
+    try:
+        config_rows = connection.execute("SELECT data_context_json FROM configurations").fetchall()
+    except Exception:
+        config_rows = []
     for row in config_rows:
-        data_context = json.loads(row["data_context_json"])
+        try:
+            data_context = json.loads(row["data_context_json"])
+        except Exception:
+            continue
         csv_path = data_context.get("csv")
-        if not csv_path or resolve_dataset_csv(str(csv_path)) is None:
+        if not csv_path:
+            continue
+        stored_path = canonical_dataset_repo_path(str(csv_path), data_root=data_root)
+        if stored_path in dataset_rows_by_path:
+            continue
+        if resolve_dataset_csv(str(csv_path), data_root=data_root) is None:
             continue
         upsert_dataset(
             connection,
@@ -303,17 +455,41 @@ def backfill_datasets(connection: sqlite3.Connection) -> int:
             source="configuration",
             symbol=data_context.get("symbol"),
             resolution=data_context.get("resolution"),
+            dataset_rows_by_path=dataset_rows_by_path,
+            data_root=data_root,
         )
         inserted += 1
-    compare_rows = connection.execute("SELECT csv_path FROM compare_sessions").fetchall()
+
+    try:
+        compare_rows = connection.execute("SELECT csv_path FROM compare_sessions").fetchall()
+    except Exception:
+        compare_rows = []
     for row in compare_rows:
         csv_path = row["csv_path"]
-        if not csv_path or resolve_dataset_csv(str(csv_path)) is None:
+        if not csv_path:
             continue
-        upsert_dataset(connection, repo_path=str(csv_path), source="compare_session")
+        stored_path = canonical_dataset_repo_path(str(csv_path), data_root=data_root)
+        if stored_path in dataset_rows_by_path:
+            continue
+        if resolve_dataset_csv(str(csv_path), data_root=data_root) is None:
+            continue
+        upsert_dataset(
+            connection,
+            repo_path=str(csv_path),
+            source="compare_session",
+            dataset_rows_by_path=dataset_rows_by_path,
+            data_root=data_root,
+        )
         inserted += 1
-    inserted += register_data_csv_files(connection)
-    drop_missing_datasets(connection)
+
+    inserted += register_data_csv_files(
+        connection,
+        data_root=data_root,
+        dataset_rows_by_path=dataset_rows_by_path,
+    )
+    drop_missing_datasets(connection, data_root=data_root)
+    connection.commit()
+    _BACKFILL_STATE[state_key] = fingerprint
     return inserted
 
 

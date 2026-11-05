@@ -153,12 +153,12 @@ function ApiStatusBadge() {
       : `Lab API offline (${API_BASE})`;
 
   const tone = online
-    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/25"
+    ? "bg-positive/10 text-positive border border-positive/25"
     : loading
-      ? "bg-amber-500/10 text-amber-400 border border-amber-500/25"
-      : "bg-rose-500/10 text-rose-400 border border-rose-500/30";
+      ? "bg-warning/10 text-warning border border-warning/25"
+      : "bg-negative/10 text-negative border border-negative/30";
 
-  const dotTone = online ? "bg-emerald-400" : loading ? "bg-amber-400 animate-pulse" : "bg-rose-400";
+  const dotTone = online ? "bg-positive" : loading ? "bg-warning animate-pulse" : "bg-negative";
 
   return (
     <span

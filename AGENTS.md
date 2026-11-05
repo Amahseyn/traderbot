@@ -12,6 +12,8 @@ These rules apply across the entire repository for Antigravity, Cursor, and any 
 | Lab Stack | `apps/lab-ui`, `lab/` + `lab.store`, `cli/` |
 | Lab Design System | `apps/lab-ui/design-system/traderbot-lab/MASTER.md` (tokens, anti-patterns, checklist) |
 | UI/UX Skill | `.agents/skills/ui-ux-pro-max/` (also `.cursor/skills/`, `.workbuddy-ai/skills/`; `python3 .agents/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain ux`) |
+| Financial UI Skills | `.agents/skills/financial-ui-patterns/` & `.agents/skills/financial-ui-styles/` (also `.cursor/skills/`, `.workbuddy-ai/skills/`; verify: `scripts/verify-financial-ui.sh`) |
+| Algo Trading Skills | `.agents/skills/` (also `.cursor/skills/`, `.workbuddy-ai/skills/`): `lookahead-bias-elimination`, `order-placement-idempotency`, `kill-switch-and-drawdown-circuit-breakers`, `post-only-and-maker-taker-fee-optimization`, `perpetual-futures-funding-rate-handling`, `execution-realistic-simulation`, `walk-forward-validation-setup`, `websocket-reconnection-with-state-recovery` |
 
 - **No Root Scripts:** No `*_cli.py` or `backtest.py` at package root.
 - **Index / Ignore:** Out of scope unless explicitly requested by the user: `data/`, `results/`, `solutions/`, CSVs, parquet, plots, Lab `node_modules/`, `.next/`, and manifests. Pass explicit paths when reading run outputs.
@@ -122,7 +124,7 @@ These rules apply across the entire repository for Antigravity, Cursor, and any 
 - **Backend Pairing:** Extend `lab/` (FastAPI) and document in `docs/lab.md` when UI requires new data. Never call CLI from browser.
 
 ### Design System (Strictly Enforced)
-Source of truth: `apps/lab-ui/design-system/traderbot-lab/MASTER.md`. Guidance skill: `.agents/skills/ui-ux-pro-max/` (also mirrored at `.cursor/skills/` and `.workbuddy-ai/skills/`).
+Source of truth: `apps/lab-ui/design-system/traderbot-lab/MASTER.md`. Guidance skills: `financial-ui-patterns`, `financial-ui-styles`, and `.agents/skills/ui-ux-pro-max/` (also mirrored at `.cursor/skills/` and `.workbuddy-ai/skills/`). Anti-pattern check: `scripts/verify-financial-ui.sh apps/lab-ui/src` (or `npm --prefix apps/lab-ui run verify:ui`).
 - **Tokens Only:** Style with `surface` / `panel` / `panel-elevated` / `border` / `border-bright` / `accent` / `on-accent` / `muted` declared in `globals.css`. No raw hex colors in components.
 - **Semantic Colors:** Accent is for interaction only. Red and green are strictly reserved for PnL and status; never use them as decoration.
 - **No AI-Slop Decoration:** No gradient backgrounds, gradient text, glow shadows, decorative `backdrop-blur`, ambient `blur-3xl` blobs, or hover lift/scale on cards and buttons.
@@ -175,3 +177,19 @@ Source of truth: `apps/lab-ui/design-system/traderbot-lab/MASTER.md`. Guidance s
 - **Credentials:**
   - Optional for local Lab (overview, experiment sync, strategy catalog).
   - Live orders require `NOBITEX_*` or Hyperliquid credentials in `.env`.
+
+---
+
+## 7. Institutional Quantitative Trading Skills Protocol (`.agents/skills/**`)
+
+When building, reviewing, refactoring, or testing trading logic, coding agents must consult and adhere to the installed quantitative trading skills:
+
+- **Backtest Timing & Causality:** Read `.agents/skills/lookahead-bias-elimination/SKILL.md` before writing or auditing backtests. Every decision at time $T$ must only use information observable strictly before $T$, and fills must never execute on the decision bar close. Run `audit_backtest_causality()` from `traderbot.backtesting.validation` on backtest results.
+- **Order Dispatch & Idempotency:** Read `.agents/skills/order-placement-idempotency/SKILL.md`. Live orders must be assigned deterministic client order IDs via `generate_client_order_id()` in `traderbot.terminal.order_idempotency`. A broker timeout or network failure means **UNKNOWN**, never failed; blind retries are prohibited until order book state is reconciled.
+- **Circuit Breakers & Kill Switches:** Read `.agents/skills/kill-switch-and-drawdown-circuit-breakers/SKILL.md`. Breaches of daily loss or maximum drawdown trigger a latching halt. Clearing a halt requires an audited operator action with recorded rationale (`RiskManager.unhalt(operator=..., reason=...)`).
+- **Post-Only Maker Optimization:** Read `.agents/skills/post-only-and-maker-taker-fee-optimization/SKILL.md` when tuning limit entries (`entry_orders.py::MakerEntry`). Post-only orders rest on the book (pays maker rebate/fee) and cancel on immediate fill danger.
+- **Perpetual Funding Rate Handling:** Read `.agents/skills/perpetual-futures-funding-rate-handling/SKILL.md` for funding settlement, basis convergence, and funding carry engine calculations.
+- **Execution Simulation:** Read `.agents/skills/execution-realistic-simulation/SKILL.md` when modeling spread, slippage, and market impact.
+- **Walk-Forward Validation:** Read `.agents/skills/walk-forward-validation-setup/SKILL.md` to avoid in-sample parameter overfitting.
+- **WebSocket Reconnection & Recovery:** Read `.agents/skills/websocket-reconnection-with-state-recovery/SKILL.md` when streaming live books or trades.
+

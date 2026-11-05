@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections import deque
 
-from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+from traderbot.algorithms.base import Algorithm, Bar, OrderSize, SignalAction
+from traderbot.algorithms.position_sizing import ALL_IN_EXPOSURE, entry_order_size, validate_target_exposure
 from traderbot.algorithms.price_context import signal_clears_cost
 from traderbot.algorithms.validators import validate_cost_edge
 
@@ -31,6 +32,7 @@ class RangeBreakoutAlgorithm(Algorithm):
         measured_move_multiplier = 1.0,
         min_edge_over_cost: float | None = None,
         roundtrip_cost_pct: float | None = None,
+        target_exposure: float = 1.0,
     ):
         if lookback_bars < 2:
             raise ValueError("lookback_bars must be >= 2")
@@ -43,6 +45,9 @@ class RangeBreakoutAlgorithm(Algorithm):
         if measured_move_multiplier <= 0:
             raise ValueError("measured_move_multiplier must be positive")
         validate_cost_edge(min_edge_over_cost, roundtrip_cost_pct)
+        self.target_exposure = validate_target_exposure(target_exposure)
+        if self.target_exposure < ALL_IN_EXPOSURE:
+            self.uses_position_sizing = True
         self.lookback_bars = lookback_bars
         self.range_max_width_pct = range_max_width_pct
         self.breakout_volume_multiplier = breakout_volume_multiplier
@@ -57,6 +62,10 @@ class RangeBreakoutAlgorithm(Algorithm):
         self._in_position = False
         self._stop_price = 0.0
         self._target_price = 0.0
+        self._size: OrderSize | None = None
+
+    def order_size(self) -> OrderSize | None:
+        return self._size
 
     def sync_open_position(self, in_position: bool) -> None:
         if not in_position:
@@ -73,6 +82,7 @@ class RangeBreakoutAlgorithm(Algorithm):
         if self._in_position:
             if low <= self._stop_price or high >= self._target_price:
                 self._in_position = False
+                self._size = entry_order_size(self.target_exposure, "sell")
                 return "sell"
             return "hold"
         if len(prior) < self.lookback_bars:
@@ -97,5 +107,6 @@ class RangeBreakoutAlgorithm(Algorithm):
             self._in_position = True
             self._stop_price = range_high - self.breakout_stop_fraction * height
             self._target_price = range_high + self.measured_move_multiplier * height
+            self._size = entry_order_size(self.target_exposure, "buy")
             return "buy"
         return "hold"

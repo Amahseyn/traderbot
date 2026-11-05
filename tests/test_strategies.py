@@ -439,3 +439,34 @@ def test_strategy_backtest_visualization(tmp_path):
     saved = json.loads(summary_path.read_text(encoding="utf-8"))
     assert "visualization" in saved
     assert Path(saved["visualization"]["equity_curve"]).is_file()
+
+
+def test_chart_patterns_shorting_and_stops():
+    from traderbot.algorithms.strategies.chart_patterns import ChartPatternsAlgorithm
+
+    algo = ChartPatternsAlgorithm(
+        swing_window_bars=1,
+        min_swing_separation_bars=2,
+        pattern_score_threshold=0.3,
+        min_edge_over_cost=0.0,
+    )
+    bars = [
+        {"open": 100, "high": 100, "low": 99, "close": 100},
+        {"open": 100, "high": 105, "low": 100, "close": 104},
+        {"open": 104, "high": 100, "low": 99, "close": 100},
+        {"open": 100, "high": 101, "low": 99, "close": 100},
+        {"open": 100, "high": 105, "low": 100, "close": 104},
+        {"open": 104, "high": 101, "low": 99, "close": 100},
+        {"open": 100, "high": 99, "low": 97, "close": 98},
+    ]
+    actions = [algo.on_bar(b) for b in bars]
+    assert actions[-1] == "sell"
+    assert algo._in_short is True
+    assert algo._stop_price == 102.0
+
+    # Price moves up past short stop price -> should cover short with buy
+    exit_action = algo.on_bar({"open": 98, "high": 103.0, "low": 97, "close": 102.5})
+    assert exit_action == "buy"
+    assert algo._in_short is False
+    assert algo._stop_price is None
+

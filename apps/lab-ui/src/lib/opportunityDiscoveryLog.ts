@@ -17,6 +17,7 @@ export type OpportunityDiscoveryRankRow = {
   sharpe_ratio?: number | null;
   max_drawdown_pct?: number | null;
   trade_count?: number | null;
+  win_rate_pct?: number | null;
   walk_forward_stability?: number | null;
   validation_status?: string;
   rejection_reason?: string | null;

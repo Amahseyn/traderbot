@@ -124,6 +124,7 @@ def register_strategy_routes(app, get_connection) -> None:
             "initial_cash": result.initial_cash,
             "final_equity": result.final_equity,
             "return_pct": result.return_pct,
+            "win_rate_pct": result.win_rate_pct,
             "max_drawdown_pct": result.max_drawdown_pct,
             "total_fees": result.total_fees,
             "trade_count": len(result.trades),

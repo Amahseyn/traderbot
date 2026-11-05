@@ -215,6 +215,8 @@ def register_catalog_routes(app) -> None:
                     row["stored_sweep_return_pct"] = metrics.get("return_pct")
                 if metrics.get("holdout_return_pct") is not None:
                     row["stored_sweep_holdout_return_pct"] = metrics.get("holdout_return_pct")
+                if metrics.get("win_rate_pct") is not None:
+                    row["stored_sweep_win_rate_pct"] = metrics.get("win_rate_pct")
         finally:
             connection.close()
         return payload

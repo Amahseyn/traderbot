@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { DashboardStats } from "@/lib/api";
-import { formatResolutionLabel, formatReturnPct, returnPctClassName } from "@/lib/format";
+import { formatResolutionLabel, formatReturnPct, formatWinRate, returnPctClassName } from "@/lib/format";
 
 type RankRow = {
   key: string;
@@ -11,6 +11,7 @@ type RankRow = {
   n: number;
   best_return: number | null;
   avg_return: number | null;
+  avg_win_rate?: number | null;
   href?: string;
 };
 
@@ -39,6 +40,7 @@ function LeaderboardTable({
                 <th className="w-10 text-center">#</th>
                 <th>{nameHeader}</th>
                 <th className="text-right">Runs</th>
+                <th className="text-right">Win rate</th>
                 <th className="text-right">Avg return</th>
                 <th className="text-right">Best return</th>
               </tr>
@@ -46,7 +48,7 @@ function LeaderboardTable({
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-muted text-xs py-4 text-center">
+                  <td colSpan={6} className="text-muted text-xs py-4 text-center">
                     {emptyMessage}
                   </td>
                 </tr>
@@ -66,6 +68,9 @@ function LeaderboardTable({
                     )}
                   </td>
                   <td className="text-right tabular-nums text-muted">{row.n}</td>
+                  <td className="text-right font-mono text-xs tabular-nums text-white">
+                    {formatWinRate(row.avg_win_rate)}
+                  </td>
                   <td
                     className={`text-right font-mono text-xs tabular-nums ${returnPctClassName(
                       row.avg_return,
@@ -101,6 +106,7 @@ const EMPTY_BACKTEST_SUMMARY = {
   best_return: null,
   worst_return: null,
   positive_pct: null,
+  avg_win_rate: null,
 } as const;
 
 export function OverviewResearchAnalytics({ stats }: { stats: DashboardStats }) {
@@ -111,6 +117,7 @@ export function OverviewResearchAnalytics({ stats }: { stats: DashboardStats }) 
     n: row.n,
     best_return: row.best_return,
     avg_return: row.avg_return,
+    avg_win_rate: row.avg_win_rate,
     href: `/runs?strategy_id=${encodeURIComponent(row.strategy_id)}`,
   }));
 
@@ -120,6 +127,7 @@ export function OverviewResearchAnalytics({ stats }: { stats: DashboardStats }) 
     n: row.n,
     best_return: row.best_return,
     avg_return: row.avg_return,
+    avg_win_rate: row.avg_win_rate,
     href: `/runs?symbol=${encodeURIComponent(row.symbol)}`,
   }));
 
@@ -129,6 +137,7 @@ export function OverviewResearchAnalytics({ stats }: { stats: DashboardStats }) 
     n: row.n,
     best_return: row.best_return,
     avg_return: row.avg_return,
+    avg_win_rate: row.avg_win_rate,
   }));
 
   return (
@@ -184,9 +193,15 @@ export function OverviewResearchAnalytics({ stats }: { stats: DashboardStats }) 
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
             </div>
             <div className="mt-1.5 text-2xl font-bold tracking-tight text-white tabular-nums">
-              {summary.positive_pct === null ? "—" : `${summary.positive_pct.toFixed(1)}%`}
+              {summary.avg_win_rate != null
+                ? formatWinRate(summary.avg_win_rate)
+                : summary.positive_pct === null
+                  ? "—"
+                  : `${summary.positive_pct.toFixed(1)}%`}
             </div>
-            <div className="mt-1 text-xs text-muted">Profitable strategies</div>
+            <div className="mt-1 text-xs text-muted">
+              {summary.avg_win_rate != null ? "Avg trade win rate" : "Profitable strategies"}
+            </div>
           </div>
         </section>
       )}

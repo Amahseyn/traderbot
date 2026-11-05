@@ -34,6 +34,7 @@ class PairBacktestResult:
     z_score_curve: list[tuple[int, float]] = field(default_factory=list)
     fee_rate: float = 0.0
     total_fees: float = 0.0
+    win_rate_pct: float | None = None
 
     @property
     def return_pct(self) -> float:
@@ -121,6 +122,9 @@ def run_pair_backtest(
     z_score_curve: list[tuple[int, float]] = []
     dominant_history: list[float] = []
     hedge_history: list[float] = []
+    entry_equity: float | None = None
+    round_trips = 0
+    winning_trips = 0
 
     def equity_at(close_d: float, close_h: float) -> float:
         return cash + dominant_position * close_d + hedge_position * close_h
@@ -208,19 +212,27 @@ def run_pair_backtest(
         signal: PairSignal = algorithm.pair_signal(bar)
 
         if deployed and signal == "long_spread" and spread_state == "flat":
+            entry_equity = equity_at(close_d, close_h)
             quote = sell_leg(timestamp, "hedge", close_h, rebalance_fraction)
             buy_leg(timestamp, "dominant", close_d, quote)
             spread_state = "long_spread"
         elif deployed and signal == "short_spread" and spread_state == "flat":
+            entry_equity = equity_at(close_d, close_h)
             quote = sell_leg(timestamp, "dominant", close_d, rebalance_fraction)
             buy_leg(timestamp, "hedge", close_h, quote)
             spread_state = "short_spread"
         elif deployed and signal == "close_spread" and spread_state != "flat":
             spread_state = "flat"
+            if entry_equity is not None:
+                round_trips += 1
+                if equity_at(close_d, close_h) > entry_equity:
+                    winning_trips += 1
+                entry_equity = None
 
         equity_curve.append((timestamp, equity_at(close_d, close_h)))
 
     final_equity = equity_curve[-1][1] if equity_curve else initial_cash
+    win_rate_pct = round(winning_trips / round_trips * 100.0, 2) if round_trips > 0 else None
     return PairBacktestResult(
         initial_cash=initial_cash,
         final_equity=final_equity,
@@ -230,6 +242,7 @@ def run_pair_backtest(
         z_score_curve=z_score_curve,
         fee_rate=fee_rate,
         total_fees=total_fees,
+        win_rate_pct=win_rate_pct,
     )
 
 
@@ -271,6 +284,9 @@ def run_perp_pair_backtest(
     z_score_curve: list[tuple[int, float]] = []
     dominant_history: list[float] = []
     hedge_history: list[float] = []
+    entry_equity: float | None = None
+    round_trips = 0
+    winning_trips = 0
 
     def equity_at(close_d: float, close_h: float) -> float:
         return cash + dominant_position * close_d + hedge_position * close_h
@@ -328,12 +344,14 @@ def run_perp_pair_backtest(
 
         if len(dominant_history) >= algorithm.lookback_period:
             if signal == "long_spread" and spread_state == "flat":
+                entry_equity = equity
                 notional_d = equity * position_fraction / (1.0 + hedge_ratio)
                 notional_h = equity * position_fraction * hedge_ratio / (1.0 + hedge_ratio)
                 adjust_position(timestamp, "dominant", close_d, notional_d / close_d)
                 adjust_position(timestamp, "hedge", close_h, -(notional_h / close_h))
                 spread_state = "long_spread"
             elif signal == "short_spread" and spread_state == "flat":
+                entry_equity = equity
                 notional_d = equity * position_fraction / (1.0 + hedge_ratio)
                 notional_h = equity * position_fraction * hedge_ratio / (1.0 + hedge_ratio)
                 adjust_position(timestamp, "dominant", close_d, -(notional_d / close_d))
@@ -342,10 +360,16 @@ def run_perp_pair_backtest(
             elif signal == "close_spread" and spread_state != "flat":
                 close_all(timestamp, close_d, close_h)
                 spread_state = "flat"
+                if entry_equity is not None:
+                    round_trips += 1
+                    if equity_at(close_d, close_h) > entry_equity:
+                        winning_trips += 1
+                    entry_equity = None
 
         equity_curve.append((timestamp, equity_at(close_d, close_h)))
 
     final_equity = equity_curve[-1][1] if equity_curve else initial_cash
+    win_rate_pct = round(winning_trips / round_trips * 100.0, 2) if round_trips > 0 else None
     return PairBacktestResult(
         initial_cash=initial_cash,
         final_equity=final_equity,
@@ -355,6 +379,7 @@ def run_perp_pair_backtest(
         z_score_curve=z_score_curve,
         fee_rate=fee_rate,
         total_fees=total_fees,
+        win_rate_pct=win_rate_pct,
     )
 
 

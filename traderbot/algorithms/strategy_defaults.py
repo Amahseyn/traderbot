@@ -17,6 +17,7 @@ TREND_STRATEGIES = (
     "finrl_ema_intraday",
     "range_breakout",
     "momentum_shock",
+    "chart_patterns",
 )
 
 #: The shared ``--buy-min-recent-return`` / ``--sell-max-recent-return`` defaults, which are

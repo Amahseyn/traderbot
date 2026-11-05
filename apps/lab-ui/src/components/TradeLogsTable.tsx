@@ -73,7 +73,7 @@ export function TradeLogsTable({ metrics }: { metrics: Record<string, unknown> }
   const netPnl = asNumber(cashFlow.net_pnl);
   const returnPct = asNumber(cashFlow.return_pct);
   const pnlClass =
-    netPnl == null ? "text-white" : netPnl > 0 ? "text-emerald-400" : netPnl < 0 ? "text-red-400" : "text-white";
+    netPnl == null ? "text-white" : netPnl > 0 ? "text-positive" : netPnl < 0 ? "text-negative" : "text-white";
 
   return (
     <Card
@@ -152,7 +152,7 @@ export function TradeLogsTable({ metrics }: { metrics: Record<string, unknown> }
                   <td className="tabular-nums text-muted">{index + 1}</td>
                   <td className="whitespace-nowrap">{formatBarTime(trade.timestamp)}</td>
                   <td>
-                    <span className={`badge ${isBuy ? "badge-strategy" : "badge-model"}`}>
+                    <span className={`badge ${isBuy ? "badge-buy" : "badge-sell"}`}>
                       {isBuy ? "BUY" : "SELL"}
                     </span>
                   </td>

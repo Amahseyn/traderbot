@@ -10,7 +10,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+from traderbot.algorithms.base import Algorithm, Bar, OrderSize, SignalAction
+from traderbot.algorithms.position_sizing import ALL_IN_EXPOSURE, entry_order_size, validate_target_exposure
 
 
 def grid_price_bounds_from_bars(bars: list[dict[str, Any]]) -> tuple[float, float]:
@@ -45,11 +46,15 @@ class SpotGridAlgorithm(Algorithm):
         end_price: float,
         grid_count: int = 5,
         take_profit_pct: float = 0.01,
+        target_exposure: float = 1.0,
     ):
         if start_price <= 0 or end_price <= 0:
             raise ValueError("grid prices must be positive")
         if take_profit_pct <= 0:
             raise ValueError("take_profit_pct must be positive")
+        self.target_exposure = validate_target_exposure(target_exposure)
+        if self.target_exposure < ALL_IN_EXPOSURE:
+            self.uses_position_sizing = True
         self.start_price = start_price
         self.end_price = end_price
         self.grid_count = grid_count
@@ -58,11 +63,16 @@ class SpotGridAlgorithm(Algorithm):
         self._entry_price: float | None = None
         self._next_buy_level_index: int = grid_count - 1
         self._last_close: float | None = None
+        self._size: OrderSize | None = None
+
+    def order_size(self) -> OrderSize | None:
+        return self._size
 
     def reset(self) -> None:
         self._entry_price = None
         self._next_buy_level_index = self.grid_count - 1
         self._last_close = None
+        self._size = None
 
     def sync_open_position(self, in_position: bool) -> None:
         if not in_position:
@@ -87,6 +97,7 @@ class SpotGridAlgorithm(Algorithm):
             if high >= target:
                 self._entry_price = None
                 self._sync_buy_level_index(close)
+                self._size = entry_order_size(self.target_exposure, "sell")
                 return "sell"
             return "hold"
 
@@ -98,6 +109,7 @@ class SpotGridAlgorithm(Algorithm):
             if low <= level_price:
                 self._entry_price = level_price
                 self._next_buy_level_index -= 1
+                self._size = entry_order_size(self.target_exposure, "buy")
                 return "buy"
             break
 

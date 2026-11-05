@@ -31,6 +31,9 @@ const config: Config = {
         "accent-dim": "rgb(var(--accent-dim) / <alpha-value>)",
         "on-accent": "rgb(var(--on-accent) / <alpha-value>)",
         muted: "rgb(var(--muted) / <alpha-value>)",
+        positive: "rgb(var(--positive) / <alpha-value>)",
+        negative: "rgb(var(--negative) / <alpha-value>)",
+        warning: "rgb(var(--warning) / <alpha-value>)",
       },
       boxShadow: {
         /* Restrained elevation: a hairline plus a soft, neutral drop. */

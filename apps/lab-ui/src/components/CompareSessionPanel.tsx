@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ArtifactGallery } from "@/components/ArtifactGallery";
 import { Card } from "@/components/ui/Card";
 import { api, type EvaluationRun } from "@/lib/api";
-import { formatReturnPct, parseReturnPct, returnPctClassName } from "@/lib/format";
+import { formatReturnPct, formatWinRate, parseReturnPct, returnPctClassName } from "@/lib/format";
+import { extractWinRatePct } from "@/lib/runDisplay";
 import { EmptyState, ErrorState, Skeleton, TableSkeleton } from "@/components/ui/States";
 
 type CompareSessionPanelProps = {
@@ -65,8 +66,9 @@ export function CompareSessionPanel({ sessionId, currentRunId, symbol }: Compare
               <tr>
                 <th>#</th>
                 <th>Strategy</th>
-                <th>Return</th>
-                <th>Trades</th>
+                <th className="text-right">Return</th>
+                <th className="text-right">Win rate</th>
+                <th className="text-right">Trades</th>
                 <th></th>
               </tr>
             </thead>
@@ -102,16 +104,20 @@ function ComparePeerRow({
   isCurrent: boolean;
 }) {
   const returnPct = parseReturnPct(peer.metrics);
+  const winRatePct = extractWinRatePct(peer.metrics);
   const trades = peer.metrics.trades;
 
   return (
     <tr className={isCurrent ? "bg-accent/5" : undefined}>
       <td className="text-muted">{rank}</td>
       <td className="font-medium text-white">{peer.strategy_id ?? "—"}</td>
-      <td className={`font-mono text-sm ${returnPctClassName(returnPct)}`}>
+      <td className={`text-right font-mono text-sm ${returnPctClassName(returnPct)}`}>
         {formatReturnPct(returnPct)}
       </td>
-      <td className="font-mono text-xs text-muted">
+      <td className="text-right font-mono text-xs tabular-nums text-white">
+        {formatWinRate(winRatePct)}
+      </td>
+      <td className="text-right font-mono text-xs text-muted">
         {typeof trades === "number" ? trades : "—"}
       </td>
       <td className="text-right">

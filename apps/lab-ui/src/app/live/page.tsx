@@ -42,8 +42,8 @@ export default function LiveTradingPage() {
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                 hyperliquidReady || nobitexReady
-                  ? "bg-emerald-900/40 text-emerald-200 ring-1 ring-emerald-500/30"
-                  : "bg-amber-900/30 text-amber-100 ring-1 ring-amber-500/25"
+                  ? "bg-positive/15 text-positive ring-1 ring-positive/30"
+                  : "bg-warning/15 text-warning ring-1 ring-warning/25"
               }`}
             >
               {authQuery.isLoading

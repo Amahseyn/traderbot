@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from collections import deque
 
-from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+from traderbot.algorithms.base import Algorithm, Bar, OrderSize, SignalAction
 from traderbot.algorithms.patterns.swings import is_confirmed_swing_high, is_confirmed_swing_low
+from traderbot.algorithms.position_sizing import EntryTranches
 from traderbot.algorithms.streaming import rsi_init, rsi_reset, rsi_update
 
 HISTORY_BARS = 500
@@ -32,6 +33,9 @@ class RsiDivergenceAlgorithm(Algorithm):
         divergence_confirm_bars = 5,
         divergence_stop_buffer_pct = 0.005,
         trailing_stop_pct = 0.0,
+        target_exposure: float = 1.0,
+        max_tranches: int = 1,
+        tranche_gap_bars: int = 0,
     ):
         if period < 2:
             raise ValueError("period must be >= 2")
@@ -41,6 +45,14 @@ class RsiDivergenceAlgorithm(Algorithm):
             raise ValueError("divergence_confirm_bars must be >= 1")
         if not 0 <= divergence_stop_buffer_pct < 1 or not 0 <= trailing_stop_pct < 1:
             raise ValueError("stop percentages must be in [0, 1)")
+        self._entries = EntryTranches(
+            target_exposure=target_exposure,
+            max_tranches=max_tranches,
+            tranche_gap_bars=tranche_gap_bars,
+        )
+        self.target_exposure = self._entries.target_exposure
+        if self._entries.partial:
+            self.uses_position_sizing = True
         self.period = period
         self.swing_window_bars = swing_window_bars
         self.divergence_rsi_level = divergence_rsi_level
@@ -61,10 +73,16 @@ class RsiDivergenceAlgorithm(Algorithm):
         self._in_position = False
         self._stop_price = 0.0
         self._peak_close = 0.0
+        self._size: OrderSize | None = None
+        self._entries.reset()
+
+    def order_size(self) -> OrderSize | None:
+        return self._size
 
     def sync_open_position(self, in_position: bool) -> None:
         if not in_position:
             self._in_position = False
+            self._entries.reset()
 
     def _confirmed_pivot(self, values: deque[float], is_low: bool) -> tuple[float, float, float] | None:
         series = list(values)
@@ -81,6 +99,7 @@ class RsiDivergenceAlgorithm(Algorithm):
         high = float(bar["high"])
         low = float(bar["low"])
         close = float(bar["close"])
+        self._entries.tick()
         self._highs.append(high)
         self._lows.append(low)
         self._rsis.append(rsi_update(self._rsi, close))
@@ -111,7 +130,19 @@ class RsiDivergenceAlgorithm(Algorithm):
             trailing = self.trailing_stop_pct > 0 and close <= self._peak_close * (1 - self.trailing_stop_pct)
             if low <= self._stop_price or trailing or bearish:
                 self._in_position = False
+                self._size = self._entries.note_exit()
                 return "sell"
+            if self._setup is not None:
+                if close > self._setup["trigger"]:
+                    # Tranche add: keep the original stop / target anchor.
+                    self._setup = None
+                    if self._entries.allows_entry():
+                        self._size = self._entries.note_entry()
+                        return "buy"
+                else:
+                    self._setup["bars_left"] -= 1
+                    if self._setup["bars_left"] <= 0 or close < self._setup["swing_low"]:
+                        self._setup = None
             return "hold"
 
         if self._setup is not None:
@@ -120,6 +151,7 @@ class RsiDivergenceAlgorithm(Algorithm):
                 self._setup = None
                 self._in_position = True
                 self._peak_close = close
+                self._size = self._entries.note_entry()
                 return "buy"
             self._setup["bars_left"] -= 1
             if self._setup["bars_left"] <= 0 or close < self._setup["swing_low"]:

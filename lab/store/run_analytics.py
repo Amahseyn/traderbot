@@ -195,10 +195,23 @@ def compute_run_analytics(metrics: dict[str, Any]) -> dict[str, Any]:
         "exposure_pct": _round(exposure_pct, 2),
         "total_fees": _round(_number(metrics.get("total_fees")) or _number(cash_flow.get("total_fees"))),
     }
+    win_rate_points: list[dict[str, Any]] = []
+    running_wins = 0
+    for trip_index, trip in enumerate(trips, start=1):
+        if trip["pnl"] > 0:
+            running_wins += 1
+        win_rate_points.append(
+            {
+                "timestamp": trip.get("exit_timestamp"),
+                "win_rate_pct": _round(running_wins / trip_index * 100.0, 2),
+            }
+        )
+
     return {
         "summary": summary,
         "equity_curve": _downsample(curve),
         "drawdown_curve": _downsample(drawdown_points),
+        "win_rate_curve": _downsample(win_rate_points),
         "trade_pnls": [
             {
                 "index": index + 1,

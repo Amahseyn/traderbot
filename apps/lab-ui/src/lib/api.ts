@@ -17,23 +17,36 @@ export type DashboardStats = {
     best_return: number | null;
     worst_return: number | null;
     positive_pct: number | null;
+    avg_win_rate?: number | null;
   };
   top_strategies: Array<{
     strategy_id: string;
     n: number;
     best_return: number | null;
     avg_return: number | null;
+    avg_win_rate?: number | null;
   }>;
   strategy_catalog_stats?: Array<{
     strategy_id: string;
     n: number;
     best_return: number | null;
     avg_return: number | null;
+    avg_win_rate?: number | null;
   }>;
-  top_markets: Array<{ symbol: string; n: number; best_return: number | null; avg_return: number | null }>;
-  top_intervals: Array<
-    { interval_label: string; n: number; best_return: number | null; avg_return: number | null }
-  >;
+  top_markets: Array<{
+    symbol: string;
+    n: number;
+    best_return: number | null;
+    avg_return: number | null;
+    avg_win_rate?: number | null;
+  }>;
+  top_intervals: Array<{
+    interval_label: string;
+    n: number;
+    best_return: number | null;
+    avg_return: number | null;
+    avg_win_rate?: number | null;
+  }>;
 };
 
 export type ArtifactRef = {
@@ -51,6 +64,7 @@ export type EvaluationRun = {
   resolution: string | null;
   horizon_label: string | null;
   parameters: Record<string, unknown>;
+  optimizer_enabled?: boolean;
   data_context: Record<string, unknown>;
   metrics: Record<string, unknown>;
   created_at_utc: string;
@@ -71,6 +85,7 @@ export type ConfigurationRow = {
   resolution: string | null;
   horizon_label: string | null;
   parameters: Record<string, unknown>;
+  optimizer_enabled?: boolean;
   data_context: Record<string, unknown>;
   created_at_utc: string;
   dataset_id: string | null;
@@ -176,6 +191,7 @@ export type LiveStrategyRankRow = {
   strategy_id: string;
   rank: number;
   return_pct: number | null;
+  win_rate_pct?: number | null;
   max_drawdown_pct?: number | null;
   trade_count?: number | null;
   final_equity?: number | null;
@@ -405,6 +421,7 @@ export type PairBacktestResult = {
   initial_cash: number;
   final_equity: number;
   return_pct: number;
+  win_rate_pct?: number | null;
   max_drawdown_pct: number;
   total_fees: number;
   trade_count: number;
@@ -425,6 +442,7 @@ export type FundingBacktestResult = {
   exchange: string;
   src: string;
   return_pct: number;
+  win_rate_pct?: number | null;
   max_drawdown_pct: number;
   total_funding_pnl: number;
   total_fees: number;
@@ -436,6 +454,7 @@ export type FundingBacktestResult = {
 export type GridBacktestResult = {
   exchange: string;
   return_pct: number;
+  win_rate_pct?: number | null;
   trade_count: number;
   final_equity: number;
   total_fees: number;
@@ -461,6 +480,13 @@ export const api = {
     strategy_id?: string;
     model_id?: string;
     horizon_label?: string;
+    resolution?: string;
+    outcome?: string;
+    optimizer?: string;
+    trades?: string;
+    date_range?: string;
+    query?: string;
+    sort_by?: string;
   }) => {
     const q = new URLSearchParams();
     q.set("limit", String(params.limit));
@@ -470,6 +496,13 @@ export const api = {
     if (params.strategy_id) q.set("strategy_id", params.strategy_id);
     if (params.model_id) q.set("model_id", params.model_id);
     if (params.horizon_label) q.set("horizon_label", params.horizon_label);
+    if (params.resolution) q.set("resolution", params.resolution);
+    if (params.outcome) q.set("outcome", params.outcome);
+    if (params.optimizer) q.set("optimizer", params.optimizer);
+    if (params.trades) q.set("trades", params.trades);
+    if (params.date_range) q.set("date_range", params.date_range);
+    if (params.query) q.set("query", params.query);
+    if (params.sort_by) q.set("sort_by", params.sort_by);
     return fetchJsonWithTotal<EvaluationRun[]>(`/api/runs?${q.toString()}`);
   },
   run: (id: string) => fetchJson<EvaluationRun>(`/api/runs/${id}`),
@@ -885,6 +918,7 @@ export type RunAnalytics = {
   summary: RunAnalyticsSummary;
   equity_curve: { timestamp: number | null; equity: number }[];
   drawdown_curve: { timestamp: number | null; drawdown_pct: number | null }[];
+  win_rate_curve?: { timestamp: number | null; win_rate_pct: number }[];
   trade_pnls: {
     index: number;
     side: string;

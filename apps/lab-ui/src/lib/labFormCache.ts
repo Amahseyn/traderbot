@@ -26,8 +26,10 @@ export type CustomResearchDraft = {
   runEndLocal: string;
   useOptimizedStrategyParams: boolean;
   optimizeBeforeCompare: boolean;
+  optimizeMethod?: "optuna" | "grid";
   optimizeSelectionMode: "validation" | "in_sample";
   optimizeHoldoutBars: string;
+  optimizeRankBy?: string;
   strategyManualParams: Record<string, unknown>;
 };
 
@@ -124,9 +126,11 @@ export function loadCustomResearchDraft(): CustomResearchDraft | null {
       runEndLocal: typeof raw.runEndLocal === "string" ? raw.runEndLocal : "",
       useOptimizedStrategyParams: raw.useOptimizedStrategyParams !== false,
       optimizeBeforeCompare: Boolean(raw.optimizeBeforeCompare),
+      optimizeMethod: raw.optimizeMethod === "grid" ? "grid" : "optuna",
       optimizeSelectionMode:
         raw.optimizeSelectionMode === "in_sample" ? "in_sample" : "validation",
       optimizeHoldoutBars: typeof raw.optimizeHoldoutBars === "string" ? raw.optimizeHoldoutBars : "",
+      optimizeRankBy: typeof raw.optimizeRankBy === "string" ? raw.optimizeRankBy : "return_pct",
       strategyManualParams: isRecord(raw.strategyManualParams) ? raw.strategyManualParams : {},
     };
   });

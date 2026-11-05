@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 from typing import Any
@@ -12,10 +13,19 @@ from traderbot.backtesting.compare_session import (
 )
 from traderbot.data.export import run_export
 from traderbot.markets.market_data import market_symbol
+from traderbot.results.layout import (
+    default_strategy_batch_out,
+    default_strategy_compare_out,
+)
+from traderbot.solutions.layout import solution_slug
 from traderbot.utils.trading_costs import (
     DEFAULT_BACKTEST_EXECUTION,
     optional_rate,
 )
+
+
+def _run_timestamp() -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
 
 
 def run_finrl_platform_task(body: dict[str, Any]) -> None:
@@ -120,11 +130,18 @@ def run_strategy_compare_task(body: dict[str, Any], csv_path: str) -> None:
     csv = Path(csv_path)
     out = body.get("out")
     mode = str(body.get("mode") or "strategies")
+    strategy_ids = body.get("strategy_ids")
+    strategy_id_set = frozenset(str(item) for item in strategy_ids) if strategy_ids else None
+    max_strategies = int(body["max_strategies"]) if body.get("max_strategies") is not None else None
     print(f"compare: preparing {csv.name} ({mode}) …", flush=True)
+    if out:
+        out_dir = Path(str(out))
+    else:
+        out_dir = default_strategy_compare_out(csv) / _run_timestamp()
     run_strategy_compare(
         StrategyCompareOptions(
             csv_path=csv,
-            out_dir=Path(str(out)) if out else None,
+            out_dir=out_dir,
             visualize=bool(body.get("visualize", True)),
             cash=float(body.get("cash") or 10_000.0),
             fee=optional_rate(body.get("fee")),
@@ -134,6 +151,8 @@ def run_strategy_compare_task(body: dict[str, Any], csv_path: str) -> None:
             vectorbt=bool(body.get("vectorbt")),
             strategy_namespace=_strategy_namespace_from_body(body),
             mode=mode,
+            strategy_ids=strategy_id_set,
+            max_strategies=max_strategies,
             use_optimized_strategy_params=bool(body.get("use_optimized_strategy_params", True)),
             allow_short=bool(body.get("allow_short")) if body.get("allow_short") is not None else None,
         ),
@@ -156,11 +175,15 @@ def run_strategy_test_task(body: dict[str, Any], csv_path: str) -> None:
     mode = str(body.get("mode") or "strategies")
     strategy_id = str(body.get("strategy_id") or "")
     print(f"strategy test: preparing {strategy_id} on {csv.name} ({mode}) …", flush=True)
+    if out:
+        out_dir = Path(str(out))
+    else:
+        out_dir = default_strategy_batch_out(strategy_id) / csv.stem / _run_timestamp()
     run_strategy_test(
         StrategyTestOptions(
             csv_path=csv,
             strategy_id=strategy_id,
-            out_dir=Path(str(out)) if out else None,
+            out_dir=out_dir,
             visualize=bool(body.get("visualize", True)),
             cash=float(body.get("cash") or 10_000.0),
             fee=optional_rate(body.get("fee")),
@@ -170,6 +193,9 @@ def run_strategy_test_task(body: dict[str, Any], csv_path: str) -> None:
             vectorbt=bool(body.get("vectorbt")),
             strategy_namespace=_strategy_namespace_from_body(body),
             mode=mode,
+            use_optimized_strategy_params=bool(body.get("use_optimized_strategy_params", True)),
+            allow_short=bool(body.get("allow_short")) if body.get("allow_short") is not None else None,
+            apply_sweep_winner=bool(body.get("apply_sweep_winner", False)),
         ),
         log=lambda message: print(message, flush=True),
     )
@@ -238,6 +264,8 @@ def run_named_pipeline_task(body: dict[str, Any]) -> None:
         kwargs["all_assets"] = bool(body["all_assets"])
         if kwargs["all_assets"]:
             kwargs.pop("csv_path", None)
+    if "results_dir" not in kwargs and not body.get("results_dir"):
+        kwargs["results_dir"] = Path("solutions") / solution_slug(pipeline_id) / _run_timestamp()
     result = run_pipeline(pipeline_id, **kwargs)
     print(
         json.dumps(

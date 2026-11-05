@@ -8,6 +8,8 @@ import { OptimizerDatasetSection } from "@/components/OptimizerDatasetSection";
 import { Button } from "@/components/ui/Button";
 import { Field, SelectInput, TextInput } from "@/components/ui/Field";
 import { api, type StrategyParamField } from "@/lib/api";
+import { formatWinRate } from "@/lib/format";
+import { extractWinRatePct } from "@/lib/runDisplay";
 import {
   loadOptimizerSweepDraft,
   saveOptimizerSweepDraft,
@@ -121,6 +123,7 @@ export function StrategySweepForm({
   const [sweepFullGrid, setSweepFullGrid] = useState(true);
   const [sweepOptimizeMethod, setSweepOptimizeMethod] = useState<"grid" | "optuna">("optuna");
   const [sweepOptunaTrials, setSweepOptunaTrials] = useState("80");
+  const [sweepRankBy, setSweepRankBy] = useState("return_pct");
   const [sweepBase, setSweepBase] = useState<Record<string, unknown>>({});
   const [sweepBaseFor, setSweepBaseFor] = useState("");
   const [showSweepBase, setShowSweepBase] = useState(false);
@@ -151,6 +154,9 @@ export function StrategySweepForm({
       setSweepFullGrid(draft.sweepFullGrid);
       setSweepOptimizeMethod(draft.sweepOptimizeMethod);
       setSweepOptunaTrials(draft.sweepOptunaTrials);
+      if (draft.sweepRankBy) {
+        setSweepRankBy(draft.sweepRankBy);
+      }
       setDraftRestored(true);
     }
     setFormReady(true);
@@ -208,6 +214,7 @@ export function StrategySweepForm({
       sweepFullGrid,
       sweepOptimizeMethod,
       sweepOptunaTrials,
+      sweepRankBy,
     };
     saveOptimizerSweepDraft(payload);
   }, [
@@ -229,6 +236,7 @@ export function StrategySweepForm({
     sweepFullGrid,
     sweepOptimizeMethod,
     sweepOptunaTrials,
+    sweepRankBy,
   ]);
 
   const bestSweepQuery = useQuery({
@@ -350,6 +358,7 @@ export function StrategySweepForm({
         full_grid: sweepFullGrid,
         optimize_method: sweepOptimizeMethod,
         optimize_selection_mode: sweepSelectionMode,
+        rank_by: sweepRankBy,
         ...sweepBase,
         cash: Number(sweepCash),
         fee: Number(sweepFee) / 100,
@@ -385,9 +394,11 @@ export function StrategySweepForm({
     const metrics = bestSweepQuery.data.best_metrics ?? {};
     const ret = metrics.return_pct;
     const hold = metrics.holdout_return_pct;
+    const wr = extractWinRatePct(metrics);
     const parts: string[] = [];
     if (ret != null) parts.push(`validation ${Number(ret).toFixed(2)}%`);
     if (hold != null) parts.push(`holdout ${Number(hold).toFixed(2)}%`);
+    if (wr != null) parts.push(`win rate ${formatWinRate(wr)}`);
     return parts.length ? parts.join(" · ") : null;
   }, [bestSweepQuery.data]);
 
@@ -577,6 +588,19 @@ export function StrategySweepForm({
                 value={sweepFee}
                 onChange={(event) => setSweepFee(event.target.value)}
               />
+            </Field>
+            <Field
+              label="Optimization objective"
+              hint="Maximize return (with win rate tie-breaker) or target win rate directly."
+            >
+              <SelectInput
+                value={sweepRankBy}
+                onChange={(event) => setSweepRankBy(event.target.value)}
+              >
+                <option value="return_pct">Maximize return (win rate tie-breaker)</option>
+                <option value="win_rate">Maximize win rate (return tie-breaker)</option>
+                <option value="edge">Maximize edge (net expectancy &amp; t-stat)</option>
+              </SelectInput>
             </Field>
             <Field
               label="Selection mode"

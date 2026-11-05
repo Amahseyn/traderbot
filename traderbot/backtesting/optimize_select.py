@@ -57,6 +57,7 @@ class OptimizeSelectConfig:
     optuna_sampler: Literal["tpe", "random"] = "tpe"
     full_grid_hints: bool = True
     warmup_bars: int = 0
+    rank_by: str = "return_pct"
 
 
 def _validation_payload_to_sweep(
@@ -73,11 +74,18 @@ def _validation_payload_to_sweep(
         train_summary = dict(row.get("train") or {})
         validation_summary = dict(row.get("validation") or {})
         params = dict(row.get("params") or {})
+        val_wr = validation_summary.get("win_rate_pct")
+        if val_wr is None and validation_summary.get("trade_win_rate") is not None:
+            val_wr = round(float(validation_summary["trade_win_rate"]) * 100.0, 2)
+        if val_wr is None:
+            val_wr = train_summary.get("win_rate_pct")
         merged = {
             **train_summary,
             "params": params,
             "validation_return_pct": validation_summary.get("return_pct"),
             "validation_trades": validation_summary.get("trades"),
+            "validation_win_rate_pct": val_wr,
+            "win_rate_pct": val_wr if val_wr is not None else train_summary.get("win_rate_pct"),
             "eligible": bool(row.get("eligible")),
         }
         rows.append(merged)
@@ -86,11 +94,18 @@ def _validation_payload_to_sweep(
     if winner:
         train_summary = dict(winner.get("train") or {})
         validation_summary = dict(winner.get("validation") or {})
+        val_wr = validation_summary.get("win_rate_pct")
+        if val_wr is None and validation_summary.get("trade_win_rate") is not None:
+            val_wr = round(float(validation_summary["trade_win_rate"]) * 100.0, 2)
+        if val_wr is None:
+            val_wr = train_summary.get("win_rate_pct")
         best_row = {
             **train_summary,
             "params": dict(winner.get("params") or {}),
             "validation_return_pct": validation_summary.get("return_pct"),
             "validation_trades": validation_summary.get("trades"),
+            "validation_win_rate_pct": val_wr,
+            "win_rate_pct": val_wr if val_wr is not None else train_summary.get("win_rate_pct"),
             "eligible": bool(winner.get("eligible")),
         }
 
@@ -219,6 +234,33 @@ def run_strategy_optimize(
     cfg = config or OptimizeSelectConfig()
     mode = cfg.selection_mode
     bar_count = _bar_count_for_options(options)
+
+    effective_holdout = options.holdout_tail_bars
+    if bar_count <= 10:
+        effective_holdout = None
+    elif effective_holdout is not None and effective_holdout >= bar_count - 1:
+        effective_holdout = holdout_tail_for_bar_count(bar_count, holdout_fraction=cfg.holdout_fraction)
+    elif effective_holdout is None and bar_count > 10:
+        effective_holdout = holdout_tail_for_bar_count(bar_count, holdout_fraction=cfg.holdout_fraction)
+
+    effective_rank_by = cfg.rank_by or options.rank_by
+    if effective_holdout != options.holdout_tail_bars or effective_rank_by != options.rank_by:
+        options = SweepOptions(
+            csv_path=options.csv_path,
+            strategy_id=options.strategy_id,
+            param_grid=options.param_grid,
+            bars=options.bars,
+            cash=options.cash,
+            fee=options.fee,
+            slippage=options.slippage,
+            exchange=options.exchange,
+            execution=options.execution,
+            holdout_tail_bars=effective_holdout,
+            min_trades=options.min_trades,
+            max_combos=options.max_combos,
+            max_bars=options.max_bars,
+            rank_by=effective_rank_by,
+        )
 
     if cfg.optimizer_method == "optuna":
         from traderbot.backtesting.optuna_tune import OptunaTuneConfig, run_strategy_optuna_in_sample, run_strategy_optuna_tune
@@ -357,6 +399,7 @@ def optimize_config_from_body(body: dict[str, Any]) -> OptimizeSelectConfig:
     warmup_bars = int(warmup_raw) if warmup_raw not in (None, "") else 0
     if warmup_bars < 0:
         raise ValueError("warmup_bars must be >= 0")
+    rank_by = str(body.get("rank_by") or body.get("optimize_rank_by") or "return_pct").strip().lower()
     return OptimizeSelectConfig(
         selection_mode=normalize_optimize_selection_mode(body.get("optimize_selection_mode")),
         train_fraction=train_fraction,
@@ -370,4 +413,5 @@ def optimize_config_from_body(body: dict[str, Any]) -> OptimizeSelectConfig:
         optuna_sampler=optuna_sampler,
         full_grid_hints=bool(body.get("full_grid", True)),
         warmup_bars=warmup_bars,
+        rank_by=rank_by,
     )

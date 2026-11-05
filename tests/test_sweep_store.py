@@ -373,6 +373,9 @@ def test_migration_backfills_sweep_horizon_labels(tmp_path: Path):
     finally:
         connection.close()
 
+    from lab.store.database import _DATABASE_INITIALIZED
+    _DATABASE_INITIALIZED.discard(str(database_path.resolve()))
+
     connection = open_database(database_path)
     try:
         row = connection.execute(

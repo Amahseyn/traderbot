@@ -16,6 +16,26 @@ def _write_csv(path, closes):
             handle.write(f"{index},{close},{close},{close},{close},1.0\n")
 
 
+def test_sweep_rank_key_supports_return_and_win_rate():
+    row_a = {"eligible": True, "return_pct": 10.0, "win_rate_pct": 50.0}
+    row_b = {"eligible": True, "return_pct": 10.0, "win_rate_pct": 70.0}
+    row_c = {"eligible": True, "return_pct": 15.0, "win_rate_pct": 40.0}
+
+    # When maximizing return, return is primary; win rate is secondary tie-breaker
+    key_a = sweep_rank_key(row_a, rank_by="return_pct")
+    key_b = sweep_rank_key(row_b, rank_by="return_pct")
+    key_c = sweep_rank_key(row_c, rank_by="return_pct")
+    assert key_b > key_a  # Same return (10.0), higher win rate (70 vs 50) wins tie-breaker
+    assert key_c > key_b  # Higher return (15.0 vs 10.0) wins primary
+
+    # When maximizing win rate, win rate is primary; return is secondary tie-breaker
+    wr_key_a = sweep_rank_key(row_a, rank_by="win_rate")
+    wr_key_b = sweep_rank_key(row_b, rank_by="win_rate")
+    wr_key_c = sweep_rank_key(row_c, rank_by="win_rate")
+    assert wr_key_b > wr_key_c  # 70% win rate beats 40% win rate
+    assert wr_key_a > wr_key_c  # 50% win rate beats 40% win rate
+
+
 def test_parse_sweep_param_typed_values():
     name, values = parse_sweep_param("fast=5,10,20")
     assert name == "fast"
@@ -135,6 +155,7 @@ def test_strategy_param_names_follow_registry():
         "fast",
         "slow",
         "price_confirm",
+        "target_exposure",
         "context_bars",
         "buy_min_recent_return",
         "sell_max_recent_return",
@@ -145,6 +166,9 @@ def test_strategy_param_names_follow_registry():
         "period",
         "oversold",
         "overbought",
+        "target_exposure",
+        "max_tranches",
+        "tranche_gap_bars",
         "context_bars",
         "buy_min_recent_return",
         "sell_max_recent_return",
@@ -156,7 +180,17 @@ def test_strategy_param_names_follow_registry():
         "min_swing_separation_bars",
         "pattern_tolerance_ratio",
         "pattern_score_threshold",
+        "target_exposure",
+        "max_tranches",
+        "tranche_gap_bars",
     ]
-    assert strategy_param_names("breakout_atr") == ["lookback_bars", "atr_period", "atr_multiplier"]
+    assert strategy_param_names("breakout_atr") == [
+        "lookback_bars",
+        "atr_period",
+        "atr_multiplier",
+        "target_exposure",
+        "max_tranches",
+        "tranche_gap_bars",
+    ]
     with pytest.raises(ValueError):
         strategy_param_names("nope")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 from pathlib import Path
@@ -114,6 +115,59 @@ def backfill_sweep_horizon_labels(connection: sqlite3.Connection) -> int:
     return updated
 
 
+def backfill_runs_win_rate(connection: sqlite3.Connection) -> int:
+    """Populate win_rate_pct on historical evaluation runs with trade_logs or vectorbt."""
+    table = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'evaluation_runs'",
+    ).fetchone()
+    if table is None:
+        return 0
+    from lab.store.run_analytics import compute_run_analytics
+
+    rows = connection.execute(
+        """
+        SELECT id, metrics_json FROM evaluation_runs
+        WHERE json_extract(metrics_json, '$.win_rate_pct') IS NULL
+          AND (
+              json_extract(metrics_json, '$.trade_logs') IS NOT NULL
+              OR json_extract(metrics_json, '$.trade_win_rate') IS NOT NULL
+              OR json_extract(metrics_json, '$.vectorbt.win_rate_pct') IS NOT NULL
+              OR json_extract(metrics_json, '$.vbt_win_rate_pct') IS NOT NULL
+          )
+        """
+    ).fetchall()
+    updated = 0
+    for row in rows:
+        run_id = row["id"]
+        try:
+            metrics = json.loads(row["metrics_json"])
+        except (json.JSONDecodeError, TypeError):
+            continue
+        wr: float | None = None
+        if metrics.get("trade_logs"):
+            analytics = compute_run_analytics(metrics)
+            wr = analytics.get("summary", {}).get("win_rate_pct")
+        if wr is None and metrics.get("trade_win_rate") is not None:
+            twr = float(metrics["trade_win_rate"])
+            wr = round(twr * 100.0 if twr <= 1.0 else twr, 4)
+        if wr is None and isinstance(metrics.get("vectorbt"), dict):
+            vbt_wr = metrics["vectorbt"].get("win_rate_pct")
+            if vbt_wr is not None:
+                wr = float(vbt_wr)
+        if wr is None and metrics.get("vbt_win_rate_pct") is not None:
+            wr = float(metrics["vbt_win_rate_pct"])
+        if wr is not None:
+            metrics["win_rate_pct"] = wr
+            connection.execute(
+                "UPDATE evaluation_runs SET metrics_json = ? WHERE id = ?",
+                (json.dumps(metrics, default=str), run_id),
+            )
+            updated += 1
+    if updated > 0:
+        connection.commit()
+    return updated
+
+
 def _migrate_schema(connection: sqlite3.Connection) -> None:
     row = connection.execute(
         "SELECT value FROM schema_meta WHERE key = 'schema_version'",
@@ -125,6 +179,8 @@ def _migrate_schema(connection: sqlite3.Connection) -> None:
         refresh_market_catalog(connection, catalog_scope=CATALOG_SCOPE_DEFAULT_JOBS)
     if previous < 8:
         backfill_sweep_horizon_labels(connection)
+    if previous < 9:
+        backfill_runs_win_rate(connection)
 
 
 def ensure_marketcap_tables(connection: sqlite3.Connection) -> None:

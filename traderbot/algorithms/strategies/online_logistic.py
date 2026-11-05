@@ -12,7 +12,8 @@ from __future__ import annotations
 import math
 from collections import deque
 
-from traderbot.algorithms.base import Algorithm, Bar, SignalAction
+from traderbot.algorithms.base import Algorithm, Bar, OrderSize, SignalAction
+from traderbot.algorithms.position_sizing import EntryTranches
 from traderbot.algorithms.streaming import rsi_init, rsi_reset, rsi_update
 
 FEATURE_COUNT = 6
@@ -37,6 +38,9 @@ class OnlineLogisticAlgorithm(Algorithm):
         ml_sell_threshold = 0.40,
         ml_warmup_samples = 100,
         min_hold_bars = 3,
+        target_exposure: float = 1.0,
+        max_tranches: int = 1,
+        tranche_gap_bars: int = 0,
     ):
         if lookback_bars < MOMENTUM_BARS:
             raise ValueError(f"lookback_bars must be >= {MOMENTUM_BARS}")
@@ -48,6 +52,14 @@ class OnlineLogisticAlgorithm(Algorithm):
             raise ValueError("need 0 < ml_sell_threshold <= ml_buy_threshold < 1")
         if min_hold_bars < 0:
             raise ValueError("min_hold_bars must be >= 0")
+        self._entries = EntryTranches(
+            target_exposure=target_exposure,
+            max_tranches=max_tranches,
+            tranche_gap_bars=tranche_gap_bars,
+        )
+        self.target_exposure = self._entries.target_exposure
+        if self._entries.partial:
+            self.uses_position_sizing = True
         self.period = period
         self.lookback_bars = lookback_bars
         self.ml_horizon_bars = ml_horizon_bars
@@ -73,11 +85,17 @@ class OnlineLogisticAlgorithm(Algorithm):
         self._in_position = False
         self._bars_in_position = 0
         self.last_probability: float | None = None
+        self._size: OrderSize | None = None
+        self._entries.reset()
+
+    def order_size(self) -> OrderSize | None:
+        return self._size
 
     def sync_open_position(self, in_position: bool) -> None:
         self._in_position = in_position
         if not in_position:
             self._bars_in_position = 0
+            self._entries.reset()
 
     def _raw_features(self, close: float, volume: float, rsi_value: float) -> list[float] | None:
         closes = list(self._closes)
@@ -127,6 +145,7 @@ class OnlineLogisticAlgorithm(Algorithm):
     def on_bar(self, bar: Bar) -> SignalAction:
         close = float(bar["close"])
         volume = float(bar.get("volume") or 0.0)
+        self._entries.tick()
         rsi_value = rsi_update(self._rsi, close)
         raw = self._raw_features(close, volume, rsi_value) if rsi_value is not None else None
         self._closes.append(close)
@@ -146,11 +165,16 @@ class OnlineLogisticAlgorithm(Algorithm):
             if probability >= self.ml_buy_threshold:
                 self._in_position = True
                 self._bars_in_position = 1
+                self._size = self._entries.note_entry()
                 return "buy"
         else:
             self._bars_in_position += 1
             if probability <= self.ml_sell_threshold and self._bars_in_position >= self.min_hold_bars:
                 self._in_position = False
                 self._bars_in_position = 0
+                self._size = self._entries.note_exit()
                 return "sell"
+            if probability >= self.ml_buy_threshold and self._entries.allows_entry():
+                self._size = self._entries.note_entry()
+                return "buy"
         return "hold"

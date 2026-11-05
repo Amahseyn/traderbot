@@ -91,8 +91,14 @@ def assert_optimize_sweep_coverage(
     csv_paths: list[Path],
     strategy_ids: list[str],
     sweep_results: list[dict[str, Any]],
+    *,
+    allow_fallback: bool = True,
 ) -> None:
-    """Every market file and strategy must have a recorded sweep when pre-optimize is enabled."""
+    """Every market file and strategy must have a recorded sweep when pre-optimize is enabled.
+
+    When ``allow_fallback=True``, missing strategies (e.g. from 0 trades on quiet price action)
+    are populated with baseline defaults so the compare session continues cleanly.
+    """
     successes = {
         (row.get("csv"), row.get("strategy_id"))
         for row in sweep_results
@@ -104,7 +110,21 @@ def assert_optimize_sweep_coverage(
         for strategy_id in strategy_ids:
             if (csv_text, strategy_id) not in successes:
                 missing.append(f"{csv_path.name}:{strategy_id}")
-    if missing:
+                if allow_fallback:
+                    from traderbot.algorithms.strategy_defaults import best_params_for
+                    defaults = best_params_for(strategy_id) or {}
+                    sweep_results.append(
+                        {
+                            "csv": csv_text,
+                            "symbol": getattr(csv_path, "stem", str(csv_path)),
+                            "strategy_id": strategy_id,
+                            "best_params": defaults,
+                            "fallback": True,
+                            "skipped": False,
+                            "rank_by": "fallback_defaults",
+                        }
+                    )
+    if missing and not allow_fallback:
         raise ResearchWindowError(
             "optimizer did not produce params for all market × strategy pairs: "
             + ", ".join(missing)

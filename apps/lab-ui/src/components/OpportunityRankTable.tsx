@@ -3,13 +3,15 @@
 import { Fragment, useMemo, useState } from "react";
 import type { OpportunityDiscoveryRankRow } from "@/lib/opportunityDiscoveryLog";
 import { isMarketOpportunityRow } from "@/lib/opportunityDiscoveryLog";
-import { formatResolutionLabel } from "@/lib/format";
+import { formatResolutionLabel, formatWinRate } from "@/lib/format";
+import { PercentCell } from "@/components/ui/PercentCell";
 
 type SortKey =
   | "rank"
   | "composite_score"
   | "oos_return_pct"
   | "max_drawdown_pct"
+  | "win_rate_pct"
   | "trade_count"
   | "mean_quote_volume"
   | "return_1bar_pct"
@@ -158,6 +160,7 @@ export function OpportunityRankTable({
               {!coinbeaconMode && <th>ATR %</th>}
               {!coinbeaconMode && header("OOS return", "oos_return_pct")}
               {!coinbeaconMode && header("Max DD", "max_drawdown_pct")}
+              {!coinbeaconMode && header("Win rate", "win_rate_pct")}
               {!coinbeaconMode && header("Trades", "trade_count")}
               {!coinbeaconMode && <th>WF stability</th>}
               {coinbeaconMode && coinDetails && <th />}
@@ -179,24 +182,29 @@ export function OpportunityRankTable({
                     {!coinbeaconMode && <td>{row.strategy_id?.trim() ? row.strategy_id : "—"}</td>}
                     {coinbeaconMode && <td className="font-mono text-xs">{row.symbol ?? "—"}</td>}
                     {coinbeaconMode && <td>{formatNum(row.trend_score_1d, 0)}</td>}
-                    {coinbeaconMode && <td>{formatPct(row.pctChange_h24)}</td>}
-                    {coinbeaconMode && <td>{formatVolume(row.mean_quote_volume ?? row.volume24h)}</td>}
+                    {coinbeaconMode && <td className="text-right whitespace-nowrap"><PercentCell value={row.pctChange_h24} /></td>}
+                    {coinbeaconMode && <td className="text-right tabular-nums">{formatVolume(row.mean_quote_volume ?? row.volume24h)}</td>}
                     {coinbeaconMode && (
                       <td className="max-w-[14rem] truncate text-xs text-muted" title={(row.preset_hits ?? []).join(", ")}>
                         {(row.preset_hits ?? []).length > 0 ? row.preset_hits!.join(", ") : "—"}
                       </td>
                     )}
-                    <td>{formatNum(row.composite_score, 3)}</td>
+                    <td className="text-right tabular-nums">{formatNum(row.composite_score, 3)}</td>
                     {!coinbeaconMode && <td className="text-muted">{row.regime_label ?? "—"}</td>}
-                    {!coinbeaconMode && <td>{formatVolume(row.mean_quote_volume)}</td>}
-                    {!coinbeaconMode && <td>{formatPct(row.return_1bar_pct)}</td>}
-                    {!coinbeaconMode && <td>{formatPct(row.return_7bar_pct)}</td>}
-                    {!coinbeaconMode && <td>{formatPct(row.return_30bar_pct)}</td>}
-                    {!coinbeaconMode && <td>{formatPct(row.realized_vol_pct)}</td>}
-                    {!coinbeaconMode && <td>{formatPct(row.range_pct_1bar)}</td>}
-                    {!coinbeaconMode && <td>{formatPct(row.atr_pct)}</td>}
-                    {!coinbeaconMode && <td>{formatPct(row.oos_return_pct)}</td>}
-                    {!coinbeaconMode && <td>{formatPct(row.max_drawdown_pct)}</td>}
+                    {!coinbeaconMode && <td className="text-right tabular-nums">{formatVolume(row.mean_quote_volume)}</td>}
+                    {!coinbeaconMode && <td className="text-right whitespace-nowrap"><PercentCell value={row.return_1bar_pct} showArrow={false} /></td>}
+                    {!coinbeaconMode && <td className="text-right whitespace-nowrap"><PercentCell value={row.return_7bar_pct} showArrow={false} /></td>}
+                    {!coinbeaconMode && <td className="text-right whitespace-nowrap"><PercentCell value={row.return_30bar_pct} showArrow={false} /></td>}
+                    {!coinbeaconMode && <td className="text-right whitespace-nowrap"><PercentCell value={row.realized_vol_pct} showArrow={false} /></td>}
+                    {!coinbeaconMode && <td className="text-right whitespace-nowrap"><PercentCell value={row.range_pct_1bar} showArrow={false} /></td>}
+                    {!coinbeaconMode && <td className="text-right whitespace-nowrap"><PercentCell value={row.atr_pct} showArrow={false} /></td>}
+                    {!coinbeaconMode && <td className="text-right whitespace-nowrap"><PercentCell value={row.oos_return_pct} showArrow={false} /></td>}
+                    {!coinbeaconMode && <td className="text-right whitespace-nowrap"><PercentCell value={row.max_drawdown_pct} showArrow={false} /></td>}
+                    {!coinbeaconMode && (
+                      <td className="font-mono text-xs tabular-nums text-white">
+                        {formatWinRate(row.win_rate_pct)}
+                      </td>
+                    )}
                     {!coinbeaconMode && <td>{row.trade_count ?? "—"}</td>}
                     {!coinbeaconMode && <td>{formatNum(row.walk_forward_stability, 2)}</td>}
                     {coinbeaconMode && coinDetails && (

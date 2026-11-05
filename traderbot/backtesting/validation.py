@@ -468,3 +468,54 @@ def run_leakage_safe_leaderboard(
         "test_buy_and_hold_return_pct": round(benchmark_return, 6),
         "top_strategies_test": test_rows,
     }
+
+
+def audit_backtest_causality(
+    result: Any,
+    bars: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Audit a backtest run for timing, lookahead bias, and causality compliance.
+
+    Follows the institutional 'lookahead-bias-elimination' skill protocol:
+    1. Audits execution mode ('next_open' vs 'close').
+    2. Flags SAME_BAR_FILL_CONTAMINATION when signals execute at the decision bar close.
+    3. Verifies that trade timestamps monotonically follow chronological ordering.
+    """
+    findings: list[dict[str, Any]] = []
+    execution = getattr(result, "execution", "unknown")
+    trades = getattr(result, "trades", [])
+
+    if execution == "close":
+        findings.append(
+            {
+                "type": "SAME_BAR_FILL_CONTAMINATION",
+                "severity": "WARNING",
+                "message": (
+                    "Execution mode 'close' fills market orders at the signal bar close. "
+                    "This introduces same-bar lookahead; use execution='next_open' for causal out-of-sample validation."
+                ),
+            }
+        )
+
+    last_ts = -1
+    for trade_idx, trade in enumerate(trades):
+        ts = getattr(trade, "timestamp", 0)
+        if ts < last_ts:
+            findings.append(
+                {
+                    "type": "TIMESTAMP_CAUSALITY_BREACH",
+                    "severity": "ERROR",
+                    "trade_index": trade_idx,
+                    "message": f"Trade at index {trade_idx} has timestamp {ts} prior to previous trade timestamp {last_ts}.",
+                }
+            )
+        last_ts = ts
+
+    is_causal = not any(f["severity"] == "ERROR" for f in findings) and execution != "close"
+    return {
+        "is_causal": is_causal,
+        "clean": len(findings) == 0,
+        "execution_mode": execution,
+        "total_trades": len(trades),
+        "findings": findings,
+    }

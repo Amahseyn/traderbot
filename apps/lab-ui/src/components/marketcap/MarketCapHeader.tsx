@@ -2,20 +2,14 @@
 
 import { MarketCapGlobal } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { PercentCell } from "@/components/ui/PercentCell";
+import { formatCompact } from "@/lib/format";
 
 interface MarketCapHeaderProps {
   metrics: MarketCapGlobal | null;
   isLoading: boolean;
   isRefreshing: boolean;
   onRefresh: () => void;
-}
-
-function formatCurrency(val: number | null | undefined): string {
-  if (val === null || val === undefined) return "—";
-  if (val >= 1e12) return `$${(val / 1e12).toFixed(2)}T`;
-  if (val >= 1e9) return `$${(val / 1e9).toFixed(2)}B`;
-  if (val >= 1e6) return `$${(val / 1e6).toFixed(2)}M`;
-  return `$${val.toLocaleString()}`;
 }
 
 export function MarketCapHeader({
@@ -39,17 +33,10 @@ export function MarketCapHeader({
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-lg font-bold tracking-tight text-white tabular-nums sm:text-xl">
-                {isLoading ? "..." : formatCurrency(metrics?.total_market_cap_usd)}
+                {isLoading ? "..." : formatCompact(metrics?.total_market_cap_usd)}
               </span>
               {metrics && (
-                <span
-                  className={`inline-flex items-center text-xs font-semibold tabular-nums ${
-                    isPos ? "text-emerald-400" : "text-rose-400"
-                  }`}
-                >
-                  {isPos ? "+" : ""}
-                  {capChange.toFixed(2)}%
-                </span>
+                <PercentCell value={capChange} className="text-xs" />
               )}
             </div>
           </div>
@@ -60,7 +47,7 @@ export function MarketCapHeader({
               24h Total Volume
             </div>
             <div className="text-lg font-bold tracking-tight text-white tabular-nums sm:text-xl">
-              {isLoading ? "..." : formatCurrency(metrics?.total_volume_24h_usd)}
+              {isLoading ? "..." : formatCompact(metrics?.total_volume_24h_usd)}
             </div>
           </div>
 

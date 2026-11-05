@@ -1,8 +1,9 @@
 from collections import deque
 
 from traderbot.algorithms.bands import bollinger_init, bollinger_reset, bollinger_update
-from traderbot.algorithms.base import Algorithm, Bar, OrderSpec, SignalAction
+from traderbot.algorithms.base import Algorithm, Bar, OrderSize, OrderSpec, SignalAction
 from traderbot.algorithms.entry_orders import MakerEntry
+from traderbot.algorithms.position_sizing import EntryTranches
 from traderbot.algorithms.price_context import apply_mean_reversion_context, signal_clears_cost
 from traderbot.algorithms.validators import validate_bollinger, validate_cost_edge, validate_price_context
 
@@ -35,10 +36,21 @@ class BollingerMeanReversionAlgorithm(Algorithm):
         entry_ttl_bars: int = 2,
         stop_loss_pct: float | None = None,
         take_profit_pct: float | None = None,
+        target_exposure: float = 1.0,
+        max_tranches: int = 1,
+        tranche_gap_bars: int = 0,
     ):
         validate_bollinger(period, num_std)
         validate_price_context(context_bars, buy_min_recent_return, sell_max_recent_return)
         validate_cost_edge(min_edge_over_cost, roundtrip_cost_pct)
+        self._entries = EntryTranches(
+            target_exposure=target_exposure,
+            max_tranches=max_tranches,
+            tranche_gap_bars=tranche_gap_bars,
+        )
+        self.target_exposure = self._entries.target_exposure
+        if self._entries.partial:
+            self.uses_position_sizing = True
         self.period = period
         self.num_std = num_std
         self.context_bars = context_bars
@@ -61,6 +73,7 @@ class BollingerMeanReversionAlgorithm(Algorithm):
         close_history = max(period, context_bars + 1, 1)
         self._closes: deque[float] = deque(maxlen=close_history)
         self._spec: OrderSpec | None = None
+        self._size: OrderSize | None = None
 
     @property
     def entry_order_mode(self) -> str:
@@ -73,13 +86,19 @@ class BollingerMeanReversionAlgorithm(Algorithm):
     def order_spec(self) -> OrderSpec | None:
         return self._spec
 
+    def order_size(self) -> OrderSize | None:
+        return self._size
+
     def reset(self) -> None:
         bollinger_reset(self._bands)
         self._closes.clear()
         self._spec = None
+        self._size = None
+        self._entries.reset()
 
     def on_bar(self, bar: Bar) -> SignalAction:
         close = float(bar["close"])
+        self._entries.tick()
         self._closes.append(close)
         self._spec = None
         levels = bollinger_update(self._bands, close)
@@ -111,5 +130,9 @@ class BollingerMeanReversionAlgorithm(Algorithm):
             sell_max_fine_last_5m=self.sell_max_fine_last_5m,
         )
         if action != "hold":
+            if action == "buy" and not self._entries.allows_entry():
+                self._size = self._entries.repeat_entry()
+            else:
+                self._size = self._entries.note_entry() if action == "buy" else self._entries.note_exit()
             self._spec = self._entry.spec_for(action, close)
         return action
